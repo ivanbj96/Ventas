@@ -3,74 +3,124 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>POS App Pro</title>
-  <link rel="stylesheet" href="style.css" />
- <!-- <link rel="manifest" href="manifest.json" /> -->
-  <meta name="theme-color" content="#4CAF50" />
+  <title>App POS - PWA</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
   <header>
-    <h1>POS App Pro</h1>
-    <nav>
-      <button onclick="cambiarVista('ventas')">Ventas</button>
-      <button onclick="cambiarVista('balance')">Balance</button>
-      <button onclick="cambiarVista('deudas')">Deudas</button>
-      <button onclick="cambiarVista('inventario')">Inventario</button>
-    </nav>
+    <div class="logo"></div>
+    <h1>Mi App POS</h1>
   </header>
 
   <main>
-    <!-- VISTA: VENTAS -->
-    <section id="vista-ventas" class="vista">
-      <h2>Registrar Venta</h2>
+    <!-- Ventas -->
+    <section class="vista active" id="vista-ventas">
+      <h2>Ventas del Día</h2>
+      <button class="btn-modal" onclick="abrirModal('modal-venta')">+ Registrar Venta</button>
+      <table class="tabla" id="tabla-ventas">
+        <thead><tr><th>Producto</th><th>Cantidad</th><th>Total</th><th>Tipo</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Balance -->
+    <section class="vista" id="vista-balance">
+      <h2>Balance</h2>
+      <select id="filtro-tipo" onchange="filtrarBalance()">
+        <option value="">--Seleccionar--</option>
+        <option value="hoy">Hoy</option>
+        <option value="mes">Este Mes</option>
+        <option value="anio">Este Año</option>
+        <option value="rango">Rango</option>
+      </select>
+      <input type="date" id="filtro-inicio" onchange="filtrarBalance()" />
+      <input type="date" id="filtro-fin" onchange="filtrarBalance()" />
+      <button onclick="descargarPDF()">Descargar PDF</button>
+      <table class="tabla" id="tabla-balance">
+        <thead><tr><th>Producto</th><th>Cantidad</th><th>Total</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Deudas -->
+    <section class="vista" id="vista-deudas">
+      <h2>Deudas</h2>
+      <table class="tabla" id="tabla-deudas">
+        <thead><tr><th>Cliente</th><th>Total</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Inventario -->
+    <section class="vista" id="vista-inventario">
+      <h2>Inventario</h2>
+      <button class="btn-modal" onclick="abrirModal('modal-inv')">+ Agregar Producto</button>
+      <table class="tabla" id="tabla-inv">
+        <thead><tr><th>Producto</th><th>Stock</th><th>Precio</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Clientes -->
+    <section class="vista" id="vista-clientes">
+      <h2>Clientes</h2>
+      <button class="btn-modal" onclick="abrirModal('modal-cliente')">+ Registrar Cliente</button>
+      <table class="tabla" id="tabla-clientes">
+        <thead><tr><th>Nombre</th><th>Info</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    <button onclick="cambiarVista('ventas')">📦<span>Ventas</span></button>
+    <button onclick="cambiarVista('balance')">📊<span>Balance</span></button>
+    <button onclick="cambiarVista('deudas')">💳<span>Deudas</span></button>
+    <button onclick="cambiarVista('inventario')">🗃️<span>Inventario</span></button>
+    <button onclick="cambiarVista('clientes')">👥<span>Clientes</span></button>
+  </footer>
+
+  <!-- MODALES -->
+
+  <!-- Venta -->
+  <div class="modal" id="modal-venta">
+    <div class="modal-content">
+      <h3>Registrar Venta</h3>
       <select id="venta-producto"></select>
-      <input id="venta-cantidad" type="number" placeholder="Cantidad" />
+      <input type="number" id="venta-cantidad" placeholder="Cantidad"/>
       <select id="venta-tipo">
         <option value="contado">Contado</option>
         <option value="credito">Crédito</option>
       </select>
-      <input id="venta-cliente" type="text" placeholder="Cliente (si aplica)" />
-      <button onclick="registrarVenta()">Registrar</button>
+      <select id="venta-cliente"></select>
+      <button onclick="registrarVenta()">Guardar</button>
+      <button onclick="cerrarModal('modal-venta')">Cancelar</button>
+    </div>
+  </div>
 
-      <h3>Historial de Ventas del Día</h3>
-      <div id="ventas-hoy"></div>
-    </section>
+  <!-- Inventario -->
+  <div class="modal" id="modal-inv">
+    <div class="modal-content">
+      <h3>Agregar Producto</h3>
+      <input id="inv-nombre" placeholder="Nombre del Producto"/>
+      <input type="number" id="inv-stock" placeholder="Stock"/>
+      <input type="number" id="inv-precio" placeholder="Precio"/>
+      <button onclick="agregarProducto()">Guardar</button>
+      <button onclick="cerrarModal('modal-inv')">Cancelar</button>
+    </div>
+  </div>
 
-    <!-- VISTA: BALANCE -->
-    <section id="vista-balance" class="vista">
-      <h2>Balance</h2>
-      <label>Filtrar por:</label>
-      <select id="filtro-tipo" onchange="filtrarBalance()">
-        <option value="hoy">Hoy</option>
-        <option value="mes">Este mes</option>
-        <option value="anio">Este año</option>
-        <option value="rango">Rango personalizado</option>
-      </select>
-      <input type="date" id="filtro-inicio" />
-      <input type="date" id="filtro-fin" />
-      <button onclick="filtrarBalance()">Aplicar Filtro</button>
-      <button onclick="descargarPDF()">📄 Descargar PDF</button>
-      <div id="resumen-balance"></div>
-    </section>
+  <!-- Cliente -->
+  <div class="modal" id="modal-cliente">
+    <div class="modal-content">
+      <h3>Registrar Cliente</h3>
+      <input id="cliente-nombre" placeholder="Nombre del Cliente"/>
+      <button onclick="registrarCliente()">Guardar</button>
+      <button onclick="cerrarModal('modal-cliente')">Cancelar</button>
+    </div>
+  </div>
 
-    <!-- VISTA: DEUDAS -->
-    <section id="vista-deudas" class="vista">
-      <h2>Clientes con Deudas</h2>
-      <div id="lista-deudas"></div>
-    </section>
-
-    <!-- VISTA: INVENTARIO -->
-    <section id="vista-inventario" class="vista">
-      <h2>Gestión de Inventario</h2>
-      <input id="inv-nombre" type="text" placeholder="Producto" />
-      <input id="inv-stock" type="number" placeholder="Cantidad" />
-      <input id="inv-precio" type="number" placeholder="Precio" />
-      <button onclick="agregarProducto()">Agregar Producto</button>
-      <div id="inventario-lista"></div>
-    </section>
-  </main>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
