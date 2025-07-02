@@ -1,46 +1,76 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>POS - Ventas e Inventario</title>
-  <link rel="stylesheet" href="style.css">
-  <!-- <link rel="manifest" href="manifest.json"> -->
-  <meta name="theme-color" content="#4CAF50">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>POS App Pro</title>
+  <link rel="stylesheet" href="style.css" />
+ <!-- <link rel="manifest" href="manifest.json" /> -->
+  <meta name="theme-color" content="#4CAF50" />
 </head>
 <body>
   <header>
-    <h1>POS Treinta+</h1>
-    <p>Ventas + Inventario</p>
+    <h1>POS App Pro</h1>
+    <nav>
+      <button onclick="cambiarVista('ventas')">Ventas</button>
+      <button onclick="cambiarVista('balance')">Balance</button>
+      <button onclick="cambiarVista('deudas')">Deudas</button>
+      <button onclick="cambiarVista('inventario')">Inventario</button>
+    </nav>
   </header>
 
   <main>
-    <section class="card">
-      <h2>Agregar Producto al Inventario</h2>
-      <input id="inv-nombre" type="text" placeholder="Nombre del producto">
-      <input id="inv-stock" type="number" placeholder="Cantidad inicial">
-      <input id="inv-precio" type="number" placeholder="Precio unitario">
-      <button onclick="agregarProducto()">Agregar al Inventario</button>
-    </section>
-
-    <section class="card">
+    <!-- VISTA: VENTAS -->
+    <section id="vista-ventas" class="vista">
       <h2>Registrar Venta</h2>
       <select id="venta-producto"></select>
-      <input id="venta-cantidad" type="number" placeholder="Cantidad">
-      <button onclick="registrarVenta()">Vender</button>
+      <input id="venta-cantidad" type="number" placeholder="Cantidad" />
+      <select id="venta-tipo">
+        <option value="contado">Contado</option>
+        <option value="credito">Crédito</option>
+      </select>
+      <input id="venta-cliente" type="text" placeholder="Cliente (si aplica)" />
+      <button onclick="registrarVenta()">Registrar</button>
+
+      <h3>Historial de Ventas del Día</h3>
+      <div id="ventas-hoy"></div>
     </section>
 
-    <section class="card">
-      <h2>Inventario</h2>
+    <!-- VISTA: BALANCE -->
+    <section id="vista-balance" class="vista">
+      <h2>Balance</h2>
+      <label>Filtrar por:</label>
+      <select id="filtro-tipo" onchange="filtrarBalance()">
+        <option value="hoy">Hoy</option>
+        <option value="mes">Este mes</option>
+        <option value="anio">Este año</option>
+        <option value="rango">Rango personalizado</option>
+      </select>
+      <input type="date" id="filtro-inicio" />
+      <input type="date" id="filtro-fin" />
+      <button onclick="filtrarBalance()">Aplicar Filtro</button>
+      <button onclick="descargarPDF()">📄 Descargar PDF</button>
+      <div id="resumen-balance"></div>
+    </section>
+
+    <!-- VISTA: DEUDAS -->
+    <section id="vista-deudas" class="vista">
+      <h2>Clientes con Deudas</h2>
+      <div id="lista-deudas"></div>
+    </section>
+
+    <!-- VISTA: INVENTARIO -->
+    <section id="vista-inventario" class="vista">
+      <h2>Gestión de Inventario</h2>
+      <input id="inv-nombre" type="text" placeholder="Producto" />
+      <input id="inv-stock" type="number" placeholder="Cantidad" />
+      <input id="inv-precio" type="number" placeholder="Precio" />
+      <button onclick="agregarProducto()">Agregar Producto</button>
       <div id="inventario-lista"></div>
-    </section>
-
-    <section class="card">
-      <h2>Historial de Ventas</h2>
-      <div id="ventas-lista"></div>
     </section>
   </main>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
