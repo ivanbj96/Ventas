@@ -1,144 +1,159 @@
-let ventas = JSON.parse(localStorage.getItem('ventas')) || [];
-let inventario = JSON.parse(localStorage.getItem('inventario')) || [];
-let deudas = JSON.parse(localStorage.getItem('deudas')) || [];
+// app.js
 
-function cambiarVista(vistaId) {
-  document.querySelectorAll('.vista').forEach(v => v.classList.remove('activa'));
-  document.getElementById(`vista-${vistaId}`).classList.add('activa');
+let datos = {
+  ventas: [],
+  inventario: [],
+  clientes: [],
+  deudas: []
+};
 
-  if (vistaId === 'ventas') mostrarVentasHoy();
-  if (vistaId === 'inventario') mostrarInventario();
-  if (vistaId === 'deudas') mostrarDeudas();
-  if (vistaId === 'balance') filtrarBalance();
+function cambiarVista(vista) {
+  document.querySelectorAll('.vista').forEach(v => v.classList.remove('active'));
+  document.getElementById(`vista-${vista}`).classList.add('active');
 }
 
-function registrarVenta() {
-  const nombre = document.getElementById('venta-producto').value;
-  const cantidad = parseInt(document.getElementById('venta-cantidad').value);
-  const tipo = document.getElementById('venta-tipo').value;
-  const cliente = document.getElementById('venta-cliente').value.trim();
+function abrirModal(id) {
+  document.getElementById(id).style.display = 'block';
+}
 
-  const prod = inventario.find(p => p.nombre === nombre);
-  if (!prod || cantidad <= 0 || isNaN(cantidad)) return alert('Verifica datos');
+function cerrarModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
 
-  if (prod.stock < cantidad) return alert('Stock insuficiente');
-
-  prod.stock -= cantidad;
-  const venta = {
-    producto: nombre,
-    cantidad,
-    precio: prod.precio,
-    total: prod.precio * cantidad,
-    tipo,
-    cliente,
-    fecha: new Date().toISOString()
-  };
-  ventas.push(venta);
-
-  if (tipo === 'credito' && cliente) {
-    let deuda = deudas.find(d => d.cliente === cliente);
-    if (!deuda) {
-      deudas.push({ cliente, historial: [venta] });
-    } else {
-      deuda.historial.push(venta);
-    }
-  }
-
-  guardarDatos();
-  mostrarVentasHoy();
-  mostrarInventario();
+function registrarCliente() {
+  const nombre = document.getElementById('cliente-nombre').value;
+  if (!nombre) return;
+  datos.clientes.push({ nombre });
+  document.getElementById('cliente-nombre').value = '';
+  actualizarListados();
+  cerrarModal('modal-cliente');
 }
 
 function agregarProducto() {
-  const nombre = document.getElementById('inv-nombre').value.trim();
+  const nombre = document.getElementById('inv-nombre').value;
   const stock = parseInt(document.getElementById('inv-stock').value);
   const precio = parseFloat(document.getElementById('inv-precio').value);
-  if (!nombre || isNaN(stock) || isNaN(precio)) return alert('Completa datos');
-
-  let existente = inventario.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
-  if (existente) {
-    existente.stock += stock;
-    existente.precio = precio;
-  } else {
-    inventario.push({ nombre, stock, precio });
-  }
-
-  guardarDatos();
-  mostrarInventario();
+  if (!nombre || isNaN(stock) || isNaN(precio)) return;
+  datos.inventario.push({ nombre, stock, precio });
+  document.getElementById('inv-nombre').value = '';
+  document.getElementById('inv-stock').value = '';
+  document.getElementById('inv-precio').value = '';
+  actualizarListados();
+  cerrarModal('modal-inv');
 }
 
-function mostrarVentasHoy() {
-  const hoy = new Date().toISOString().split('T')[0];
-  const contenedor = document.getElementById('ventas-hoy');
-  contenedor.innerHTML = '';
-  ventas.filter(v => v.fecha.startsWith(hoy)).forEach(v => {
-    contenedor.innerHTML += `<div>${v.cantidad} x ${v.producto} - $${v.total.toFixed(2)} (${v.tipo})</div>`;
+function registrarVenta() {
+  const producto = document.getElementById('venta-producto').value;
+  const cantidad = parseInt(document.getElementById('venta-cantidad').value);
+  const tipo = document.getElementById('venta-tipo').value;
+  const cliente = document.getElementById('venta-cliente').value;
+  const item = datos.inventario.find(p => p.nombre === producto);
+  if (!item || isNaN(cantidad)) return;
+
+  const total = cantidad * item.precio;
+  datos.ventas.push({ producto, cantidad, total, tipo, cliente, fecha: new Date().toISOString() });
+  if (tipo === 'credito') {
+    datos.deudas.push({ cliente, total });
+  }
+  item.stock -= cantidad;
+  document.getElementById('venta-cantidad').value = '';
+  actualizarListados();
+  cerrarModal('modal-venta');
+}
+
+function actualizarListados() {
+  mostrarClientes();
+  mostrarInventario();
+  mostrarVentas();
+  mostrarDeudas();
+}
+
+function mostrarClientes() {
+  const tbody = document.querySelector('#tabla-clientes tbody');
+  tbody.innerHTML = '';
+  datos.clientes.forEach(c => {
+    tbody.innerHTML += `<tr><td>${c.nombre}</td><td>-</td></tr>`;
+  });
+  const selectCliente = document.getElementById('venta-cliente');
+  selectCliente.innerHTML = '<option value="">Sin cliente</option>';
+  datos.clientes.forEach(c => {
+    selectCliente.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
   });
 }
 
 function mostrarInventario() {
-  const contenedor = document.getElementById('inventario-lista');
-  contenedor.innerHTML = '';
-  inventario.forEach(p => {
-    contenedor.innerHTML += `<div>${p.nombre}: ${p.stock} unidades - $${p.precio.toFixed(2)}</div>`;
+  const tbody = document.querySelector('#tabla-inv tbody');
+  tbody.innerHTML = '';
+  datos.inventario.forEach(p => {
+    tbody.innerHTML += `<tr><td>${p.nombre}</td><td>${p.stock}</td><td>$${p.precio.toFixed(2)}</td></tr>`;
   });
+  const selectProducto = document.getElementById('venta-producto');
+  selectProducto.innerHTML = '';
+  datos.inventario.forEach(p => {
+    selectProducto.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`;
+  });
+}
 
-  const selector = document.getElementById('venta-producto');
-  selector.innerHTML = '';
-  inventario.forEach(p => {
-    selector.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`;
+function mostrarVentas() {
+  const tbody = document.querySelector('#tabla-ventas tbody');
+  tbody.innerHTML = '';
+  datos.ventas.slice(-10).reverse().forEach(v => {
+    tbody.innerHTML += `<tr><td>${v.producto}</td><td>${v.cantidad}</td><td>$${v.total.toFixed(2)}</td><td>${v.tipo}</td></tr>`;
   });
 }
 
 function mostrarDeudas() {
-  const contenedor = document.getElementById('lista-deudas');
-  contenedor.innerHTML = '';
-  deudas.forEach(d => {
-    const total = d.historial.reduce((sum, v) => sum + v.total, 0);
-    contenedor.innerHTML += `<div><strong>${d.cliente}</strong> - Total deuda: $${total.toFixed(2)}</div>`;
+  const tbody = document.querySelector('#tabla-deudas tbody');
+  tbody.innerHTML = '';
+  datos.deudas.slice(-10).reverse().forEach(d => {
+    tbody.innerHTML += `<tr><td>${d.cliente}</td><td>$${d.total.toFixed(2)}</td></tr>`;
   });
 }
 
 function filtrarBalance() {
   const tipo = document.getElementById('filtro-tipo').value;
-  let desde, hasta;
+  const inicio = document.getElementById('filtro-inicio').value;
+  const fin = document.getElementById('filtro-fin').value;
 
-  const hoy = new Date();
+  let desde = new Date(0);
+  let hasta = new Date();
+
   if (tipo === 'hoy') {
-    desde = new Date(hoy.toISOString().split('T')[0]);
-    hasta = new Date(desde);
-    hasta.setDate(hasta.getDate() + 1);
+    const hoy = new Date();
+    desde = new Date(hoy.setHours(0,0,0,0));
   } else if (tipo === 'mes') {
+    const hoy = new Date();
     desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    hasta = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1);
   } else if (tipo === 'anio') {
+    const hoy = new Date();
     desde = new Date(hoy.getFullYear(), 0, 1);
-    hasta = new Date(hoy.getFullYear() + 1, 0, 1);
-  } else {
-    desde = new Date(document.getElementById('filtro-inicio').value);
-    hasta = new Date(document.getElementById('filtro-fin').value);
-    hasta.setDate(hasta.getDate() + 1);
+  } else if (tipo === 'rango' && inicio && fin) {
+    desde = new Date(inicio);
+    hasta = new Date(fin);
   }
 
-  const resumen = ventas.filter(v => new Date(v.fecha) >= desde && new Date(v.fecha) < hasta);
-  const total = resumen.reduce((acc, v) => acc + v.total, 0);
-  document.getElementById('resumen-balance').innerHTML =
-    `<p>Total ventas: $${total.toFixed(2)}<br>Transacciones: ${resumen.length}</p>`;
+  const filtradas = datos.ventas.filter(v => {
+    const fecha = new Date(v.fecha);
+    return fecha >= desde && fecha <= hasta;
+  });
+
+  const tbody = document.querySelector('#tabla-balance tbody');
+  tbody.innerHTML = '';
+  filtradas.slice(-10).reverse().forEach(v => {
+    tbody.innerHTML += `<tr><td>${v.producto}</td><td>${v.cantidad}</td><td>$${v.total.toFixed(2)}</td></tr>`;
+  });
 }
 
 function descargarPDF() {
-  const resumen = document.getElementById('resumen-balance').innerText;
-  const doc = new jspdf.jsPDF();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
   doc.text("Reporte de Ventas", 10, 10);
-  doc.text(resumen, 10, 20);
+  let y = 20;
+  datos.ventas.slice(-10).forEach(v => {
+    doc.text(`${v.producto} | ${v.cantidad} | $${v.total.toFixed(2)} | ${v.tipo}`, 10, y);
+    y += 10;
+  });
   doc.save("reporte.pdf");
 }
 
-function guardarDatos() {
-  localStorage.setItem('ventas', JSON.stringify(ventas));
-  localStorage.setItem('inventario', JSON.stringify(inventario));
-  localStorage.setItem('deudas', JSON.stringify(deudas));
-}
-
-// Iniciar en la vista de ventas
 cambiarVista('ventas');
