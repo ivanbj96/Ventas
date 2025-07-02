@@ -1,175 +1,46 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mini POS - Estilo Treinta</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POS - Ventas e Inventario</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- <link rel="manifest" href="manifest.json"> -->
   <meta name="theme-color" content="#4CAF50">
- <!-- <link rel="manifest" href="manifest.json"> -->
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 1rem;
-      background-color: #f0f2f5;
-    }
-    header {
-      text-align: center;
-      margin-bottom: 1rem;
-    }
-    h1 {
-      color: #4CAF50;
-    }
-    .card {
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      padding: 1rem;
-      margin-bottom: 1rem;
-    }
-    input, button, select {
-      width: 100%;
-      padding: 0.7rem;
-      margin: 0.5rem 0;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 1rem;
-    }
-    button {
-      background-color: #4CAF50;
-      color: white;
-      cursor: pointer;
-      border: none;
-      transition: background 0.3s;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
-    .venta {
-      border-bottom: 1px solid #ddd;
-      padding: 0.5rem 0;
-    }
-    .venta:last-child {
-      border-bottom: none;
-    }
-  </style>
 </head>
 <body>
   <header>
-    <h1>Mini POS</h1>
-    <p>Inspirado en Treinta</p>
+    <h1>POS Treinta+</h1>
+    <p>Ventas + Inventario</p>
   </header>
 
-  <div class="card">
-    <h2>Registrar Venta</h2>
-    <input id="producto" type="text" placeholder="Producto" />
-    <input id="cantidad" type="number" placeholder="Cantidad" />
-    <input id="precio" type="number" placeholder="Precio Unitario" />
-    <button onclick="registrarVenta()">Registrar</button>
-  </div>
+  <main>
+    <section class="card">
+      <h2>Agregar Producto al Inventario</h2>
+      <input id="inv-nombre" type="text" placeholder="Nombre del producto">
+      <input id="inv-stock" type="number" placeholder="Cantidad inicial">
+      <input id="inv-precio" type="number" placeholder="Precio unitario">
+      <button onclick="agregarProducto()">Agregar al Inventario</button>
+    </section>
 
-  <div class="card">
-    <h2>Historial de Ventas</h2>
-    <div id="historialVentas"></div>
-  </div>
+    <section class="card">
+      <h2>Registrar Venta</h2>
+      <select id="venta-producto"></select>
+      <input id="venta-cantidad" type="number" placeholder="Cantidad">
+      <button onclick="registrarVenta()">Vender</button>
+    </section>
 
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(err => console.error('SW error:', err));
-    }
+    <section class="card">
+      <h2>Inventario</h2>
+      <div id="inventario-lista"></div>
+    </section>
 
-    let ventas = JSON.parse(localStorage.getItem('ventas')) || [];
+    <section class="card">
+      <h2>Historial de Ventas</h2>
+      <div id="ventas-lista"></div>
+    </section>
+  </main>
 
-    function registrarVenta() {
-      const producto = document.getElementById('producto').value.trim();
-      const cantidad = parseFloat(document.getElementById('cantidad').value);
-      const precio = parseFloat(document.getElementById('precio').value);
-
-      if (!producto || isNaN(cantidad) || isNaN(precio)) {
-        alert('Por favor, completa todos los campos correctamente.');
-        return;
-      }
-
-      const venta = {
-        producto,
-        cantidad,
-        precio,
-        total: cantidad * precio,
-        fecha: new Date().toLocaleString()
-      };
-
-      ventas.push(venta);
-      localStorage.setItem('ventas', JSON.stringify(ventas));
-
-      document.getElementById('producto').value = '';
-      document.getElementById('cantidad').value = '';
-      document.getElementById('precio').value = '';
-
-      mostrarVentas();
-    }
-
-    function mostrarVentas() {
-      const contenedor = document.getElementById('historialVentas');
-      contenedor.innerHTML = '';
-
-      ventas.slice().reverse().forEach((v) => {
-        contenedor.innerHTML += `
-          <div class="venta">
-            <strong>${v.producto}</strong><br>
-            ${v.cantidad} x $${v.precio.toFixed(2)} = <strong>$${v.total.toFixed(2)}</strong><br>
-            <small>${v.fecha}</small>
-          </div>
-        `;
-      });
-    }
-
-    mostrarVentas();
-  </script>
-
-  <!-- Manifest -->
-  <script>
-    const manifest = {
-      name: "Mini POS",
-      short_name: "POS",
-      start_url: ".",
-      display: "standalone",
-      background_color: "#ffffff",
-      theme_color: "#4CAF50",
-      icons: [
-        {
-          src: "https://img.icons8.com/color/96/cash-register.png",
-          sizes: "96x96",
-          type: "image/png"
-        }
-      ]
-    };
-
-    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    document.querySelector('link[rel="manifest"]').setAttribute('href', url);
-  </script>
-
-  <!-- Service Worker -->
-  <script>
-    const swCode = `
-      self.addEventListener('install', e => {
-        e.waitUntil(
-          caches.open('pos-cache').then(cache => {
-            return cache.addAll(['.', 'index.html']);
-          })
-        );
-      });
-
-      self.addEventListener('fetch', e => {
-        e.respondWith(
-          caches.match(e.request).then(response => response || fetch(e.request))
-        );
-      });
-    `;
-
-    const swBlob = new Blob([swCode], { type: 'application/javascript' });
-    const swUrl = URL.createObjectURL(swBlob);
-    navigator.serviceWorker.register(swUrl);
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>
