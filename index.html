@@ -1,143 +1,175 @@
-<!DOCTYPE html><html lang="es">
+<!DOCTYPE html>
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#f0f4f8" />
-  <title>Gestión de Clientes y Ventas</title>
-  <!-- <link rel="manifest" href="manifest.json" /> -->
+  <title>Mini POS - Estilo Treinta</title>
+  <meta name="theme-color" content="#4CAF50">
+ <!-- <link rel="manifest" href="manifest.json"> -->
   <style>
     body {
-      font-family: sans-serif;
-      background-color: #f0f4f8;
+      font-family: 'Segoe UI', sans-serif;
       margin: 0;
       padding: 1rem;
-      color: #333;
+      background-color: #f0f2f5;
     }
     header {
-      background-color: #e0e7ef;
-      padding: 1rem;
-      border-radius: 0.5rem;
+      text-align: center;
       margin-bottom: 1rem;
     }
-    section {
-      margin-bottom: 2rem;
+    h1 {
+      color: #4CAF50;
     }
-    input, select, button, textarea {
-      padding: 0.5rem;
-      margin: 0.3rem 0;
-      border: 1px solid #ccc;
-      border-radius: 0.3rem;
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    input, button, select {
       width: 100%;
+      padding: 0.7rem;
+      margin: 0.5rem 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
     }
     button {
-      background-color: #4caf50;
+      background-color: #4CAF50;
       color: white;
-      border: none;
       cursor: pointer;
+      border: none;
+      transition: background 0.3s;
     }
     button:hover {
       background-color: #45a049;
     }
-    .mapa {
-      height: 300px;
-      margin-top: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 0.5rem;
+    .venta {
+      border-bottom: 1px solid #ddd;
+      padding: 0.5rem 0;
+    }
+    .venta:last-child {
+      border-bottom: none;
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>Gestión de Clientes y Ventas</h1>
-  </header>  <section id="cliente">
-    <h2>Clientes</h2>
-    <form id="clienteForm">
-      <input type="text" placeholder="Nombre del cliente" required />
-      <input type="text" placeholder="Dirección" />
-      <input type="text" placeholder="Teléfono" />
-      <button type="submit">Guardar Cliente</button>
-    </form>
-  </section>  <section id="ventas">
-    <h2>Ventas</h2>
-    <form id="ventaForm">
-      <select required>
-        <option disabled selected>Seleccione un cliente</option>
-        <!-- Aquí se llenan los clientes dinámicamente -->
-      </select>
-      <input type="text" placeholder="Producto o servicio" required />
-      <input type="number" placeholder="Monto" required />
-      <select>
-        <option value="contado">Contado</option>
-        <option value="credito">Crédito</option>
-      </select>
-      <button type="submit">Registrar Venta</button>
-    </form>
-  </section>  <section id="mapa">
-    <h2>Ubicación de Clientes</h2>
-    <div id="map" class="mapa"></div>
-  </section>  <section id="reporte">
-    <h2>Reportes</h2>
-    <button onclick="generarReporte()">Generar Reporte</button>
-    <pre id="reporteDatos"></pre>
-  </section>  <script>
-    let db;
-    const request = indexedDB.open("AppVentas", 1);
+    <h1>Mini POS</h1>
+    <p>Inspirado en Treinta</p>
+  </header>
 
-    request.onerror = () => alert("Error al abrir la base de datos");
+  <div class="card">
+    <h2>Registrar Venta</h2>
+    <input id="producto" type="text" placeholder="Producto" />
+    <input id="cantidad" type="number" placeholder="Cantidad" />
+    <input id="precio" type="number" placeholder="Precio Unitario" />
+    <button onclick="registrarVenta()">Registrar</button>
+  </div>
 
-    request.onupgradeneeded = (e) => {
-      db = e.target.result;
-      db.createObjectStore("clientes", { keyPath: "id", autoIncrement: true });
-      db.createObjectStore("ventas", { keyPath: "id", autoIncrement: true });
-    };
+  <div class="card">
+    <h2>Historial de Ventas</h2>
+    <div id="historialVentas"></div>
+  </div>
 
-    request.onsuccess = (e) => {
-      db = e.target.result;
-      console.log("DB cargada correctamente");
-    };
-
-    document.getElementById("clienteForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const cliente = {
-        nombre: this[0].value,
-        direccion: this[1].value,
-        telefono: this[2].value
-      };
-      const tx = db.transaction("clientes", "readwrite");
-      tx.objectStore("clientes").add(cliente);
-      alert("Cliente guardado");
-      this.reset();
-    });
-
-    document.getElementById("ventaForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const venta = {
-        cliente: this[0].value,
-        producto: this[1].value,
-        monto: parseFloat(this[2].value),
-        tipo: this[3].value,
-        fecha: new Date().toISOString()
-      };
-      const tx = db.transaction("ventas", "readwrite");
-      tx.objectStore("ventas").add(venta);
-      alert("Venta registrada");
-      this.reset();
-    });
-
-    function generarReporte() {
-      const tx = db.transaction("ventas", "readonly");
-      const store = tx.objectStore("ventas");
-      const req = store.getAll();
-      req.onsuccess = () => {
-        document.getElementById("reporteDatos").textContent = JSON.stringify(req.result, null, 2);
-      };
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(err => console.error('SW error:', err));
     }
-  </script>  <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap"></script>  <script>
-    function initMap() {
-      const map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 4,
-        center: { lat: -34.397, lng: 150.644 },
+
+    let ventas = JSON.parse(localStorage.getItem('ventas')) || [];
+
+    function registrarVenta() {
+      const producto = document.getElementById('producto').value.trim();
+      const cantidad = parseFloat(document.getElementById('cantidad').value);
+      const precio = parseFloat(document.getElementById('precio').value);
+
+      if (!producto || isNaN(cantidad) || isNaN(precio)) {
+        alert('Por favor, completa todos los campos correctamente.');
+        return;
+      }
+
+      const venta = {
+        producto,
+        cantidad,
+        precio,
+        total: cantidad * precio,
+        fecha: new Date().toLocaleString()
+      };
+
+      ventas.push(venta);
+      localStorage.setItem('ventas', JSON.stringify(ventas));
+
+      document.getElementById('producto').value = '';
+      document.getElementById('cantidad').value = '';
+      document.getElementById('precio').value = '';
+
+      mostrarVentas();
+    }
+
+    function mostrarVentas() {
+      const contenedor = document.getElementById('historialVentas');
+      contenedor.innerHTML = '';
+
+      ventas.slice().reverse().forEach((v) => {
+        contenedor.innerHTML += `
+          <div class="venta">
+            <strong>${v.producto}</strong><br>
+            ${v.cantidad} x $${v.precio.toFixed(2)} = <strong>$${v.total.toFixed(2)}</strong><br>
+            <small>${v.fecha}</small>
+          </div>
+        `;
       });
     }
-  </script></body>
-               </html>
+
+    mostrarVentas();
+  </script>
+
+  <!-- Manifest -->
+  <script>
+    const manifest = {
+      name: "Mini POS",
+      short_name: "POS",
+      start_url: ".",
+      display: "standalone",
+      background_color: "#ffffff",
+      theme_color: "#4CAF50",
+      icons: [
+        {
+          src: "https://img.icons8.com/color/96/cash-register.png",
+          sizes: "96x96",
+          type: "image/png"
+        }
+      ]
+    };
+
+    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    document.querySelector('link[rel="manifest"]').setAttribute('href', url);
+  </script>
+
+  <!-- Service Worker -->
+  <script>
+    const swCode = `
+      self.addEventListener('install', e => {
+        e.waitUntil(
+          caches.open('pos-cache').then(cache => {
+            return cache.addAll(['.', 'index.html']);
+          })
+        );
+      });
+
+      self.addEventListener('fetch', e => {
+        e.respondWith(
+          caches.match(e.request).then(response => response || fetch(e.request))
+        );
+      });
+    `;
+
+    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swUrl);
+  </script>
+</body>
+</html>
