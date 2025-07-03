@@ -1,0 +1,15 @@
+{
+  "name": "TillUp POS",
+  "short_name": "TillUp",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6200ee",
+  "icons": [
+    {
+      "src": "TillUp.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
