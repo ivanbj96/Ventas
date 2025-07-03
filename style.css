@@ -12,7 +12,6 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  overflow: hidden;
 }
 
 header {
@@ -24,28 +23,25 @@ header {
   gap: 1rem;
 }
 
-header .logo {
+header .logo img {
   width: 40px;
   height: 40px;
-  background-image: url('TillUp.png');
-  background-size: cover;
-  background-position: center;
   border-radius: 50%;
+  object-fit: cover;
 }
 
-h1, h2 {
-  margin-bottom: 1rem;
-}
-
-/* MAIN */
+/* === MAIN === */
 main {
   flex: 1;
   padding: 1rem;
   overflow-y: auto;
-  margin-bottom: 60px; /* espacio para footer fijo */
 }
 
-/* VISTAS */
+h1, h2, h3, h4 {
+  margin-bottom: 1rem;
+}
+
+/* === VISTAS === */
 .vista {
   display: none;
 }
@@ -54,8 +50,8 @@ main {
   display: block;
 }
 
-/* TABLAS */
-.tabla, table {
+/* === TABLAS === */
+table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 1rem;
@@ -64,37 +60,65 @@ main {
   overflow: hidden;
 }
 
-.table thead, .tabla thead {
+table thead {
   background: #4A90E2;
   color: white;
 }
 
-.tabla th, .tabla td, table th, table td {
+table th, table td {
   padding: 0.75rem;
   text-align: left;
   border-bottom: 1px solid #ddd;
+  word-break: break-word;
 }
 
-.tabla tbody tr:hover, table tbody tr:hover {
+table tbody tr:hover {
   background: #f0f8ff;
 }
 
-.tabla button, table button {
-  margin-right: 0.3rem;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.85rem;
+/* Responsive tables */
+@media (max-width: 700px) {
+  table, tbody, tr, th, td {
+    display: block;
+  }
+  table thead {
+    display: none;
+  }
+  tbody tr {
+    margin-bottom: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0.75rem;
+    background: white;
+  }
+  tbody tr td {
+    padding-left: 50%;
+    position: relative;
+    border-bottom: none;
+  }
+  /* CONTINUACIÓN DE style.css */
+
+/* etiquetas de tabla en modo móvil */
+tbody tr td::before {
+  content: attr(data-label);
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: bold;
+  color: #4A90E2;
 }
 
-/* BOTONES */
+/* === BOTONES === */
 button {
-  padding: 0.6rem 1rem;
   background: #4A90E2;
   color: white;
   border: none;
-  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  margin: 0.25rem 0;
+  border-radius: 5px;
   cursor: pointer;
-  transition: background 0.2s;
-  margin: 0.5rem 0;
+  transition: background-color 0.3s ease;
 }
 
 button:hover {
@@ -102,112 +126,89 @@ button:hover {
 }
 
 .btn-modal {
-  background: #34A853;
+  margin-bottom: 1rem;
 }
 
-.btn-modal:hover {
-  background: #2fa84f;
-}
-
-/* FOOTER */
+/* === FOOTER === */
 footer {
   display: flex;
   justify-content: space-around;
-  align-items: center;
-  background: white;
-  border-top: 1px solid #ccc;
+  background: #333;
+  color: white;
   padding: 0.5rem 0;
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  z-index: 99;
 }
 
 footer button {
   background: none;
+  color: white;
   border: none;
-  color: #4A90E2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: 0.8rem;
+  font-size: 1.25rem;
   cursor: pointer;
+  transition: color 0.3s ease;
 }
 
 footer button span {
-  margin-top: 0.2rem;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
+  margin-top: 0.15rem;
 }
 
-footer button:hover {
-  background: #f0f8ff;
-  border-radius: 6px;
+footer button:hover,
+footer button.active {
+  color: #4A90E2;
 }
 
-/* MODALES */
+/* === MODALES === */
 .modal {
+  display: none;
   position: fixed;
-  top: 0;
+  z-index: 999;
   left: 0;
+  top: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.5);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.4);
 }
 
 .modal-content {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 10px;
-  width: 90%;
+  background-color: #fff;
+  margin: 10% auto;
+  padding: 1rem 2rem;
+  border-radius: 8px;
   max-width: 450px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  position: relative;
 }
 
 .modal-content h3 {
   margin-bottom: 1rem;
-  text-align: center;
 }
 
 .modal-content label {
-  font-size: 0.9rem;
-  font-weight: bold;
+  display: block;
+  margin-top: 0.75rem;
 }
 
 .modal-content input,
 .modal-content select {
-  padding: 0.5rem;
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  margin-top: 0.25rem;
   border: 1px solid #ccc;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
-.modal-content button {
-  align-self: flex-end;
-}
-
-/* CARRITO */
-#carrito-lista {
-  margin: 0.5rem 0 1rem;
-  padding: 0.5rem;
-  background: #e9f5ff;
-  border-radius: 6px;
-  max-height: 120px;
+/* Scroll para tablas grandes */
+main table tbody {
+  max-height: 300px;
   overflow-y: auto;
-  font-size: 0.9rem;
+  display: block;
 }
 
-/* RESPONSIVE */
-@media (min-width: 600px) {
-  footer button {
-    font-size: 1rem;
-  }
-
-  .modal-content {
-    width: 400px;
-  }
+main table tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
 }
