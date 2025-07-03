@@ -15,7 +15,7 @@
     <main>
         <section id="vista-ventas" class="vista active">
             <h2>Ventas del Día</h2>
-            <button id="btn-registrar-venta">+ Registrar Venta</button>
+            <button onclick="abrirModal('modal-venta')">+ Registrar Venta</button>
             <table id="tabla-ventas" class="tabla">
                 <thead>
                     <tr>
@@ -23,6 +23,7 @@
                         <th>Cantidad</th>
                         <th>Total</th>
                         <th>Tipo</th>
+                        <th>Cliente</th>
                     </tr>
                 </thead>
                 <tbody id="cuerpo-tabla-ventas"></tbody>
@@ -40,7 +41,7 @@
             </select>
             <input type="date" id="filtro-inicio">
             <input type="date" id="filtro-fin">
-            <button id="btn-descargar-pdf">Descargar PDF</button>
+            <button onclick="filtrarBalance()">Filtrar</button>
             <table id="tabla-balance" class="tabla">
                 <thead>
                     <tr>
@@ -52,16 +53,58 @@
                 <tbody id="cuerpo-tabla-balance"></tbody>
             </table>
         </section>
-        <!-- Resto de secciones con estructura similar -->
+
+        <section id="vista-inventario" class="vista">
+            <h2>Inventario</h2>
+            <button onclick="abrirModal('modal-inv')">+ Agregar Producto</button>
+            <table id="tabla-inv" class="tabla">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Stock</th>
+                        <th>Precio</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpo-tabla-inv"></tbody>
+            </table>
+        </section>
+
+        <section id="vista-clientes" class="vista">
+            <h2>Clientes</h2>
+            <button onclick="abrirModal('modal-cliente')">+ Agregar Cliente</button>
+            <table id="tabla-clientes" class="tabla">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpo-tabla-clientes"></tbody>
+            </table>
+        </section>
+
+        <section id="vista-deudas" class="vista">
+            <h2>Deudas</h2>
+            <table id="tabla-deudas" class="tabla">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpo-tabla-deudas"></tbody>
+            </table>
+        </section>
     </main>
 
     <footer>
         <button data-vista="ventas">📦 Ventas</button>
         <button data-vista="balance">📊 Balance</button>
-        <!-- Agrega los demás botones del footer aquí -->
+        <button data-vista="inventario">📦 Inventario</button>
+        <button data-vista="clientes">👤 Clientes</button>
+        <button data-vista="deudas">💸 Deudas</button>
     </footer>
 
-    <div id="modal-venta" class="modal">
+    <div class="modal" id="modal-venta">
         <div class="modal-content">
             <h3>Registrar Venta</h3>
             <select id="venta-producto"></select>
@@ -71,8 +114,28 @@
                 <option value="credito">Crédito</option>
             </select>
             <select id="venta-cliente"></select>
-            <button id="btn-guardar-venta">Guardar</button>
-            <button id="btn-cancelar-venta">Cancelar</button>
+            <button onclick="registrarVenta()">Guardar</button>
+            <button onclick="cerrarModal('modal-venta')">Cancelar</button>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-inv">
+        <div class="modal-content">
+            <h3>Agregar Producto</h3>
+            <input id="inv-nombre" placeholder="Nombre del Producto"/>
+            <input type="number" id="inv-stock" placeholder="Stock"/>
+            <input type="number" id="inv-precio" placeholder="Precio"/>
+            <button onclick="agregarProducto()">Guardar</button>
+            <button onclick="cerrarModal('modal-inv')">Cancelar</button>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-cliente">
+        <div class="modal-content">
+            <h3>Registrar Cliente</h3>
+            <input id="cliente-nombre" placeholder="Nombre del Cliente"/>
+            <button onclick="registrarCliente()">Guardar</button>
+            <button onclick="cerrarModal('modal-cliente')">Cancelar</button>
         </div>
     </div>
 
