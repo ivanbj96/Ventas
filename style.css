@@ -6,9 +6,9 @@ header { background: #6200ee; color: white; padding: 1rem; display: flex; align-
 
 .logo { height: 40px; }
 
-main { padding: 1rem; }
+main { padding: 1rem; padding-bottom: 80px; }
 
-footer { position: fixed; bottom: 0; left: 0; right: 0; background: #ffffff; border-top: 1px solid #ccc; display: flex; justify-content: space-around; padding: 0.5rem 0; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); }
+footer { position: fixed; bottom: 0; left: 0; right: 0; background: #ffffff; border-top: 1px solid #ccc; display: flex; justify-content: space-around; padding: 0.5rem 0; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); z-index: 100; }
 
 footer button { background: none; border: none; font-size: 0.9rem; color: #444; display: flex; flex-direction: column; align-items: center; }
 
@@ -18,13 +18,13 @@ footer button { background: none; border: none; font-size: 0.9rem; color: #444; 
 
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); justify-content: center; align-items: center; z-index: 1000; }
 
-.modal-content { background: #fff; padding: 1rem; border-radius: 8px; min-width: 300px; display: flex; flex-direction: column; gap: 0.5rem; }
+.modal-content { background: #fff; padding: 1rem; border-radius: 8px; min-width: 300px; max-width: 90%; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
 
 .modal label { display: flex; flex-direction: column; font-size: 0.9rem; }
 
-.modal input, .modal select { padding: 0.4rem; border: 1px solid #ccc; border-radius: 4px; }
+.modal input, .modal select { padding: 0.4rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
 
-.modal button { margin-top: 1rem; background: #6200ee; color: white; border: none; padding: 0.6rem; border-radius: 4px; cursor: pointer; }
+.modal button { margin-top: 1rem; background: #6200ee; color: white; border: none; padding: 0.6rem; border-radius: 4px; cursor: pointer; font-size: 1rem; }
 
 table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
 
