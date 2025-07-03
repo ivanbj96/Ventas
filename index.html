@@ -2,159 +2,170 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>App POS - PWA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TillUp POS</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
+
   <header>
-    <div class="logo">
-      <img src="TillUp.png" alt="Logo TillUp" />
-    </div>
-    <h1>Mi App POS</h1>
+    <div class="logo" style="background-image: url('TillUp.png'); background-size: cover;"></div>
+    <h1>TillUp POS</h1>
   </header>
 
   <main>
-    <!-- Ventas -->
-    <section class="vista active" id="vista-ventas">
-      <h2>Ventas del Día</h2>
-      <button class="btn-modal" onclick="abrirModal('modal-venta')">+ Registrar Venta</button>
-      <table class="tabla" id="tabla-ventas">
-        <thead><tr><th>Producto</th><th>Cantidad</th><th>Total</th><th>Tipo</th><th>Cliente</th><th>Fecha</th><th>Acciones</th></tr></thead>
-        <tbody></tbody>
-      </table>
+    <!-- VENTAS -->
+    <section id="vista-ventas" class="vista active">
+      <h2>Ventas</h2>
+      <button onclick="abrirModal('modal-venta')">Registrar Venta</button>
+      <div class="tabla-responsive">
+        <table id="tabla-ventas">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Total</th>
+              <th>Tipo</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </section>
 
-    <!-- Balance -->
-    <section class="vista" id="vista-balance">
+    <!-- INVENTARIO -->
+    <section id="vista-inventario" class="vista">
+      <h2>Inventario</h2>
+      <button onclick="abrirModal('modal-inv')">Agregar Producto</button>
+      <div class="tabla-responsive">
+        <table id="tabla-inv">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Stock</th>
+              <th>Precio</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- CLIENTES -->
+    <section id="vista-clientes" class="vista">
+      <h2>Clientes</h2>
+      <button onclick="abrirModal('modal-cliente')">Registrar Cliente</button>
+      <div class="tabla-responsive">
+        <table id="tabla-clientes">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Última Compra</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- DEUDAS -->
+    <section id="vista-deudas" class="vista">
+      <h2>Deudas</h2>
+      <div class="tabla-responsive">
+        <table id="tabla-deudas">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Monto Pendiente</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- BALANCE -->
+    <section id="vista-balance" class="vista">
       <h2>Balance</h2>
       <select id="filtro-tipo" onchange="filtrarBalance()">
-        <option value="">--Seleccionar--</option>
+        <option value="">Todos</option>
         <option value="hoy">Hoy</option>
-        <option value="mes">Este Mes</option>
-        <option value="anio">Este Año</option>
+        <option value="mes">Este mes</option>
+        <option value="anio">Este año</option>
         <option value="rango">Rango</option>
       </select>
       <input type="date" id="filtro-inicio" onchange="filtrarBalance()" />
       <input type="date" id="filtro-fin" onchange="filtrarBalance()" />
       <button onclick="descargarPDF()">Descargar PDF</button>
-      <table class="tabla" id="tabla-balance">
-        <thead><tr><th>Producto</th><th>Cantidad</th><th>Total</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </section>
-
-    <!-- Deudas -->
-    <section class="vista" id="vista-deudas">
-      <h2>Deudas</h2>
-      <table class="tabla" id="tabla-deudas">
-        <thead><tr><th>Cliente</th><th>Total</th><th>Abonos</th><th>Saldo</th><th>Acciones</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </section>
-
-    <!-- Inventario -->
-    <section class="vista" id="vista-inventario">
-      <h2>Inventario</h2>
-      <button class="btn-modal" onclick="abrirModal('modal-inv')">+ Agregar Producto</button>
-      <table class="tabla" id="tabla-inv">
-        <thead><tr><th>Producto</th><th>Stock</th><th>Precio</th><th>Acciones</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </section>
-
-    <!-- Clientes -->
-    <section class="vista" id="vista-clientes">
-      <h2>Clientes</h2>
-      <button class="btn-modal" onclick="abrirModal('modal-cliente')">+ Registrar Cliente</button>
-      <table class="tabla" id="tabla-clientes">
-        <thead><tr><th>Nombre</th><th>Acciones</th></tr></thead>
-        <tbody></tbody>
-      </table>
+      <div class="tabla-responsive">
+        <table id="tabla-balance">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
+  <!-- FOOTER -->
   <footer>
-    <button onclick="cambiarVista('ventas')">📦<span>Ventas</span></button>
-    <button onclick="cambiarVista('balance')">📊<span>Balance</span></button>
-    <button onclick="cambiarVista('deudas')">💳<span>Deudas</span></button>
-    <button onclick="cambiarVista('inventario')">🗃️<span>Inventario</span></button>
-    <button onclick="cambiarVista('clientes')">👥<span>Clientes</span></button>
+    <button onclick="cambiarVista('ventas')"><span>Ventas</span></button>
+    <button onclick="cambiarVista('inventario')"><span>Inventario</span></button>
+    <button onclick="cambiarVista('clientes')"><span>Clientes</span></button>
+    <button onclick="cambiarVista('deudas')"><span>Deudas</span></button>
+    <button onclick="cambiarVista('balance')"><span>Balance</span></button>
   </footer>
 
   <!-- MODALES -->
-
-  <!-- Venta -->
-  <div class="modal" id="modal-venta">
-    <div class="modal-content">
-      <h3>Registrar Venta</h3>
-      <label for="venta-cliente">Cliente:</label>
-      <select id="venta-cliente"></select>
-
-      <label>Agregar Productos al Carrito:</label>
+  <div id="modal-venta" class="modal" onclick="cerrarModal('modal-venta')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <h3>Nueva Venta</h3>
+      <label>Producto:</label>
       <select id="venta-producto"></select>
-      <input type="number" id="venta-cantidad" placeholder="Cantidad" min="1" />
-      <button onclick="agregarAlCarrito()">Agregar al Carrito</button>
-
-      <h4>Carrito</h4>
-      <table id="tabla-carrito" class="tabla">
-        <thead><tr><th>Producto</th><th>Cantidad</th><th>Precio Unit.</th><th>Total</th><th>Acción</th></tr></thead>
-        <tbody></tbody>
-      </table>
-
-      <label for="venta-tipo">Tipo de Venta:</label>
+      <label>Cantidad:</label>
+      <input type="number" id="venta-cantidad" placeholder="Cantidad" />
+      <label>Tipo:</label>
       <select id="venta-tipo">
         <option value="contado">Contado</option>
         <option value="credito">Crédito</option>
       </select>
-
-      <label for="venta-fecha">Fecha de la Factura:</label>
-      <input type="date" id="venta-fecha" />
-
+      <label>Cliente:</label>
+      <select id="venta-cliente"></select>
       <button onclick="registrarVenta()">Guardar</button>
       <button onclick="cerrarModal('modal-venta')">Cancelar</button>
     </div>
   </div>
 
-  <!-- Inventario -->
-  <div class="modal" id="modal-inv">
-    <div class="modal-content">
-      <h3>Agregar Producto</h3>
-      <label for="inv-nombre">Nombre del Producto:</label>
-      <input id="inv-nombre" placeholder="Nombre del Producto" />
-      <label for="inv-stock">Stock:</label>
-      <input type="number" id="inv-stock" placeholder="Stock" min="0" />
-      <label for="inv-precio">Precio:</label>
-      <input type="number" id="inv-precio" placeholder="Precio" step="0.01" min="0" />
+  <div id="modal-inv" class="modal" onclick="cerrarModal('modal-inv')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <h3>Nuevo Producto</h3>
+      <label>Nombre:</label>
+      <input type="text" id="inv-nombre" placeholder="Nombre del producto" />
+      <label>Stock:</label>
+      <input type="number" id="inv-stock" placeholder="Stock inicial" />
+      <label>Precio:</label>
+      <input type="number" id="inv-precio" placeholder="Precio unitario" />
       <button onclick="agregarProducto()">Guardar</button>
       <button onclick="cerrarModal('modal-inv')">Cancelar</button>
     </div>
   </div>
 
-  <!-- Cliente -->
-  <div class="modal" id="modal-cliente">
-    <div class="modal-content">
-      <h3>Registrar Cliente</h3>
-      <label for="cliente-nombre">Nombre del Cliente:</label>
-      <input id="cliente-nombre" placeholder="Nombre del Cliente" />
+  <div id="modal-cliente" class="modal" onclick="cerrarModal('modal-cliente')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <h3>Nuevo Cliente</h3>
+      <label>Nombre:</label>
+      <input type="text" id="cliente-nombre" placeholder="Nombre del cliente" />
       <button onclick="registrarCliente()">Guardar</button>
       <button onclick="cerrarModal('modal-cliente')">Cancelar</button>
     </div>
   </div>
 
-  <!-- Abono Modal -->
-  <div class="modal" id="modal-abono">
-    <div class="modal-content">
-      <h3>Realizar Abono</h3>
-      <p id="info-abono"></p>
-      <label for="abono-monto">Monto a abonar:</label>
-      <input type="number" id="abono-monto" placeholder="Monto" min="0.01" step="0.01" />
-      <button onclick="realizarAbono()">Abonar</button>
-      <button onclick="cerrarModal('modal-abono')">Cancelar</button>
-    </div>
-  </div>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
