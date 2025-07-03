@@ -1,5 +1,3 @@
-// app.js
-
 let datos = {
   ventas: [],
   inventario: [],
@@ -13,7 +11,7 @@ function cambiarVista(vista) {
 }
 
 function abrirModal(id) {
-  document.getElementById(id).style.display = 'block';
+  document.getElementById(id).style.display = 'flex';
 }
 
 function cerrarModal(id) {
@@ -21,8 +19,10 @@ function cerrarModal(id) {
 }
 
 function registrarCliente() {
-  const nombre = document.getElementById('cliente-nombre').value;
-  if (!nombre) return;
+  const nombre = document.getElementById('cliente-nombre').value.trim();
+  if (!nombre) return alert('Ingrese un nombre válido');
+  if (datos.clientes.some(c => c.nombre === nombre)) return alert('El cliente ya existe');
+
   datos.clientes.push({ nombre });
   document.getElementById('cliente-nombre').value = '';
   actualizarListados();
@@ -30,10 +30,12 @@ function registrarCliente() {
 }
 
 function agregarProducto() {
-  const nombre = document.getElementById('inv-nombre').value;
+  const nombre = document.getElementById('inv-nombre').value.trim();
   const stock = parseInt(document.getElementById('inv-stock').value);
   const precio = parseFloat(document.getElementById('inv-precio').value);
-  if (!nombre || isNaN(stock) || isNaN(precio)) return;
+
+  if (!nombre || isNaN(stock) || isNaN(precio)) return alert('Complete todos los campos correctamente');
+
   datos.inventario.push({ nombre, stock, precio });
   document.getElementById('inv-nombre').value = '';
   document.getElementById('inv-stock').value = '';
@@ -46,15 +48,26 @@ function registrarVenta() {
   const producto = document.getElementById('venta-producto').value;
   const cantidad = parseInt(document.getElementById('venta-cantidad').value);
   const tipo = document.getElementById('venta-tipo').value;
-  const cliente = document.getElementById('venta-cliente').value;
+  const cliente = document.getElementById('venta-cliente').value || 'Consumidor Final';
+
   const item = datos.inventario.find(p => p.nombre === producto);
-  if (!item || isNaN(cantidad)) return;
+  if (!item) return alert('Producto no válido');
+  if (isNaN(cantidad) || cantidad <= 0) return alert('Cantidad inválida');
+  if (item.stock < cantidad) return alert('Stock insuficiente');
 
   const total = cantidad * item.precio;
+
   datos.ventas.push({ producto, cantidad, total, tipo, cliente, fecha: new Date().toISOString() });
+
   if (tipo === 'credito') {
-    datos.deudas.push({ cliente, total });
+    const deudaExistente = datos.deudas.find(d => d.cliente === cliente);
+    if (deudaExistente) {
+      deudaExistente.total += total;
+    } else {
+      datos.deudas.push({ cliente, total });
+    }
   }
+
   item.stock -= cantidad;
   document.getElementById('venta-cantidad').value = '';
   actualizarListados();
@@ -74,8 +87,9 @@ function mostrarClientes() {
   datos.clientes.forEach(c => {
     tbody.innerHTML += `<tr><td>${c.nombre}</td><td>-</td></tr>`;
   });
+
   const selectCliente = document.getElementById('venta-cliente');
-  selectCliente.innerHTML = '<option value="">Sin cliente</option>';
+  selectCliente.innerHTML = '<option value="">Consumidor Final</option>';
   datos.clientes.forEach(c => {
     selectCliente.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
   });
@@ -87,6 +101,7 @@ function mostrarInventario() {
   datos.inventario.forEach(p => {
     tbody.innerHTML += `<tr><td>${p.nombre}</td><td>${p.stock}</td><td>$${p.precio.toFixed(2)}</td></tr>`;
   });
+
   const selectProducto = document.getElementById('venta-producto');
   selectProducto.innerHTML = '';
   datos.inventario.forEach(p => {
@@ -118,14 +133,13 @@ function filtrarBalance() {
   let desde = new Date(0);
   let hasta = new Date();
 
+  const hoy = new Date();
+
   if (tipo === 'hoy') {
-    const hoy = new Date();
     desde = new Date(hoy.setHours(0,0,0,0));
   } else if (tipo === 'mes') {
-    const hoy = new Date();
     desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
   } else if (tipo === 'anio') {
-    const hoy = new Date();
     desde = new Date(hoy.getFullYear(), 0, 1);
   } else if (tipo === 'rango' && inicio && fin) {
     desde = new Date(inicio);
@@ -147,13 +161,19 @@ function filtrarBalance() {
 function descargarPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-  doc.text("Reporte de Ventas", 10, 10);
+  doc.setFontSize(14);
+  doc.text("Reporte de Ventas (últimas 10)", 10, 10);
+
   let y = 20;
   datos.ventas.slice(-10).forEach(v => {
-    doc.text(`${v.producto} | ${v.cantidad} | $${v.total.toFixed(2)} | ${v.tipo}`, 10, y);
-    y += 10;
+    const linea = `${v.fecha.split('T')[0]} | ${v.producto} | ${v.cantidad} | $${v.total.toFixed(2)} | ${v.tipo}`;
+    doc.text(linea, 10, y);
+    y += 8;
   });
-  doc.save("reporte.pdf");
+
+  doc.save("reporte_ventas.pdf");
 }
 
+// Inicializar
 cambiarVista('ventas');
+actualizarListados();
