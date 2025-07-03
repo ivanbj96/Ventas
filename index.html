@@ -2,41 +2,44 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TillUp POS</title>
+  <title>TillUp</title>
   <link rel="stylesheet" href="style.css" />
   <!-- <link rel="manifest" href="manifest.json"> -->
-  <link rel="icon" type="image/png" href="TillUp.png">
 </head>
 <body>
   <header>
-    <img src="TillUp.png" alt="Logo TillUp" class="logo" />
-    <h1>TillUp POS</h1>
+    <img src="TillUp.png" alt="TillUp Logo" class="logo" />
+    <h1>TillUp</h1>
   </header>  <main>
     <section id="vista-ventas" class="vista active">
-      <h2>Ventas del día</h2>
-      <button onclick="abrirModal('modal-venta')">Registrar Venta</button>
+      <h2>Ventas del Día</h2>
+      <button onclick="abrirModal('modal-venta')">Nueva Venta</button>
       <table id="tabla-ventas">
         <thead>
-          <tr><th>Producto</th><th>Cant</th><th>Peso</th><th>$/lb</th><th>Total</th><th>Cliente</th></tr>
+          <tr><th>Producto</th><th>Cant.</th><th>Peso</th><th>Precio/Lb</th><th>Total</th><th>Cliente</th></tr>
         </thead>
         <tbody></tbody>
       </table>
     </section><section id="vista-balance" class="vista">
   <h2>Balance</h2>
-  <button onclick="descargarPDF()">Descargar Reporte</button>
+  <button>Filtrar por Fecha</button>
+  <button>Descargar Reporte</button>
+  <!-- Aquí irían los filtros -->
 </section>
 
 <section id="vista-deudas" class="vista">
   <h2>Deudas</h2>
+  <!-- Lista de deudas -->
 </section>
 
 <section id="vista-inventario" class="vista">
   <h2>Inventario</h2>
+  <!-- Listado y formulario -->
 </section>
 
 <section id="vista-clientes" class="vista">
   <h2>Clientes</h2>
-  <button onclick="abrirModal('modal-cliente')">Registrar Cliente</button>
+  <button onclick="abrirModal('modal-cliente')">Nuevo Cliente</button>
   <table id="tabla-clientes">
     <thead>
       <tr><th>Nombre</th><th>Acción</th></tr>
@@ -46,30 +49,28 @@
 </section>
 
   </main>  <footer>
-    <button onclick="cambiarVista('ventas')">📦<span>Ventas</span></button>
-    <button onclick="cambiarVista('balance')">📊<span>Balance</span></button>
-    <button onclick="cambiarVista('deudas')">💳<span>Deudas</span></button>
-    <button onclick="cambiarVista('inventario')">📦<span>Inventario</span></button>
-    <button onclick="cambiarVista('clientes')">👥<span>Clientes</span></button>
-  </footer>  <div id="modal-venta" class="modal" onclick="event.target === this && cerrarModal('modal-venta')">
+    <button onclick="cambiarVista('ventas')">📦<br>Ventas</button>
+    <button onclick="cambiarVista('balance')">📊<br>Balance</button>
+    <button onclick="cambiarVista('deudas')">💸<br>Deudas</button>
+    <button onclick="cambiarVista('inventario')">📦<br>Inventario</button>
+    <button onclick="cambiarVista('clientes')">👥<br>Clientes</button>
+  </footer>  <!-- Modal Venta -->  <div class="modal" id="modal-venta">
     <div class="modal-content">
-      <h3>Registrar Venta</h3>
-      <label>Producto <input type="text" /></label>
-      <label>Cantidad <input type="number" step="1" min="1" /></label>
-      <label>Peso total (lb) <input type="number" step="0.01" /></label>
-      <label>Precio por libra <input type="number" step="0.01" /></label>
-      <label>Cliente
-        <select required>
-          <option value="" disabled selected>Seleccionar</option>
-        </select>
-      </label>
-      <button>Guardar Venta</button>
+      <h3>Nueva Venta</h3>
+      <label>Producto <input type="text"></label>
+      <label>Cantidad <input type="number"></label>
+      <label>Peso Total (lbs) <input type="number"></label>
+      <label>Precio por libra <input type="number"></label>
+      <label>Cliente <select></select></label>
+      <button>Guardar</button>
+      <button onclick="cerrarModal('modal-venta')">Cerrar</button>
     </div>
-  </div>  <div id="modal-cliente" class="modal" onclick="event.target === this && cerrarModal('modal-cliente')">
+  </div>  <!-- Modal Cliente -->  <div class="modal" id="modal-cliente">
     <div class="modal-content">
       <h3>Nuevo Cliente</h3>
-      <label>Nombre <input type="text" /></label>
-      <button>Guardar Cliente</button>
+      <label>Nombre <input type="text"></label>
+      <button>Guardar</button>
+      <button onclick="cerrarModal('modal-cliente')">Cerrar</button>
     </div>
-  </div>  <script src="app.js"></script></body>
+  </div>  <!-- <script src="sw.js"></script> -->  <script src="app.js"></script></body>
 </html>
