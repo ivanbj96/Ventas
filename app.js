@@ -1,159 +1,93 @@
-// app.js
+// Gestión de vistas
+const vistas = document.querySelectorAll('.vista');
+const botonesFooter = document.querySelectorAll('footer button');
 
-let datos = {
-  ventas: [],
-  inventario: [],
-  clientes: [],
-  deudas: []
+function mostrarVista(vista) {
+  vistas.forEach(v => v.classList.remove('active'));
+  document.getElementById(vista).classList.add('active');
+}
+
+botonesFooter.forEach(boton => {
+  boton.addEventListener('click', () => {
+    mostrarVista(boton.dataset.vista);
+  });
+});
+
+
+// Manejo de datos (localStorage - Estructura de datos de ejemplo)
+
+// Estructura de datos para productos (ajusta según tus necesidades)
+const productoSchema = {
+    id: String,
+    nombre: String,
+    stock: Number,
+    precio: Number
 };
 
-function cambiarVista(vista) {
-  document.querySelectorAll('.vista').forEach(v => v.classList.remove('active'));
-  document.getElementById(`vista-${vista}`).classList.add('active');
+// Estructura de datos para ventas (ajusta según tus necesidades)
+const ventaSchema = {
+    id: String,
+    productoId: String,
+    cantidad: Number,
+    tipo: String,
+    clienteId: String
+};
+
+
+// Funciones para localStorage (implementa las funciones CRUD)
+
+function obtenerProductos() {
+  const productosStr = localStorage.getItem('productos');
+  return productosStr ? JSON.parse(productosStr) : [];
 }
 
-function abrirModal(id) {
-  document.getElementById(id).style.display = 'block';
+
+function guardarProductos(productos) {
+  localStorage.setItem('productos', JSON.stringify(productos));
 }
 
-function cerrarModal(id) {
-  document.getElementById(id).style.display = 'none';
+
+function obtenerVentas() {
+  const ventasStr = localStorage.getItem('ventas');
+  return ventasStr ? JSON.parse(ventasStr) : [];
 }
 
-function registrarCliente() {
-  const nombre = document.getElementById('cliente-nombre').value;
-  if (!nombre) return;
-  datos.clientes.push({ nombre });
-  document.getElementById('cliente-nombre').value = '';
-  actualizarListados();
-  cerrarModal('modal-cliente');
+function guardarVentas(ventas) {
+  localStorage.setItem('ventas', JSON.stringify(ventas));
 }
 
-function agregarProducto() {
-  const nombre = document.getElementById('inv-nombre').value;
-  const stock = parseInt(document.getElementById('inv-stock').value);
-  const precio = parseFloat(document.getElementById('inv-precio').value);
-  if (!nombre || isNaN(stock) || isNaN(precio)) return;
-  datos.inventario.push({ nombre, stock, precio });
-  document.getElementById('inv-nombre').value = '';
-  document.getElementById('inv-stock').value = '';
-  document.getElementById('inv-precio').value = '';
-  actualizarListados();
-  cerrarModal('modal-inv');
-}
+// ... (funciones para clientes y deudas, similares a las anteriores)
 
-function registrarVenta() {
-  const producto = document.getElementById('venta-producto').value;
-  const cantidad = parseInt(document.getElementById('venta-cantidad').value);
-  const tipo = document.getElementById('venta-tipo').value;
-  const cliente = document.getElementById('venta-cliente').value;
-  const item = datos.inventario.find(p => p.nombre === producto);
-  if (!item || isNaN(cantidad)) return;
 
-  const total = cantidad * item.precio;
-  datos.ventas.push({ producto, cantidad, total, tipo, cliente, fecha: new Date().toISOString() });
-  if (tipo === 'credito') {
-    datos.deudas.push({ cliente, total });
-  }
-  item.stock -= cantidad;
-  document.getElementById('venta-cantidad').value = '';
-  actualizarListados();
-  cerrarModal('modal-venta');
-}
+// Funciones para llenar los selects (ejemplo para productos)
+function llenarSelectProductos() {
+  const select = document.getElementById('venta-producto');
+  const productos = obtenerProductos();
 
-function actualizarListados() {
-  mostrarClientes();
-  mostrarInventario();
-  mostrarVentas();
-  mostrarDeudas();
-}
-
-function mostrarClientes() {
-  const tbody = document.querySelector('#tabla-clientes tbody');
-  tbody.innerHTML = '';
-  datos.clientes.forEach(c => {
-    tbody.innerHTML += `<tr><td>${c.nombre}</td><td>-</td></tr>`;
-  });
-  const selectCliente = document.getElementById('venta-cliente');
-  selectCliente.innerHTML = '<option value="">Sin cliente</option>';
-  datos.clientes.forEach(c => {
-    selectCliente.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
+  productos.forEach(producto => {
+    const option = document.createElement('option');
+    option.value = producto.id;
+    option.textContent = producto.nombre;
+    select.appendChild(option);
   });
 }
 
-function mostrarInventario() {
-  const tbody = document.querySelector('#tabla-inv tbody');
-  tbody.innerHTML = '';
-  datos.inventario.forEach(p => {
-    tbody.innerHTML += `<tr><td>${p.nombre}</td><td>${p.stock}</td><td>$${p.precio.toFixed(2)}</td></tr>`;
-  });
-  const selectProducto = document.getElementById('venta-producto');
-  selectProducto.innerHTML = '';
-  datos.inventario.forEach(p => {
-    selectProducto.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`;
-  });
-}
+//Llama a la función para llenar el select al cargar la página
+window.addEventListener('load', llenarSelectProductos);
 
-function mostrarVentas() {
-  const tbody = document.querySelector('#tabla-ventas tbody');
-  tbody.innerHTML = '';
-  datos.ventas.slice(-10).reverse().forEach(v => {
-    tbody.innerHTML += `<tr><td>${v.producto}</td><td>${v.cantidad}</td><td>$${v.total.toFixed(2)}</td><td>${v.tipo}</td></tr>`;
-  });
-}
 
-function mostrarDeudas() {
-  const tbody = document.querySelector('#tabla-deudas tbody');
-  tbody.innerHTML = '';
-  datos.deudas.slice(-10).reverse().forEach(d => {
-    tbody.innerHTML += `<tr><td>${d.cliente}</td><td>$${d.total.toFixed(2)}</td></tr>`;
-  });
-}
+//Ejemplo de registro de venta (solo guarda en localStorage, sin validaciones ni manejo de errores aun)
+document.getElementById('btn-guardar-venta').addEventListener('click', () => {
+    const venta = {
+        id: Date.now().toString(), //ID simple para este ejemplo
+        productoId: document.getElementById('venta-producto').value,
+        cantidad: parseInt(document.getElementById('venta-cantidad').value),
+        tipo: document.getElementById('venta-tipo').value,
+        clienteId: document.getElementById('venta-cliente').value
+    };
 
-function filtrarBalance() {
-  const tipo = document.getElementById('filtro-tipo').value;
-  const inicio = document.getElementById('filtro-inicio').value;
-  const fin = document.getElementById('filtro-fin').value;
-
-  let desde = new Date(0);
-  let hasta = new Date();
-
-  if (tipo === 'hoy') {
-    const hoy = new Date();
-    desde = new Date(hoy.setHours(0,0,0,0));
-  } else if (tipo === 'mes') {
-    const hoy = new Date();
-    desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-  } else if (tipo === 'anio') {
-    const hoy = new Date();
-    desde = new Date(hoy.getFullYear(), 0, 1);
-  } else if (tipo === 'rango' && inicio && fin) {
-    desde = new Date(inicio);
-    hasta = new Date(fin);
-  }
-
-  const filtradas = datos.ventas.filter(v => {
-    const fecha = new Date(v.fecha);
-    return fecha >= desde && fecha <= hasta;
-  });
-
-  const tbody = document.querySelector('#tabla-balance tbody');
-  tbody.innerHTML = '';
-  filtradas.slice(-10).reverse().forEach(v => {
-    tbody.innerHTML += `<tr><td>${v.producto}</td><td>${v.cantidad}</td><td>$${v.total.toFixed(2)}</td></tr>`;
-  });
-}
-
-function descargarPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  doc.text("Reporte de Ventas", 10, 10);
-  let y = 20;
-  datos.ventas.slice(-10).forEach(v => {
-    doc.text(`${v.producto} | ${v.cantidad} | $${v.total.toFixed(2)} | ${v.tipo}`, 10, y);
-    y += 10;
-  });
-  doc.save("reporte.pdf");
-}
-
-cambiarVista('ventas');
+    const ventas = obtenerVentas();
+    ventas.push(venta);
+    guardarVentas(ventas);
+    console.log('Venta registrada:', venta)
+});
