@@ -12,6 +12,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow: hidden;
 }
 
 header {
@@ -35,6 +36,7 @@ main {
   flex: 1;
   padding: 1rem;
   overflow-y: auto;
+  margin-bottom: 60px; /* para que no quede debajo del footer fijo */
 }
 
 h1, h2 {
@@ -95,6 +97,10 @@ button:hover {
   background: #34A853;
 }
 
+.btn-modal:hover {
+  background: #2c8b46;
+}
+
 /* === FOOTER NAV === */
 footer {
   display: flex;
@@ -106,16 +112,23 @@ footer {
   position: fixed;
   bottom: 0;
   width: 100%;
+  z-index: 99;
 }
 
 footer button {
-  background: none;
-  border: none;
-  color: #4A90E2;
+  all: unset;
   display: flex;
   flex-direction: column;
   align-items: center;
   font-size: 0.8rem;
+  color: #4A90E2;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+footer button:hover {
+  background-color: #f0f8ff;
+  border-radius: 6px;
 }
 
 footer button span {
