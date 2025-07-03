@@ -1,26 +1,159 @@
 // app.js
 
-document.addEventListener("DOMContentLoaded", () => { const vistas = document.querySelectorAll(".vista"); const botones = document.querySelectorAll("footer button");
+let datos = {
+  ventas: [],
+  inventario: [],
+  clientes: [],
+  deudas: []
+};
 
-function cambiarVista(nombre) { vistas.forEach(v => v.classList.remove("active")); document.getElementById(vista-${nombre}).classList.add("active"); }
+function cambiarVista(vista) {
+  document.querySelectorAll('.vista').forEach(v => v.classList.remove('active'));
+  document.getElementById(`vista-${vista}`).classList.add('active');
+}
 
-window.cambiarVista = cambiarVista;
+function abrirModal(id) {
+  document.getElementById(id).style.display = 'block';
+}
 
-window.abrirModal = id => document.getElementById(id).style.display = "flex"; window.cerrarModal = id => document.getElementById(id).style.display = "none";
+function cerrarModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
 
-const ventas = JSON.parse(localStorage.getItem("ventas")) || []; const clientes = JSON.parse(localStorage.getItem("clientes")) || [];
+function registrarCliente() {
+  const nombre = document.getElementById('cliente-nombre').value;
+  if (!nombre) return;
+  datos.clientes.push({ nombre });
+  document.getElementById('cliente-nombre').value = '';
+  actualizarListados();
+  cerrarModal('modal-cliente');
+}
 
-function renderVentas() { const tbody = document.querySelector("#tabla-ventas tbody"); tbody.innerHTML = ""; ventas.slice(-10).forEach(v => { const tr = document.createElement("tr"); tr.innerHTML = <td>${v.producto}</td><td>${v.cantidad}</td><td>${v.peso}</td><td>${v.precioLb}</td><td>${v.total.toFixed(2)}</td><td>${v.cliente}</td>; tbody.appendChild(tr); }); }
+function agregarProducto() {
+  const nombre = document.getElementById('inv-nombre').value;
+  const stock = parseInt(document.getElementById('inv-stock').value);
+  const precio = parseFloat(document.getElementById('inv-precio').value);
+  if (!nombre || isNaN(stock) || isNaN(precio)) return;
+  datos.inventario.push({ nombre, stock, precio });
+  document.getElementById('inv-nombre').value = '';
+  document.getElementById('inv-stock').value = '';
+  document.getElementById('inv-precio').value = '';
+  actualizarListados();
+  cerrarModal('modal-inv');
+}
 
-function renderClientes() { const tbody = document.querySelector("#tabla-clientes tbody"); const select = document.querySelector("#modal-venta select"); tbody.innerHTML = ""; select.innerHTML = '<option value="" disabled selected>Seleccionar</option>'; clientes.forEach(c => { const tr = document.createElement("tr"); tr.innerHTML = <td>${c.nombre}</td><td><button onclick="verHistorialCliente('${c.nombre}')">Ver</button></td>; tbody.appendChild(tr); const opt = document.createElement("option"); opt.value = c.nombre; opt.textContent = c.nombre; select.appendChild(opt); }); }
+function registrarVenta() {
+  const producto = document.getElementById('venta-producto').value;
+  const cantidad = parseInt(document.getElementById('venta-cantidad').value);
+  const tipo = document.getElementById('venta-tipo').value;
+  const cliente = document.getElementById('venta-cliente').value;
+  const item = datos.inventario.find(p => p.nombre === producto);
+  if (!item || isNaN(cantidad)) return;
 
-document.querySelector("#modal-cliente button").addEventListener("click", () => { const input = document.querySelector("#modal-cliente input"); if (input.value.trim()) { clientes.push({ nombre: input.value.trim() }); localStorage.setItem("clientes", JSON.stringify(clientes)); cerrarModal("modal-cliente"); input.value = ""; renderClientes(); } });
+  const total = cantidad * item.precio;
+  datos.ventas.push({ producto, cantidad, total, tipo, cliente, fecha: new Date().toISOString() });
+  if (tipo === 'credito') {
+    datos.deudas.push({ cliente, total });
+  }
+  item.stock -= cantidad;
+  document.getElementById('venta-cantidad').value = '';
+  actualizarListados();
+  cerrarModal('modal-venta');
+}
 
-document.querySelector("#modal-venta button").addEventListener("click", () => { const [producto, cantidad, peso, precioLb] = document.querySelectorAll("#modal-venta input"); const clienteSel = document.querySelector("#modal-venta select"); const cant = parseFloat(cantidad.value); const lbs = parseFloat(peso.value); const price = parseFloat(precioLb.value); const total = (lbs / cant) * price * cant; const data = { producto: producto.value, cantidad: cant, peso: lbs, precioLb: price, total: total, cliente: clienteSel.value }; ventas.push(data); localStorage.setItem("ventas", JSON.stringify(ventas)); cerrarModal("modal-venta"); [producto, cantidad, peso, precioLb].forEach(input => input.value = ""); clienteSel.value = ""; renderVentas(); });
+function actualizarListados() {
+  mostrarClientes();
+  mostrarInventario();
+  mostrarVentas();
+  mostrarDeudas();
+}
 
-window.verHistorialCliente = nombre => { const historial = ventas.filter(v => v.cliente === nombre); alert(Historial de ${nombre}:\n + historial.map(h => - ${h.producto}: $${h.total.toFixed(2)}).join("\n")); };
+function mostrarClientes() {
+  const tbody = document.querySelector('#tabla-clientes tbody');
+  tbody.innerHTML = '';
+  datos.clientes.forEach(c => {
+    tbody.innerHTML += `<tr><td>${c.nombre}</td><td>-</td></tr>`;
+  });
+  const selectCliente = document.getElementById('venta-cliente');
+  selectCliente.innerHTML = '<option value="">Sin cliente</option>';
+  datos.clientes.forEach(c => {
+    selectCliente.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
+  });
+}
 
-renderClientes(); renderVentas();
+function mostrarInventario() {
+  const tbody = document.querySelector('#tabla-inv tbody');
+  tbody.innerHTML = '';
+  datos.inventario.forEach(p => {
+    tbody.innerHTML += `<tr><td>${p.nombre}</td><td>${p.stock}</td><td>$${p.precio.toFixed(2)}</td></tr>`;
+  });
+  const selectProducto = document.getElementById('venta-producto');
+  selectProducto.innerHTML = '';
+  datos.inventario.forEach(p => {
+    selectProducto.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`;
+  });
+}
 
-// Registro del service worker comentado temporalmente // if ('serviceWorker' in navigator) { //   navigator.serviceWorker.register('sw.js') //     .then(reg => console.log('SW registrado:', reg)) //     .catch(err => console.error('Error SW:', err)); // } });
+function mostrarVentas() {
+  const tbody = document.querySelector('#tabla-ventas tbody');
+  tbody.innerHTML = '';
+  datos.ventas.slice(-10).reverse().forEach(v => {
+    tbody.innerHTML += `<tr><td>${v.producto}</td><td>${v.cantidad}</td><td>$${v.total.toFixed(2)}</td><td>${v.tipo}</td></tr>`;
+  });
+}
 
+function mostrarDeudas() {
+  const tbody = document.querySelector('#tabla-deudas tbody');
+  tbody.innerHTML = '';
+  datos.deudas.slice(-10).reverse().forEach(d => {
+    tbody.innerHTML += `<tr><td>${d.cliente}</td><td>$${d.total.toFixed(2)}</td></tr>`;
+  });
+}
+
+function filtrarBalance() {
+  const tipo = document.getElementById('filtro-tipo').value;
+  const inicio = document.getElementById('filtro-inicio').value;
+  const fin = document.getElementById('filtro-fin').value;
+
+  let desde = new Date(0);
+  let hasta = new Date();
+
+  if (tipo === 'hoy') {
+    const hoy = new Date();
+    desde = new Date(hoy.setHours(0,0,0,0));
+  } else if (tipo === 'mes') {
+    const hoy = new Date();
+    desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  } else if (tipo === 'anio') {
+    const hoy = new Date();
+    desde = new Date(hoy.getFullYear(), 0, 1);
+  } else if (tipo === 'rango' && inicio && fin) {
+    desde = new Date(inicio);
+    hasta = new Date(fin);
+  }
+
+  const filtradas = datos.ventas.filter(v => {
+    const fecha = new Date(v.fecha);
+    return fecha >= desde && fecha <= hasta;
+  });
+
+  const tbody = document.querySelector('#tabla-balance tbody');
+  tbody.innerHTML = '';
+  filtradas.slice(-10).reverse().forEach(v => {
+    tbody.innerHTML += `<tr><td>${v.producto}</td><td>${v.cantidad}</td><td>$${v.total.toFixed(2)}</td></tr>`;
+  });
+}
+
+function descargarPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.text("Reporte de Ventas", 10, 10);
+  let y = 20;
+  datos.ventas.slice(-10).forEach(v => {
+    doc.text(`${v.producto} | ${v.cantidad} | $${v.total.toFixed(2)} | ${v.tipo}`, 10, y);
+    y += 10;
+  });
+  doc.save("reporte.pdf");
+}
+
+cambiarVista('ventas');
