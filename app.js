@@ -1,97 +1,26 @@
 // app.js
 
-let ventas = JSON.parse(localStorage.getItem('ventas')) || [];
-let clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+document.addEventListener("DOMContentLoaded", () => { const vistas = document.querySelectorAll(".vista"); const botones = document.querySelectorAll("footer button");
 
-function cambiarVista(vista) {
-  document.querySelectorAll('.vista').forEach(v => v.classList.remove('active'));
-  document.getElementById(`vista-${vista}`).classList.add('active');
-}
+function cambiarVista(nombre) { vistas.forEach(v => v.classList.remove("active")); document.getElementById(vista-${nombre}).classList.add("active"); }
 
-function abrirModal(id) {
-  document.getElementById(id).style.display = 'flex';
-}
+window.cambiarVista = cambiarVista;
 
-function cerrarModal(id) {
-  document.getElementById(id).style.display = 'none';
-}
+window.abrirModal = id => document.getElementById(id).style.display = "flex"; window.cerrarModal = id => document.getElementById(id).style.display = "none";
 
-function guardarVenta() {
-  const producto = document.querySelector('#modal-venta input:nth-of-type(1)').value;
-  const cantidad = parseFloat(document.querySelector('#modal-venta input:nth-of-type(2)').value);
-  const peso = parseFloat(document.querySelector('#modal-venta input:nth-of-type(3)').value);
-  const precioLb = parseFloat(document.querySelector('#modal-venta input:nth-of-type(4)').value);
-  const cliente = document.querySelector('#modal-venta select').value;
+// Ejemplo de persistencia simple en localStorage const ventas = JSON.parse(localStorage.getItem("ventas")) || []; const clientes = JSON.parse(localStorage.getItem("clientes")) || [];
 
-  if (!producto || isNaN(cantidad) || isNaN(peso) || isNaN(precioLb)) return;
+function renderVentas() { const tbody = document.querySelector("#tabla-ventas tbody"); tbody.innerHTML = ""; ventas.slice(-10).forEach(v => { const tr = document.createElement("tr"); tr.innerHTML = <td>${v.producto}</td><td>${v.cantidad}</td><td>${v.peso}</td><td>${v.precioLb}</td><td>${v.total}</td><td>${v.cliente}</td>; tbody.appendChild(tr); }); }
 
-  const pesoProm = peso / cantidad;
-  const total = peso * precioLb;
+function renderClientes() { const tbody = document.querySelector("#tabla-clientes tbody"); const select = document.querySelector("#modal-venta select"); tbody.innerHTML = ""; select.innerHTML = '<option value="" disabled selected>Seleccionar</option>'; clientes.forEach(c => { const tr = document.createElement("tr"); tr.innerHTML = <td>${c.nombre}</td><td><button onclick="verHistorialCliente('${c.nombre}')">Ver</button></td>; tbody.appendChild(tr); const opt = document.createElement("option"); opt.value = c.nombre; opt.textContent = c.nombre; select.appendChild(opt); }); }
 
-  ventas.push({ producto, cantidad, peso, precioLb, cliente, total, fecha: new Date().toISOString() });
-  localStorage.setItem('ventas', JSON.stringify(ventas));
+document.querySelector("#modal-cliente button").onclick = () => { const input = document.querySelector("#modal-cliente input"); if (input.value.trim()) { clientes.push({ nombre: input.value.trim() }); localStorage.setItem("clientes", JSON.stringify(clientes)); cerrarModal("modal-cliente"); input.value = ""; renderClientes(); } };
 
-  cerrarModal('modal-venta');
-  renderVentas();
-}
+document.querySelector("#modal-venta button").onclick = () => { const [producto, cantidad, peso, precioLb, clienteSel] = document.querySelectorAll("#modal-venta input, #modal-venta select"); const data = { producto: producto.value, cantidad: parseFloat(cantidad.value), peso: parseFloat(peso.value), precioLb: parseFloat(precioLb.value), cliente: clienteSel.value }; data.total = (data.peso / data.cantidad) * data.precioLb * data.cantidad; ventas.push(data); localStorage.setItem("ventas", JSON.stringify(ventas)); cerrarModal("modal-venta"); [producto, cantidad, peso, precioLb].forEach(input => input.value = ""); clienteSel.value = ""; renderVentas(); };
 
-function guardarCliente() {
-  const nombre = document.querySelector('#modal-cliente input').value;
-  if (!nombre) return;
-  clientes.push({ nombre });
-  localStorage.setItem('clientes', JSON.stringify(clientes));
-  cerrarModal('modal-cliente');
-  renderClientes();
-}
+window.verHistorialCliente = nombre => { alert(Historial para ${nombre} aún no implementado.); };
 
-function renderVentas() {
-  const tbody = document.querySelector('#tabla-ventas tbody');
-  tbody.innerHTML = '';
-  ventas.slice(-10).reverse().forEach(v => {
-    const row = document.createElement('tr');
-    row.innerHTML = `<td>${v.producto}</td><td>${v.cantidad}</td><td>${v.peso.toFixed(2)}</td><td>${v.precioLb.toFixed(2)}</td><td>${v.total.toFixed(2)}</td><td>${v.cliente}</td>`;
-    tbody.appendChild(row);
-  });
-}
+renderClientes(); renderVentas();
 
-function renderClientes() {
-  const tbody = document.querySelector('#tabla-clientes tbody');
-  const select = document.querySelector('#modal-venta select');
-  tbody.innerHTML = '';
-  select.innerHTML = '<option value="">Seleccionar</option>';
-  clientes.forEach(c => {
-    const row = document.createElement('tr');
-    row.innerHTML = `<td>${c.nombre}</td><td><button onclick="verHistorial('${c.nombre}')">Ver</button></td>`;
-    tbody.appendChild(row);
-    const opt = document.createElement('option');
-    opt.value = c.nombre;
-    opt.textContent = c.nombre;
-    select.appendChild(opt);
-  });
-}
+// Registro del service worker comentado temporalmente // if ('serviceWorker' in navigator) { //   navigator.serviceWorker.register('sw.js') //     .then(reg => console.log('SW registrado:', reg)) //     .catch(err => console.error('Error SW:', err)); // } });
 
-function verHistorial(nombre) {
-  const hist = ventas.filter(v => v.cliente === nombre);
-  alert(`Historial de ${nombre}:\n` + hist.map(v => `• ${v.producto}: ${v.total.toFixed(2)}$`).join('\n'));
-}
-
-function descargarPDF() {
-  let contenido = 'Producto,Cantidad,Peso,Precio por lb,Total,Cliente,Fecha\n';
-  ventas.forEach(v => {
-    contenido += `${v.producto},${v.cantidad},${v.peso},${v.precioLb},${v.total},${v.cliente},${v.fecha}\n`;
-  });
-
-  const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'reporte_ventas.csv';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-document.querySelector('#modal-venta button').onclick = guardarVenta;
-document.querySelector('#modal-cliente button').onclick = guardarCliente;
-
-renderVentas();
-renderClientes();
