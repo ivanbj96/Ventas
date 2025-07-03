@@ -1,88 +1,81 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>App POS - PWA</title>
-  <link rel="stylesheet" href="style.css"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App POS - PWA</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <div class="logo"></div>
-    <h1>Mi App POS</h1>
-  </header>
+    <header>
+        <div class="logo"></div>
+        <h1>Mi App POS</h1>
+    </header>
 
-  <main>
-    <section id="vista-ventas" class="vista active">
-      <h2>Ventas del Día</h2>
-      <button id="btn-registrar-venta">+ Registrar Venta</button>
-      <table id="tabla-ventas" class="tabla">
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th>Cantidad</th>
-            <th>Total</th>
-            <th>Tipo</th>
-          </tr>
-        </thead>
-        <tbody id="cuerpo-tabla-ventas"></tbody>
-      </table>
-    </section>
+    <main>
+        <section id="vista-ventas" class="vista active">
+            <h2>Ventas del Día</h2>
+            <button id="btn-registrar-venta">+ Registrar Venta</button>
+            <table id="tabla-ventas" class="tabla">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Total</th>
+                        <th>Tipo</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpo-tabla-ventas"></tbody>
+            </table>
+        </section>
 
-    <!-- Otras vistas (balance, deudas, inventario, clientes) - Estructura similar -->
-    <section id="vista-balance" class="vista">
-      <h2>Balance</h2>
-      <select id="filtro-tipo">
-        <option value="">--Seleccionar--</option>
-        <option value="hoy">Hoy</option>
-        <option value="mes">Este Mes</option>
-        <option value="anio">Este Año</option>
-        <option value="rango">Rango</option>
-      </select>
-      <input type="date" id="filtro-inicio" />
-      <input type="date" id="filtro-fin" />
-      <button id="btn-descargar-pdf">Descargar PDF</button>
-      <table id="tabla-balance" class="tabla">
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th>Cantidad</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody id="cuerpo-tabla-balance"></tbody>
-      </table>
-    </section>
+        <section id="vista-balance" class="vista">
+            <h2>Balance</h2>
+            <select id="filtro-tipo">
+                <option value="">--Seleccionar--</option>
+                <option value="hoy">Hoy</option>
+                <option value="mes">Este Mes</option>
+                <option value="anio">Este Año</option>
+                <option value="rango">Rango</option>
+            </select>
+            <input type="date" id="filtro-inicio">
+            <input type="date" id="filtro-fin">
+            <button id="btn-descargar-pdf">Descargar PDF</button>
+            <table id="tabla-balance" class="tabla">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpo-tabla-balance"></tbody>
+            </table>
+        </section>
+        <!-- Resto de secciones con estructura similar -->
+    </main>
 
-    <!-- Resto de secciones con estructura similar -->
+    <footer>
+        <button data-vista="ventas">📦 Ventas</button>
+        <button data-vista="balance">📊 Balance</button>
+        <!-- Agrega los demás botones del footer aquí -->
+    </footer>
 
-  </main>
-
-  <footer>
-    <button data-vista="ventas">📦<span>Ventas</span></button>
-    <button data-vista="balance">📊<span>Balance</span></button>
-    <button data-vista="deudas">💳<span>Deudas</span></button>
-    <button data-vista="inventario">🗃️<span>Inventario</span></button>
-    <button data-vista="clientes">👥<span>Clientes</span></button>
-  </footer>
-
-  <!-- Modales (estructura similar) -->
-  <div id="modal-venta" class="modal">
-    <div class="modal-content">
-      <h3>Registrar Venta</h3>
-      <select id="venta-producto"></select>
-      <input type="number" id="venta-cantidad" placeholder="Cantidad"/>
-      <select id="venta-tipo">
-        <option value="contado">Contado</option>
-        <option value="credito">Crédito</option>
-      </select>
-      <select id="venta-cliente"></select>
-      <button id="btn-guardar-venta">Guardar</button>
-      <button id="btn-cancelar-venta">Cancelar</button>
+    <div id="modal-venta" class="modal">
+        <div class="modal-content">
+            <h3>Registrar Venta</h3>
+            <select id="venta-producto"></select>
+            <input type="number" id="venta-cantidad" placeholder="Cantidad">
+            <select id="venta-tipo">
+                <option value="contado">Contado</option>
+                <option value="credito">Crédito</option>
+            </select>
+            <select id="venta-cliente"></select>
+            <button id="btn-guardar-venta">Guardar</button>
+            <button id="btn-cancelar-venta">Cancelar</button>
+        </div>
     </div>
-  </div>
 
-  <script src="script.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
