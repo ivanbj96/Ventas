@@ -1,147 +1,97 @@
-// Datos de la aplicación
-let datos = {
-  ventas: [],
-  inventario: [],
-  clientes: [],
-  deudas: []
-};
+// app.js
 
-// Funciones para cambiar de vista
+let ventas = JSON.parse(localStorage.getItem('ventas')) || [];
+let clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+
 function cambiarVista(vista) {
   document.querySelectorAll('.vista').forEach(v => v.classList.remove('active'));
   document.getElementById(`vista-${vista}`).classList.add('active');
 }
 
-// Funciones para abrir y cerrar modales
 function abrirModal(id) {
-  document.getElementById(id).style.display = 'block';
+  document.getElementById(id).style.display = 'flex';
 }
 
 function cerrarModal(id) {
   document.getElementById(id).style.display = 'none';
 }
 
-// Función para registrar un cliente
-function registrarCliente() {
-  const nombre = document.getElementById('cliente-nombre').value.trim();
-  if (!nombre) {
-    alert('Por favor, ingresa un nombre.');
-    return;
-  }
-  datos.clientes.push({ nombre });
-  document.getElementById('cliente-nombre').value = '';
-  actualizarListados();
-  cerrarModal('modal-cliente');
-}
+function guardarVenta() {
+  const producto = document.querySelector('#modal-venta input:nth-of-type(1)').value;
+  const cantidad = parseFloat(document.querySelector('#modal-venta input:nth-of-type(2)').value);
+  const peso = parseFloat(document.querySelector('#modal-venta input:nth-of-type(3)').value);
+  const precioLb = parseFloat(document.querySelector('#modal-venta input:nth-of-type(4)').value);
+  const cliente = document.querySelector('#modal-venta select').value;
 
-// Función para agregar un producto
-function agregarProducto() {
-  const nombre = document.getElementById('inv-nombre').value.trim();
-  const stock = parseInt(document.getElementById('inv-stock').value);
-  const precio = parseFloat(document.getElementById('inv-precio').value);
+  if (!producto || isNaN(cantidad) || isNaN(peso) || isNaN(precioLb)) return;
 
-  if (!nombre || isNaN(stock) || isNaN(precio) || precio <= 0 || stock <= 0) {
-    alert('Por favor, completa todos los campos con valores válidos. El precio y stock deben ser números positivos.');
-    return;
-  }
-  datos.inventario.push({ nombre, stock, precio });
-  document.getElementById('inv-nombre').value = '';
-  document.getElementById('inv-stock').value = '';
-  document.getElementById('inv-precio').value = '';
-  actualizarListados();
-  cerrarModal('modal-inv');
-}
+  const pesoProm = peso / cantidad;
+  const total = peso * precioLb;
 
-// Función para registrar una venta
-function registrarVenta() {
-  const producto = document.getElementById('venta-producto').value;
-  const cantidad = parseInt(document.getElementById('venta-cantidad').value);
-  const tipo = document.getElementById('venta-tipo').value;
-  const cliente = document.getElementById('venta-cliente').value;
-  const item = datos.inventario.find(p => p.nombre === producto);
+  ventas.push({ producto, cantidad, peso, precioLb, cliente, total, fecha: new Date().toISOString() });
+  localStorage.setItem('ventas', JSON.stringify(ventas));
 
-  if (!producto || !item || isNaN(cantidad) || cantidad <= 0) {
-    alert('Por favor, selecciona un producto y especifica una cantidad válida.');
-    return;
-  }
-
-  const total = cantidad * item.precio;
-  datos.ventas.push({ producto, cantidad, total, tipo, cliente, fecha: new Date().toISOString() });
-  if (tipo === 'credito') {
-    datos.deudas.push({ cliente, total });
-  }
-  item.stock -= cantidad;
-  document.getElementById('venta-cantidad').value = '';
-  actualizarListados();
   cerrarModal('modal-venta');
+  renderVentas();
 }
 
-// Función para actualizar los listados
-function actualizarListados() {
-  mostrarClientes();
-  mostrarInventario();
-  mostrarVentas();
-  mostrarDeudas();
-  actualizarSelects();
+function guardarCliente() {
+  const nombre = document.querySelector('#modal-cliente input').value;
+  if (!nombre) return;
+  clientes.push({ nombre });
+  localStorage.setItem('clientes', JSON.stringify(clientes));
+  cerrarModal('modal-cliente');
+  renderClientes();
 }
 
-// Funciones para mostrar los datos en las tablas
-function mostrarClientes() {
-  const tbody = document.querySelector('#tabla-clientes tbody');
-  tbody.innerHTML = '';
-  datos.clientes.forEach(c => {
-    tbody.innerHTML += `<tr><td>${c.nombre}</td></tr>`;
-  });
-}
-
-function mostrarInventario() {
-  const tbody = document.querySelector('#tabla-inv tbody');
-  tbody.innerHTML = '';
-  datos.inventario.forEach(p => {
-    tbody.innerHTML += `<tr><td>${p.nombre}</td><td>${p.stock}</td><td>$${p.precio.toFixed(2)}</td></tr>`;
-  });
-}
-
-function mostrarVentas() {
+function renderVentas() {
   const tbody = document.querySelector('#tabla-ventas tbody');
   tbody.innerHTML = '';
-  datos.ventas.slice(-10).reverse().forEach(v => {
-    tbody.innerHTML += `<tr><td>${v.producto}</td><td>${v.cantidad}</td><td>$${v.total.toFixed(2)}</td><td>${v.tipo}</td><td>${v.cliente || ''}</td></tr>`;
+  ventas.slice(-10).reverse().forEach(v => {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${v.producto}</td><td>${v.cantidad}</td><td>${v.peso.toFixed(2)}</td><td>${v.precioLb.toFixed(2)}</td><td>${v.total.toFixed(2)}</td><td>${v.cliente}</td>`;
+    tbody.appendChild(row);
   });
 }
 
-function mostrarDeudas() {
-  const tbody = document.querySelector('#tabla-deudas tbody');
+function renderClientes() {
+  const tbody = document.querySelector('#tabla-clientes tbody');
+  const select = document.querySelector('#modal-venta select');
   tbody.innerHTML = '';
-  datos.deudas.forEach(d => {
-    tbody.innerHTML += `<tr><td>${d.cliente}</td><td>$${d.total.toFixed(2)}</td></tr>`;
+  select.innerHTML = '<option value="">Seleccionar</option>';
+  clientes.forEach(c => {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${c.nombre}</td><td><button onclick="verHistorial('${c.nombre}')">Ver</button></td>`;
+    tbody.appendChild(row);
+    const opt = document.createElement('option');
+    opt.value = c.nombre;
+    opt.textContent = c.nombre;
+    select.appendChild(opt);
   });
 }
 
-function actualizarSelects() {
-  const selectProducto = document.getElementById('venta-producto');
-  selectProducto.innerHTML = '<option value="">Seleccionar Producto</option>';
-  datos.inventario.forEach(p => {
-    selectProducto.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`;
-  });
-
-  const selectCliente = document.getElementById('venta-cliente');
-  selectCliente.innerHTML = '<option value="">Seleccionar Cliente</option>';
-  datos.clientes.forEach(c => {
-    selectCliente.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
-  });
+function verHistorial(nombre) {
+  const hist = ventas.filter(v => v.cliente === nombre);
+  alert(`Historial de ${nombre}:\n` + hist.map(v => `• ${v.producto}: ${v.total.toFixed(2)}$`).join('\n'));
 }
 
-// Función para filtrar el balance (necesita implementación)
-function filtrarBalance() {
-  console.log("Función filtrarBalance aún no implementada");
+function descargarPDF() {
+  let contenido = 'Producto,Cantidad,Peso,Precio por lb,Total,Cliente,Fecha\n';
+  ventas.forEach(v => {
+    contenido += `${v.producto},${v.cantidad},${v.peso},${v.precioLb},${v.total},${v.cliente},${v.fecha}\n`;
+  });
+
+  const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'reporte_ventas.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
-//Eventos para el cambio de vista
-document.querySelectorAll('footer button').forEach(boton => {
-    boton.addEventListener('click', () => {
-        cambiarVista(boton.dataset.vista);
-    });
-});
+document.querySelector('#modal-venta button').onclick = guardarVenta;
+document.querySelector('#modal-cliente button').onclick = guardarCliente;
 
-window.addEventListener('load', actualizarListados);
+renderVentas();
+renderClientes();
