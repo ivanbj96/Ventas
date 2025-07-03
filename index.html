@@ -2,14 +2,16 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>App POS - PWA</title>
-  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
   <header>
-    <div class="logo" style="background-image: url('TillUp.png'); background-size: cover;"></div>
+    <div class="logo">
+      <img src="TillUp.png" alt="Logo TillUp" />
+    </div>
     <h1>Mi App POS</h1>
   </header>
 
@@ -19,7 +21,7 @@
       <h2>Ventas del Día</h2>
       <button class="btn-modal" onclick="abrirModal('modal-venta')">+ Registrar Venta</button>
       <table class="tabla" id="tabla-ventas">
-        <thead><tr><th>Producto</th><th>Cantidad</th><th>Total</th><th>Tipo</th><th>Fecha</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>Producto</th><th>Cantidad</th><th>Total</th><th>Tipo</th><th>Cliente</th><th>Fecha</th><th>Acciones</th></tr></thead>
         <tbody></tbody>
       </table>
     </section>
@@ -47,7 +49,7 @@
     <section class="vista" id="vista-deudas">
       <h2>Deudas</h2>
       <table class="tabla" id="tabla-deudas">
-        <thead><tr><th>Cliente</th><th>Total</th><th>Abonar</th></tr></thead>
+        <thead><tr><th>Cliente</th><th>Total</th><th>Abonos</th><th>Saldo</th><th>Acciones</th></tr></thead>
         <tbody></tbody>
       </table>
     </section>
@@ -67,7 +69,7 @@
       <h2>Clientes</h2>
       <button class="btn-modal" onclick="abrirModal('modal-cliente')">+ Registrar Cliente</button>
       <table class="tabla" id="tabla-clientes">
-        <thead><tr><th>Nombre</th><th>Info</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>Nombre</th><th>Acciones</th></tr></thead>
         <tbody></tbody>
       </table>
     </section>
@@ -87,27 +89,30 @@
   <div class="modal" id="modal-venta">
     <div class="modal-content">
       <h3>Registrar Venta</h3>
-      <label>Producto:</label>
+      <label for="venta-cliente">Cliente:</label>
+      <select id="venta-cliente"></select>
+
+      <label>Agregar Productos al Carrito:</label>
       <select id="venta-producto"></select>
-      <label>Cantidad:</label>
-      <input type="number" id="venta-cantidad" placeholder="Cantidad"/>
+      <input type="number" id="venta-cantidad" placeholder="Cantidad" min="1" />
       <button onclick="agregarAlCarrito()">Agregar al Carrito</button>
 
-      <div id="carrito-lista"></div>
+      <h4>Carrito</h4>
+      <table id="tabla-carrito" class="tabla">
+        <thead><tr><th>Producto</th><th>Cantidad</th><th>Precio Unit.</th><th>Total</th><th>Acción</th></tr></thead>
+        <tbody></tbody>
+      </table>
 
-      <label>Tipo de venta:</label>
+      <label for="venta-tipo">Tipo de Venta:</label>
       <select id="venta-tipo">
         <option value="contado">Contado</option>
         <option value="credito">Crédito</option>
       </select>
 
-      <label>Cliente:</label>
-      <select id="venta-cliente"></select>
+      <label for="venta-fecha">Fecha de la Factura:</label>
+      <input type="date" id="venta-fecha" />
 
-      <label>Fecha de factura:</label>
-      <input type="date" id="venta-fecha"/>
-
-      <button onclick="registrarVenta()">Guardar Venta</button>
+      <button onclick="registrarVenta()">Guardar</button>
       <button onclick="cerrarModal('modal-venta')">Cancelar</button>
     </div>
   </div>
@@ -116,12 +121,12 @@
   <div class="modal" id="modal-inv">
     <div class="modal-content">
       <h3>Agregar Producto</h3>
-      <label>Nombre del Producto:</label>
-      <input id="inv-nombre" placeholder="Nombre del Producto"/>
-      <label>Stock:</label>
-      <input type="number" id="inv-stock" placeholder="Stock"/>
-      <label>Precio:</label>
-      <input type="number" id="inv-precio" placeholder="Precio"/>
+      <label for="inv-nombre">Nombre del Producto:</label>
+      <input id="inv-nombre" placeholder="Nombre del Producto" />
+      <label for="inv-stock">Stock:</label>
+      <input type="number" id="inv-stock" placeholder="Stock" min="0" />
+      <label for="inv-precio">Precio:</label>
+      <input type="number" id="inv-precio" placeholder="Precio" step="0.01" min="0" />
       <button onclick="agregarProducto()">Guardar</button>
       <button onclick="cerrarModal('modal-inv')">Cancelar</button>
     </div>
@@ -131,20 +136,21 @@
   <div class="modal" id="modal-cliente">
     <div class="modal-content">
       <h3>Registrar Cliente</h3>
-      <label>Nombre del Cliente:</label>
-      <input id="cliente-nombre" placeholder="Nombre del Cliente"/>
+      <label for="cliente-nombre">Nombre del Cliente:</label>
+      <input id="cliente-nombre" placeholder="Nombre del Cliente" />
       <button onclick="registrarCliente()">Guardar</button>
       <button onclick="cerrarModal('modal-cliente')">Cancelar</button>
     </div>
   </div>
 
-  <!-- Abono -->
+  <!-- Abono Modal -->
   <div class="modal" id="modal-abono">
     <div class="modal-content">
-      <h3>Registrar Abono</h3>
-      <label>Monto a Abonar:</label>
-      <input type="number" id="monto-abono" placeholder="$0.00"/>
-      <button onclick="confirmarAbono()">Registrar</button>
+      <h3>Realizar Abono</h3>
+      <p id="info-abono"></p>
+      <label for="abono-monto">Monto a abonar:</label>
+      <input type="number" id="abono-monto" placeholder="Monto" min="0.01" step="0.01" />
+      <button onclick="realizarAbono()">Abonar</button>
       <button onclick="cerrarModal('modal-abono')">Cancelar</button>
     </div>
   </div>
