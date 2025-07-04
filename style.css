@@ -1,170 +1,57 @@
 /* RESET */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: sans-serif;
-}
 
-body {
-  background: #f9f9f9;
-  color: #333;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-}
+{ box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
 
-/* HEADER */
-header {
-  background: #4A90E2;
-  color: white;
-  padding: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
 
-header .logo img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-}
+body { background: #f9f9f9; color: #333; display: flex; flex-direction: column; height: 100vh; }
 
-/* MAIN */
-main {
-  flex: 1;
-  padding: 1rem;
-  overflow-y: auto;
-}
+/* HEADER */ header { background: #4A90E2; color: white; padding: 1rem; display: flex; align-items: center; gap: 1rem; }
 
-h1, h2, h3 {
-  margin-bottom: 1rem;
-}
+header .logo img { width: 40px; height: 40px; border-radius: 50%; }
 
-.vista {
-  display: none;
-}
+/* MAIN */ main { flex: 1; padding: 1rem; overflow-y: auto; }
 
-.vista.active {
-  display: block;
-}
+h1, h2, h3 { margin-bottom: 1rem; }
 
-/* BOTONES */
-button {
-  background: #4A90E2;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 5px;
-  margin: 0.25rem 0;
-  cursor: pointer;
-  transition: background 0.3s;
-}
+.vista { display: none; }
 
-button:hover {
-  background: #357ABD;
-}
+.vista.active { display: block; }
 
-.btn-modal {
-  margin-bottom: 1rem;
-}
+/* BOTONES */ button { background: #4A90E2; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; margin: 0.25rem 0; cursor: pointer; transition: background 0.3s; }
 
-/* FOOTER */
-footer {
-  background: #333;
-  color: white;
-  display: flex;
-  justify-content: space-around;
-  padding: 0.5rem;
-}
+button:hover { background: #357ABD; }
 
-footer button {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+.btn-modal { margin-bottom: 1rem; }
 
-footer button span {
-  font-size: 0.7rem;
-}
+/* FOOTER */ footer { background: #333; color: white; display: flex; justify-content: space-around; padding: 0.5rem; }
 
-/* TABLAS */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  margin-top: 1rem;
-  border-radius: 6px;
-  overflow: hidden;
-  font-size: 0.95rem;
-}
+footer button { background: none; border: none; color: white; font-size: 1.2rem; display: flex; flex-direction: column; align-items: center; }
 
-th, td {
-  padding: 0.7rem 0.5rem;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-}
+footer button span { font-size: 0.7rem; }
 
-thead {
-  background-color: #4A90E2;
-  color: white;
-  font-weight: bold;
-}
+footer button.active { color: #4A90E2; font-weight: bold; }
 
-tbody tr:hover {
-  background-color: #f0f8ff;
-}
+/* TABLAS */ table { width: 100%; border-collapse: collapse; background: white; margin-top: 1rem; border-radius: 6px; overflow: hidden; font-size: 0.95rem; }
 
-/* MODALES */
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 999;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.4);
-}
+th, td { padding: 0.7rem 0.5rem; text-align: left; border-bottom: 1px solid #ddd; }
 
-.modal-content {
-  background: white;
-  margin: 10% auto;
-  padding: 1.5rem;
-  border-radius: 8px;
-  max-width: 450px;
-}
+thead { background-color: #4A90E2; color: white; font-weight: bold; }
 
-/* INPUTS */
-input, select {
-  width: 100%;
-  margin-top: 0.3rem;
-  padding: 0.4rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
+tbody tr:hover { background-color: #f0f8ff; }
 
-/* RESPONSIVE AJUSTADO SIN SCROLL */
-@media (max-width: 600px) {
-  body {
-    font-size: 0.85rem;
-  }
+/* MODALES */ .modal { display: none; position: fixed; z-index: 999; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); }
 
-  table {
-    font-size: 0.8rem;
-  }
+.modal-content { background: white; margin: 10% auto; padding: 1.5rem; border-radius: 8px; max-width: 450px; }
 
-  th, td {
-    padding: 0.5rem 0.3rem;
-  }
+/* INPUTS */ input, select { width: 100%; margin-top: 0.3rem; padding: 0.4rem; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 0.8rem; }
 
-  footer button {
-    font-size: 1rem;
-  }
+/* RESPONSIVE AJUSTADO SIN SCROLL */ @media (max-width: 600px) { body { font-size: 0.85rem; }
 
-  footer button span {
-    font-size: 0.6rem;
-  }
-}
+table { font-size: 0.8rem; }
+
+th, td { padding: 0.5rem 0.3rem; }
+
+footer button { font-size: 1rem; }
+
+footer button span { font-size: 0.6rem; } }
+
