@@ -30,7 +30,6 @@ header .logo img {
   object-fit: cover;
 }
 
-/* === MAIN === */
 main {
   flex: 1;
   padding: 1rem;
@@ -41,7 +40,6 @@ h1, h2, h3, h4 {
   margin-bottom: 1rem;
 }
 
-/* === VISTAS === */
 .vista {
   display: none;
 }
@@ -50,7 +48,60 @@ h1, h2, h3, h4 {
   display: block;
 }
 
+button {
+  background: #4A90E2;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin: 0.25rem 0;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background: #357ABD;
+}
+
+.btn-modal {
+  margin-bottom: 1rem;
+}
+
+footer {
+  display: flex;
+  justify-content: space-around;
+  background: #333;
+  color: white;
+  padding: 0.5rem 0;
+}
+
+footer button {
+  background: none;
+  color: white;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+footer button span {
+  font-size: 0.75rem;
+  margin-top: 0.15rem;
+}
+
+footer button:hover,
+footer button.active {
+  color: #4A90E2;
+}
+
 /* === TABLAS === */
+.tabla-responsive {
+  overflow-x: auto;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -81,9 +132,11 @@ table tbody tr:hover {
   table, tbody, tr, th, td {
     display: block;
   }
+
   table thead {
     display: none;
   }
+
   tbody tr {
     margin-bottom: 1rem;
     border: 1px solid #ddd;
@@ -91,73 +144,22 @@ table tbody tr:hover {
     padding: 0.75rem;
     background: white;
   }
+
   tbody tr td {
     padding-left: 50%;
     position: relative;
     border-bottom: none;
   }
-  /* CONTINUACIÓN DE style.css */
 
-/* etiquetas de tabla en modo móvil */
-tbody tr td::before {
-  content: attr(data-label);
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-weight: bold;
-  color: #4A90E2;
-}
-
-/* === BOTONES === */
-button {
-  background: #4A90E2;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  margin: 0.25rem 0;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-button:hover {
-  background: #357ABD;
-}
-
-.btn-modal {
-  margin-bottom: 1rem;
-}
-
-/* === FOOTER === */
-footer {
-  display: flex;
-  justify-content: space-around;
-  background: #333;
-  color: white;
-  padding: 0.5rem 0;
-}
-
-footer button {
-  background: none;
-  color: white;
-  border: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 1.25rem;
-  cursor: pointer;
-  transition: color 0.3s ease;
-}
-
-footer button span {
-  font-size: 0.75rem;
-  margin-top: 0.15rem;
-}
-
-footer button:hover,
-footer button.active {
-  color: #4A90E2;
+  tbody tr td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: bold;
+    color: #4A90E2;
+  }
 }
 
 /* === MODALES === */
@@ -198,17 +200,4 @@ footer button.active {
   margin-top: 0.25rem;
   border: 1px solid #ccc;
   border-radius: 4px;
-}
-
-/* Scroll para tablas grandes */
-main table tbody {
-  max-height: 300px;
-  overflow-y: auto;
-  display: block;
-}
-
-main table tbody tr {
-  display: table;
-  width: 100%;
-  table-layout: fixed;
 }
