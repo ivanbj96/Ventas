@@ -1,11 +1,11 @@
-<!DOCTYPE html>
-<html lang="es">
+<!DOCTYPE html><html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>App POS - PWA</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
   <header>
@@ -13,9 +13,7 @@
       <img src="TillUp.png" alt="Logo TillUp" />
     </div>
     <h1>Mi App POS</h1>
-  </header>
-
-  <main>
+  </header>  <main>
     <!-- Ventas -->
     <section class="vista active" id="vista-ventas">
       <h2>Ventas del Día</h2>
@@ -34,133 +32,123 @@
         </thead>
         <tbody></tbody>
       </table>
-    </section>
+    </section><!-- Balance -->
+<section class="vista" id="vista-balance">
+  <h2>Balance</h2>
+  <select id="filtro-tipo" onchange="filtrarBalance()">
+    <option value="">--Seleccionar--</option>
+    <option value="hoy">Hoy</option>
+    <option value="mes">Este Mes</option>
+    <option value="anio">Este Año</option>
+    <option value="rango">Rango</option>
+  </select>
+  <input type="date" id="filtro-inicio" onchange="filtrarBalance()" />
+  <input type="date" id="filtro-fin" onchange="filtrarBalance()" />
+  <button onclick="descargarPDF()">Descargar PDF</button>
+  <table class="tabla" id="tabla-balance">
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th>Cantidad</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
 
-    <!-- Balance -->
-    <section class="vista" id="vista-balance">
-      <h2>Balance</h2>
-      <select id="filtro-tipo" onchange="filtrarBalance()">
-        <option value="">--Seleccionar--</option>
-        <option value="hoy">Hoy</option>
-        <option value="mes">Este Mes</option>
-        <option value="anio">Este Año</option>
-        <option value="rango">Rango</option>
-      </select>
-      <input type="date" id="filtro-inicio" onchange="filtrarBalance()" />
-      <input type="date" id="filtro-fin" onchange="filtrarBalance()" />
-      <button onclick="descargarPDF()">Descargar PDF</button>
-      <table class="tabla" id="tabla-balance">
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th>Cantidad</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
+<!-- Deudas -->
+<section class="vista" id="vista-deudas">
+  <h2>Deudas</h2>
+  <table class="tabla" id="tabla-deudas">
+    <thead>
+      <tr>
+        <th>Cliente</th>
+        <th>Total</th>
+        <th>Abonos</th>
+        <th>Saldo</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
 
-    <!-- Deudas -->
-    <section class="vista" id="vista-deudas">
-      <h2>Deudas</h2>
-      <table class="tabla" id="tabla-deudas">
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>Total</th>
-            <th>Abonos</th>
-            <th>Saldo</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
+<!-- Inventario -->
+<section class="vista" id="vista-inventario">
+  <h2>Inventario</h2>
+  <button class="btn-modal" onclick="abrirModal('modal-inv')">+ Agregar Producto</button>
+  <table class="tabla" id="tabla-inv">
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th>Stock</th>
+        <th>Precio</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
 
-    <!-- Inventario -->
-    <section class="vista" id="vista-inventario">
-      <h2>Inventario</h2>
-      <button class="btn-modal" onclick="abrirModal('modal-inv')">+ Agregar Producto</button>
-      <table class="tabla" id="tabla-inv">
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th>Stock</th>
-            <th>Precio</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
+<!-- Clientes -->
+<section class="vista" id="vista-clientes">
+  <h2>Clientes</h2>
+  <button class="btn-modal" onclick="abrirModal('modal-cliente')">+ Registrar Cliente</button>
+  <table class="tabla" id="tabla-clientes">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
 
-    <!-- Clientes -->
-    <section class="vista" id="vista-clientes">
-      <h2>Clientes</h2>
-      <button class="btn-modal" onclick="abrirModal('modal-cliente')">+ Registrar Cliente</button>
-      <table class="tabla" id="tabla-clientes">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-  </main>
-
-  <footer>
+  </main>  <footer>
     <button onclick="cambiarVista('ventas')">📦<span>Ventas</span></button>
     <button onclick="cambiarVista('balance')">📊<span>Balance</span></button>
     <button onclick="cambiarVista('deudas')">💳<span>Deudas</span></button>
     <button onclick="cambiarVista('inventario')">🗃️<span>Inventario</span></button>
     <button onclick="cambiarVista('clientes')">👥<span>Clientes</span></button>
-  </footer>
-
-  <!-- MODALES: sin cambios funcionales -->
-  <div class="modal" id="modal-venta">
+  </footer>  <!-- MODALES -->  <div class="modal" id="modal-venta">
     <div class="modal-content">
       <h3>Registrar Venta</h3>
       <label for="venta-cliente">Cliente:</label>
-      <select id="venta-cliente"></select>
+      <select id="venta-cliente"></select><label>Agregar Productos al Carrito:</label>
+  <select id="venta-producto"></select>
+  <input type="number" id="venta-cantidad" placeholder="Cantidad" min="1" />
+  <button onclick="agregarAlCarrito()">Agregar al Carrito</button>
 
-      <label>Agregar Productos al Carrito:</label>
-      <select id="venta-producto"></select>
-      <input type="number" id="venta-cantidad" placeholder="Cantidad" min="1" />
-      <button onclick="agregarAlCarrito()">Agregar al Carrito</button>
+  <h4>Carrito</h4>
+  <table id="tabla-carrito" class="tabla">
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th>Cantidad</th>
+        <th>Precio Unit.</th>
+        <th>Total</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-      <h4>Carrito</h4>
-      <table id="tabla-carrito" class="tabla">
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th>Cantidad</th>
-            <th>Precio Unit.</th>
-            <th>Total</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+  <label for="venta-tipo">Tipo de Venta:</label>
+  <select id="venta-tipo">
+    <option value="contado">Contado</option>
+    <option value="credito">Crédito</option>
+  </select>
 
-      <label for="venta-tipo">Tipo de Venta:</label>
-      <select id="venta-tipo">
-        <option value="contado">Contado</option>
-        <option value="credito">Crédito</option>
-      </select>
+  <label for="venta-fecha">Fecha de la Factura:</label>
+  <input type="date" id="venta-fecha" />
 
-      <label for="venta-fecha">Fecha de la Factura:</label>
-      <input type="date" id="venta-fecha" />
+  <button onclick="registrarVenta()">Guardar</button>
+  <button onclick="cerrarModal('modal-venta')">Cancelar</button>
+</div>
 
-      <button onclick="registrarVenta()">Guardar</button>
-      <button onclick="cerrarModal('modal-venta')">Cancelar</button>
-    </div>
-  </div>
-
-  <!-- Resto de modales: cliente, inventario, abono (idénticos al anterior) -->
-  <div class="modal" id="modal-inv">
+  </div>  <div class="modal" id="modal-inv">
     <div class="modal-content">
       <h3>Agregar Producto</h3>
       <label for="inv-nombre">Nombre del Producto:</label>
@@ -172,9 +160,7 @@
       <button onclick="agregarProducto()">Guardar</button>
       <button onclick="cerrarModal('modal-inv')">Cancelar</button>
     </div>
-  </div>
-
-  <div class="modal" id="modal-cliente">
+  </div>  <div class="modal" id="modal-cliente">
     <div class="modal-content">
       <h3>Registrar Cliente</h3>
       <label for="cliente-nombre">Nombre del Cliente:</label>
@@ -182,9 +168,7 @@
       <button onclick="registrarCliente()">Guardar</button>
       <button onclick="cerrarModal('modal-cliente')">Cancelar</button>
     </div>
-  </div>
-
-  <div class="modal" id="modal-abono">
+  </div>  <div class="modal" id="modal-abono">
     <div class="modal-content">
       <h3>Realizar Abono</h3>
       <p id="info-abono"></p>
@@ -193,8 +177,5 @@
       <button onclick="realizarAbono()">Abonar</button>
       <button onclick="cerrarModal('modal-abono')">Cancelar</button>
     </div>
-  </div>
-
-  <script src="app.js"></script>
-</body>
+  </div>  <script src="app.js"></script></body>
 </html>
