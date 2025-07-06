@@ -4,8 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TillUp POS</title>
-  <link rel="manifest" href="manifest.json">
+
+  <meta name="theme-color" content="#3498db" />
+  <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+
+  <!-- jsPDF y autoTable para reportes -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
   <header>
@@ -20,39 +27,41 @@
   </header>
 
   <main>
-    <!-- Sección Inventario -->
+    <!-- INVENTARIO -->
     <section id="inventory" class="section">
       <h2>Inventario</h2>
       <form id="productForm">
-        <input type="text" placeholder="Nombre" id="productName" required>
-        <input type="number" placeholder="Costo" id="productCost" required>
-        <input type="number" placeholder="Precio" id="productPrice" required>
-        <input type="text" placeholder="Categoría" id="productCategory" required>
-        <input type="file" accept="image/*" id="productImage">
+        <input type="text" id="productName" placeholder="Nombre del producto" required />
+        <input type="number" id="productCost" placeholder="Costo" required />
+        <input type="number" id="productPrice" placeholder="Precio de venta" required />
+        <input type="text" id="productCategory" placeholder="Categoría" required />
+        <input type="file" id="productImage" accept="image/*" />
         <button type="submit">Agregar producto</button>
       </form>
-      <div id="productList"></div>
+      <div id="productList" class="card-grid"></div>
     </section>
 
-    <!-- Sección Ventas -->
+    <!-- VENTAS -->
     <section id="sales" class="section hidden">
       <h2>Ventas</h2>
+      <label for="clientSelector">Cliente:</label>
       <select id="clientSelector"></select>
-      <div id="productSalesList"></div>
-      <div id="cart"></div>
+      <div id="productSalesList" class="card-grid"></div>
+      <h3>Carrito</h3>
+      <div id="cart" class="card-grid"></div>
       <button onclick="finalizeSale()">Finalizar venta</button>
     </section>
 
-    <!-- Sección Balance -->
+    <!-- BALANCE -->
     <section id="balance" class="section hidden">
-      <h2>Balance</h2>
+      <h2>Balance general</h2>
       <p id="totalEarnings">Ganancias: $0</p>
       <p id="totalLosses">Pérdidas: $0</p>
       <p id="pendingDebts">Deudas pendientes: $0</p>
-      <button onclick="generatePDF('balance')">Generar PDF</button>
+      <button onclick="generatePDF('balance')">Exportar Balance (PDF)</button>
     </section>
 
-    <!-- Sección Clientes -->
+    <!-- CLIENTES -->
     <section id="clients" class="section hidden">
       <h2>Clientes</h2>
       <form id="clientForm">
@@ -62,24 +71,25 @@
       <ul id="clientList"></ul>
     </section>
 
-    <!-- Sección Deudas -->
+    <!-- DEUDAS -->
     <section id="debts" class="section hidden">
       <h2>Deudas</h2>
-      <div id="debtList"></div>
-      <button onclick="generatePDF('debts')">Exportar deudas</button>
+      <div id="debtList" class="card-grid"></div>
+      <button onclick="generatePDF('debts')">Exportar Deudas (PDF)</button>
     </section>
   </main>
 
+  <!-- Scripts -->
   <script src="utils.js"></script>
   <script src="pdf-generator.js"></script>
   <script src="app.js"></script>
 
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service-worker.js')
-      .then(reg => console.log('SW registrado:', reg.scope))
-      .catch(err => console.error('Error registrando SW:', err));
-  }
-</script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('Service Worker registrado:', reg.scope))
+        .catch(err => console.error('Error al registrar SW:', err));
+    }
+  </script>
 </body>
 </html>
