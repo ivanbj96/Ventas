@@ -1,7 +1,8 @@
-// Mostrar sección activa
+// Alternar visibilidad entre secciones
 function showSection(sectionId) {
   document.querySelectorAll('.section').forEach(sec => sec.classList.add('hidden'));
-  document.getElementById(sectionId).classList.remove('hidden');
+  const target = document.getElementById(sectionId);
+  if (target) target.classList.remove('hidden');
 }
 
 // LocalStorage helpers
@@ -14,17 +15,17 @@ function loadFromStorage(key, fallback = []) {
   return data ? JSON.parse(data) : fallback;
 }
 
-// Generar ID único para productos, clientes, etc.
+// Generar ID único
 function generateId(prefix = 'id') {
   return `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// Formatear a moneda USD (puedes cambiar a otra)
+// Formatear a moneda
 function formatCurrency(amount) {
   return `$${parseFloat(amount).toFixed(2)}`;
 }
 
-// Cargar clientes en el <select>
+// Actualizar el selector de clientes
 function updateClientSelector() {
   const clients = loadFromStorage('clients');
   const selector = document.getElementById('clientSelector');
@@ -38,14 +39,14 @@ function updateClientSelector() {
   });
 }
 
-// Guardar proforma pendiente antes de cambiar cliente
+// Guardar proforma temporal al cambiar de cliente
 function saveProforma(clientId, cart) {
   const proformas = loadFromStorage('proformas');
   proformas[clientId] = cart;
   saveToStorage('proformas', proformas);
 }
 
-// Cargar proforma pendiente si existe
+// Recuperar proforma del cliente
 function loadProforma(clientId) {
   const proformas = loadFromStorage('proformas');
   return proformas[clientId] || [];
