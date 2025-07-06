@@ -1,129 +1,233 @@
 :root {
-  --bg-light: #f0f0f0;
-  --bg-dark: #121212;
-  --text-light: #1a1a1a;
-  --text-dark: #f1f1f1;
-  --accent: #3498db;
-  --card-bg-light: #ffffff;
-  --card-bg-dark: #1e1e1e;
+  --color-primary: #3498db;
+  --color-dark-bg: #121212;
+  --color-light-bg: #f9f9f9;
+  --color-dark-text: #f1f1f1;
+  --color-light-text: #1e1e1e;
+  --color-card-dark: #1e1e1e;
+  --color-card-light: #ffffff;
   --border-radius: 12px;
-  --padding: 16px;
   --transition: 0.3s ease;
+  --padding: 16px;
+  --max-width: 960px;
+  --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: var(--bg-dark);
-    color: var(--text-dark);
+    background-color: var(--color-dark-bg);
+    color: var(--color-dark-text);
   }
-  header, section, form, input, button {
-    background-color: var(--card-bg-dark);
-    color: var(--text-dark);
+  header, section, form, input, button, select {
+    background-color: var(--color-card-dark);
+    color: var(--color-dark-text);
   }
 }
 
 @media (prefers-color-scheme: light) {
   body {
-    background-color: var(--bg-light);
-    color: var(--text-light);
+    background-color: var(--color-light-bg);
+    color: var(--color-light-text);
   }
-  header, section, form, input, button {
-    background-color: var(--card-bg-light);
-    color: var(--text-light);
+  header, section, form, input, button, select {
+    background-color: var(--color-card-light);
+    color: var(--color-light-text);
   }
 }
 
 body {
   margin: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--font);
   transition: background-color var(--transition), color var(--transition);
+  padding-bottom: 80px;
 }
 
 header {
-  padding: var(--padding);
-  text-align: center;
-  background-color: var(--accent);
+  background-color: var(--color-primary);
   color: white;
+  padding: 1rem;
+  text-align: center;
 }
 
 nav {
-  margin-top: 10px;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 nav button {
-  margin: 5px;
-  padding: 10px 15px;
   background-color: white;
-  color: var(--accent);
+  color: var(--color-primary);
+  padding: 10px 15px;
   border: none;
   border-radius: var(--border-radius);
   cursor: pointer;
+  font-weight: bold;
   transition: background-color var(--transition);
 }
 
 nav button:hover {
-  background-color: #d6ecfa;
+  background-color: #d8ebf9;
 }
 
 main {
   padding: var(--padding);
-}
-
-.section {
-  display: none;
-  margin-top: 20px;
-}
-
-.section:not(.hidden) {
-  display: block;
+  max-width: var(--max-width);
+  margin: 0 auto;
 }
 
 form {
-  margin-bottom: 20px;
+  margin-bottom: 1.5rem;
   padding: var(--padding);
   border-radius: var(--border-radius);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-input, select, button {
+input,
+select,
+button {
   display: block;
-  margin: 10px 0;
-  padding: 10px;
   width: 100%;
-  max-width: 400px;
+  max-width: 500px;
+  margin: 10px auto;
+  padding: 12px;
+  font-size: 1rem;
   border: 1px solid #ccc;
   border-radius: var(--border-radius);
   box-sizing: border-box;
+  transition: all var(--transition);
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 4px rgba(52, 152, 219, 0.5);
 }
 
 button {
-  background-color: var(--accent);
+  background-color: var(--color-primary);
   color: white;
   border: none;
+  font-weight: bold;
   cursor: pointer;
-  transition: background-color var(--transition);
 }
 
 button:hover {
   background-color: #2980b9;
 }
 
-#productList, #productSalesList, #clientList, #cart, #debtList {
-  display: grid;
-  gap: 10px;
+button:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
 }
 
-.product-card, .client-card, .cart-item, .debt-item {
-  padding: 10px;
+/* Secciones */
+.section {
+  display: none;
+  margin-top: 1rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.section:not(.hidden) {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Grilla de tarjetas */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.product-card,
+.client-card,
+.cart-item,
+.debt-item {
+  padding: 1rem;
   border-radius: var(--border-radius);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
   background-color: inherit;
   border: 1px solid #ddd;
+  transition: transform 0.2s ease;
 }
 
+.product-card:hover,
+.client-card:hover,
+.cart-item:hover,
+.debt-item:hover {
+  transform: translateY(-4px);
+}
+
+/* Imágenes */
 img.product-img {
-  max-width: 100px;
+  max-width: 100%;
+  height: auto;
+  margin-top: 8px;
   border-radius: var(--border-radius);
-  display: block;
-  margin-top: 5px;
+  object-fit: cover;
+  aspect-ratio: 1 / 1;
+}
+
+/* Listas */
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+li.client-card {
+  padding: 10px;
+  margin-bottom: 6px;
+  background-color: inherit;
+  border: 1px solid #ccc;
+  border-radius: var(--border-radius);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Textos informativos */
+h2, h3, h4, p {
+  text-align: center;
+}
+
+/* Deuda y Balance */
+#debtList, #cart, #productList, #productSalesList {
+  margin-top: 1rem;
+}
+
+#totalEarnings,
+#totalLosses,
+#pendingDebts {
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin: 1rem 0;
+}
+
+/* Scroll responsive en móviles */
+body, html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media screen and (max-width: 480px) {
+  nav {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  button,
+  input,
+  select {
+    font-size: 1rem;
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
 }
