@@ -1,4 +1,4 @@
-// === Datos iniciales ===
+// === Estado inicial y carga de datos ===
 let products = loadFromStorage('products');
 let clients = loadFromStorage('clients');
 let debts = loadFromStorage('debts');
@@ -6,18 +6,20 @@ let sales = loadFromStorage('sales');
 let cart = [];
 let currentClientId = null;
 
-// === INIT ===
+// === Inicialización ===
 document.addEventListener('DOMContentLoaded', () => {
   renderProducts();
   renderClients();
   updateClientSelector();
+  updateBalanceUI();
+
   document.getElementById('productForm').addEventListener('submit', addProduct);
   document.getElementById('clientForm').addEventListener('submit', addClient);
   document.getElementById('clientSelector').addEventListener('change', handleClientChange);
   document.getElementById('clientSelector').dispatchEvent(new Event('change'));
 });
 
-// === Productos ===
+// === Funciones para productos ===
 function addProduct(e) {
   e.preventDefault();
 
@@ -72,10 +74,10 @@ function renderProducts() {
     list.appendChild(card);
   });
 
-  renderSalesList(); // Para mostrar en sección de ventas también
+  renderSalesList(); // Para mantener sincronizado con ventas
 }
 
-// === Ventas y Carrito ===
+// === Carrito y Ventas ===
 
 function addToCart(productId) {
   const product = products.find(p => p.id === productId);
@@ -99,12 +101,17 @@ function renderCart() {
   const cartDiv = document.getElementById('cart');
   cartDiv.innerHTML = '';
 
+  if (cart.length === 0) {
+    cartDiv.innerHTML = '<p>Carrito vacío</p>';
+    return;
+  }
+
   cart.forEach(item => {
     const div = document.createElement('div');
     div.className = 'cart-item';
     div.innerHTML = `
-      <strong>${item.product.name}</strong> x${item.quantity} 
-      = ${formatCurrency(item.quantity * item.product.price)}
+      <strong>${item.product.name}</strong> x${item.quantity}<br/>
+      Subtotal: ${formatCurrency(item.quantity * item.product.price)}<br/>
       <button onclick="removeFromCart('${item.product.id}')">Quitar</button>
     `;
     cartDiv.appendChild(div);
@@ -128,18 +135,17 @@ function renderSalesList() {
   });
 }
 
-// === Cliente activo y proformas ===
+// === Cambio de cliente con proforma ===
 
 function handleClientChange(e) {
   const newClientId = e.target.value;
 
   if (currentClientId && cart.length > 0) {
-    // Guardar proforma actual del cliente anterior
-    saveProforma(currentClientId, cart);
+    saveProforma(currentClientId, cart); // Guardar carrito actual
   }
 
   currentClientId = newClientId;
-  cart = loadProforma(currentClientId);
+  cart = loadProforma(currentClientId); // Cargar carrito nuevo
   renderCart();
 }
 
@@ -159,23 +165,13 @@ function finalizeSale() {
   const totalCost = cart.reduce((sum, item) => sum + item.quantity * item.product.cost, 0);
   const profit = total - totalCost;
 
-  const confirmDebt = !confirm(`¿El cliente pagó? Total: ${formatCurrency(total)}\nHaz clic en "Aceptar" si pagó. Si haces clic en "Cancelar", se registrará como deuda.`);
+  const pago = confirm(`¿El cliente pagó el total de ${formatCurrency(total)}?\nAceptar: pagó / Cancelar: registrar deuda.`);
 
-  if (confirmDebt) {
-    const reason = prompt("Motivo de la deuda:");
-    debts.push({
-      id: generateId('debt'),
-      clientId: client.id,
-      clientName: client.name,
-      amount: total,
-      reason: reason || 'Sin especificar',
-      date: new Date().toLocaleString()
-    });
-    saveToStorage('debts', debts);
-  } else {
+  if (pago) {
     sales.push({
       id: generateId('sale'),
       clientId: client.id,
+      clientName: client.name,
       items: cart,
       total,
       cost: totalCost,
@@ -183,9 +179,20 @@ function finalizeSale() {
       date: new Date().toLocaleString()
     });
     saveToStorage('sales', sales);
+  } else {
+    const reason = prompt("Motivo de la deuda:");
+    debts.push({
+      id: generateId('debt'),
+      clientId: client.id,
+      clientName: client.name,
+      amount: total,
+      reason: reason || 'Sin motivo especificado',
+      date: new Date().toLocaleString()
+    });
+    saveToStorage('debts', debts);
   }
 
-  // Limpiar carrito y proforma
+  // Limpiar proforma y carrito
   const proformas = loadFromStorage('proformas');
   delete proformas[currentClientId];
   saveToStorage('proformas', proformas);
@@ -193,10 +200,10 @@ function finalizeSale() {
   cart = [];
   renderCart();
   updateBalanceUI();
-  alert("Venta registrada.");
+  alert("Transacción registrada.");
 }
 
-// === Clientes ===
+// === Gestión de Clientes ===
 
 function addClient(e) {
   e.preventDefault();
@@ -226,7 +233,7 @@ function renderClients() {
   });
 }
 
-// === Deudas ===
+// === Visualización de Deudas ===
 
 function renderDebts() {
   const debtList = document.getElementById('debtList');
@@ -244,15 +251,15 @@ function renderDebts() {
   });
 }
 
-// === Balance ===
+// === Balance General ===
 
 function updateBalanceUI() {
   let totalProfit = 0;
   let totalLoss = 0;
 
-  sales.forEach(sale => {
-    totalProfit += sale.profit;
-    totalLoss += sale.cost;
+  sales.forEach(s => {
+    totalProfit += s.profit;
+    totalLoss += s.cost;
   });
 
   const totalDebt = debts.reduce((sum, d) => sum + d.amount, 0);
