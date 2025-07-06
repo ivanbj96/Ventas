@@ -1,53 +1,40 @@
-// Alternar visibilidad entre secciones
-function showSection(sectionId) {
-  document.querySelectorAll('.section').forEach(sec => sec.classList.add('hidden'));
-  const target = document.getElementById(sectionId);
-  if (target) target.classList.remove('hidden');
+// === Formatear moneda (con soporte a centavos y localización) ===
+function formatCurrency(value) {
+  return new Intl.NumberFormat('es-EC', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2
+  }).format(value);
 }
 
-// LocalStorage helpers
+// === Guardar y cargar desde localStorage ===
 function saveToStorage(key, data) {
   localStorage.setItem(key, JSON.stringify(data));
 }
 
-function loadFromStorage(key, fallback = []) {
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : fallback;
+function loadFromStorage(key) {
+  const raw = localStorage.getItem(key);
+  try {
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    console.error(`Error al parsear ${key}`, e);
+    return [];
+  }
 }
 
-// Generar ID único
-function generateId(prefix = 'id') {
-  return `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
+// === Generar ID único
+function generateId(prefix = '') {
+  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 }
 
-// Formatear a moneda
-function formatCurrency(amount) {
-  return `$${parseFloat(amount).toFixed(2)}`;
+// === Proformas por cliente
+function saveProforma(clientId, cartData) {
+  const allProformas = loadFromStorage('proformas') || {};
+  allProformas[clientId] = cartData;
+  saveToStorage('proformas', allProformas);
 }
 
-// Actualizar el selector de clientes
-function updateClientSelector() {
-  const clients = loadFromStorage('clients');
-  const selector = document.getElementById('clientSelector');
-  selector.innerHTML = '';
-
-  clients.forEach(c => {
-    const option = document.createElement('option');
-    option.value = c.id;
-    option.textContent = c.name;
-    selector.appendChild(option);
-  });
-}
-
-// Guardar proforma temporal al cambiar de cliente
-function saveProforma(clientId, cart) {
-  const proformas = loadFromStorage('proformas');
-  proformas[clientId] = cart;
-  saveToStorage('proformas', proformas);
-}
-
-// Recuperar proforma del cliente
 function loadProforma(clientId) {
-  const proformas = loadFromStorage('proformas');
-  return proformas[clientId] || [];
+  const allProformas = loadFromStorage('proformas') || {};
+  return allProformas[clientId] || [];
 }
