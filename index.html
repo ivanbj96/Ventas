@@ -90,6 +90,58 @@
     <button onclick="clearCart()" class="btn btn-outline-danger">Vaciar carrito</button>
   </div>
 </section>
+<!-- Vista: Clientes -->
+<section id="view-clients" class="app-view d-none">
+  <h2 class="mb-3 text-center">Clientes</h2>
+
+  <form id="formClient" class="mb-4">
+    <div class="mb-3">
+      <input type="text" id="clientName" class="form-control" placeholder="Nombre del cliente" required />
+    </div>
+    <button type="submit" class="btn btn-primary w-100">Agregar cliente</button>
+  </form>
+
+  <ul id="clientList" class="list-group">
+    <!-- Clientes renderizados dinámicamente -->
+  </ul>
+</section>
+
+<!-- Vista: Deudas -->
+<section id="view-debt" class="app-view d-none">
+  <h2 class="mb-3 text-center">Deudas</h2>
+
+  <div class="d-flex justify-content-end mb-2">
+    <button onclick="generatePDF('debt')" class="btn btn-outline-dark btn-sm">Exportar PDF</button>
+  </div>
+
+  <div id="debtList" class="row gy-3">
+    <!-- Lista de deudas cargada por JS -->
+  </div>
+</section>
+
+<!-- Vista: Balance -->
+<section id="view-balance" class="app-view d-none">
+  <h2 class="mb-3 text-center">Balance General</h2>
+
+  <ul class="list-group mb-4">
+    <li class="list-group-item d-flex justify-content-between">
+      <span>Ganancias:</span>
+      <strong id="totalEarnings">$0.00</strong>
+    </li>
+    <li class="list-group-item d-flex justify-content-between">
+      <span>Pérdidas (Costos):</span>
+      <strong id="totalLosses">$0.00</strong>
+    </li>
+    <li class="list-group-item d-flex justify-content-between">
+      <span>Deudas pendientes:</span>
+      <strong id="pendingDebts">$0.00</strong>
+    </li>
+  </ul>
+
+  <div class="text-end">
+    <button onclick="generatePDF('balance')" class="btn btn-outline-dark btn-sm">Exportar Balance PDF</button>
+  </div>
+</section>
   </main>
 
   <!-- 📱 Barra de navegación inferior estilo app -->
