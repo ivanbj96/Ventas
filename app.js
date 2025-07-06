@@ -1,25 +1,37 @@
-// === Estado inicial y carga de datos ===
-let products = loadFromStorage('products');
-let clients = loadFromStorage('clients');
-let debts = loadFromStorage('debts');
-let sales = loadFromStorage('sales');
+// === Arrays globales ===
+let products = [];
+let clients = [];
+let sales = [];
+let debts = [];
 let cart = [];
 let currentClientId = null;
 
-// === Inicialización ===
+// === Al cargar la app ===
 document.addEventListener('DOMContentLoaded', () => {
-  renderProducts();
+  products = loadFromStorage('products');
+  clients = loadFromStorage('clients');
+  sales = loadFromStorage('sales');
+  debts = loadFromStorage('debts');
+
+  renderInventory();
   renderClients();
   updateClientSelector();
   updateBalanceUI();
+  renderDebts();
 
-  document.getElementById('productForm').addEventListener('submit', addProduct);
-  document.getElementById('clientForm').addEventListener('submit', addClient);
-  document.getElementById('clientSelector').addEventListener('change', handleClientChange);
-  document.getElementById('clientSelector').dispatchEvent(new Event('change'));
+  // Escuchar cambios en el selector de cliente
+  document.getElementById('clientSelector').addEventListener('change', e => {
+    currentClientId = e.target.value;
+    cart = loadProforma(currentClientId);
+    renderCart();
+  });
+
+  // Eventos de formularios
+  document.getElementById('formProduct').addEventListener('submit', addProduct);
+  document.getElementById('formClient').addEventListener('submit', addClient);
 });
 
-// === Funciones para productos ===
+// === Agregar producto al inventario ===
 function addProduct(e) {
   e.preventDefault();
 
@@ -29,80 +41,108 @@ function addProduct(e) {
   const category = document.getElementById('productCategory').value.trim();
   const imageInput = document.getElementById('productImage');
 
-  const product = {
-    id: generateId('prod'),
-    name,
-    cost,
-    price,
-    category,
-    image: ''
+  if (!name || isNaN(cost) || isNaN(price)) return alert('Faltan datos válidos');
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const image = reader.result;
+
+    const newProduct = {
+      id: generateId('prod'),
+      name,
+      cost,
+      price,
+      category,
+      image
+    };
+
+    products.push(newProduct);
+    saveToStorage('products', products);
+    renderInventory();
+    e.target.reset();
   };
 
-  if (imageInput.files.length > 0) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      product.image = reader.result;
-      products.push(product);
-      saveToStorage('products', products);
-      renderProducts();
-    };
+  if (imageInput.files[0]) {
     reader.readAsDataURL(imageInput.files[0]);
   } else {
-    products.push(product);
+    // Sin imagen
+    const newProduct = {
+      id: generateId('prod'),
+      name,
+      cost,
+      price,
+      category,
+      image: ''
+    };
+    products.push(newProduct);
     saveToStorage('products', products);
-    renderProducts();
+    renderInventory();
+    e.target.reset();
   }
-
-  e.target.reset();
 }
 
-function renderProducts() {
-  const list = document.getElementById('productList');
-  list.innerHTML = '';
+// === Mostrar productos en Inventario y Venta ===
+function renderInventory() {
+  const invContainer = document.getElementById('inventoryList');
+  const salesContainer = document.getElementById('productSalesList');
+  invContainer.innerHTML = '';
+  salesContainer.innerHTML = '';
 
   products.forEach(p => {
-    const card = document.createElement('div');
-    card.className = 'product-card';
-    card.innerHTML = `
-      <strong>${p.name}</strong><br/>
-      Precio: ${formatCurrency(p.price)}<br/>
-      Costo: ${formatCurrency(p.cost)}<br/>
-      Categoría: ${p.category}<br/>
-      ${p.image ? `<img class="product-img" src="${p.image}" />` : ''}
-      <button onclick="addToCart('${p.id}')">Agregar al carrito</button>
+    // Inventario card
+    const col = document.createElement('div');
+    col.className = 'col-12';
+    col.innerHTML = `
+      <div class="product-card">
+        ${p.image ? `<img src="${p.image}" alt="${p.name}" />` : ''}
+        <h5>${p.name}</h5>
+        <p class="mb-1">Categoría: ${p.category || '-'}</p>
+        <p class="mb-1">Costo: ${formatCurrency(p.cost)}</p>
+        <p class="mb-2">Precio: <strong>${formatCurrency(p.price)}</strong></p>
+      </div>
     `;
-    list.appendChild(card);
-  });
+    invContainer.appendChild(col);
 
-  renderSalesList(); // Para mantener sincronizado con ventas
+    // Card para ventas
+    const saleCard = document.createElement('div');
+    saleCard.className = 'col-6 col-md-4 col-lg-3';
+    saleCard.innerHTML = `
+      <div class="product-card">
+        ${p.image ? `<img src="${p.image}" alt="${p.name}" />` : ''}
+        <h6 class="mb-1">${p.name}</h6>
+        <p class="mb-2">${formatCurrency(p.price)}</p>
+        <button class="btn btn-sm btn-outline-primary" onclick="addToCart('${p.id}')">Agregar</button>
+      </div>
+    `;
+    salesContainer.appendChild(saleCard);
+  });
 }
 
-// === Carrito y Ventas ===
-
+// === Agregar producto al carrito ===
 function addToCart(productId) {
-  const product = products.find(p => p.id === productId);
-  const existing = cart.find(item => item.product.id === productId);
+  if (!currentClientId) return alert("Selecciona un cliente primero");
 
+  const product = products.find(p => p.id === productId);
+  if (!product) return;
+
+  const existing = cart.find(item => item.id === productId);
   if (existing) {
-    existing.quantity++;
+    existing.qty += 1;
   } else {
-    cart.push({ product, quantity: 1 });
+    cart.push({ ...product, qty: 1 });
   }
 
+  saveProforma(currentClientId, cart);
   renderCart();
 }
 
-function removeFromCart(productId) {
-  cart = cart.filter(item => item.product.id !== productId);
-  renderCart();
-}
-
+// === Mostrar carrito ===
 function renderCart() {
-  const cartDiv = document.getElementById('cart');
-  cartDiv.innerHTML = '';
+  const container = document.getElementById('cartList');
+  container.innerHTML = '';
 
   if (cart.length === 0) {
-    cartDiv.innerHTML = '<p>Carrito vacío</p>';
+    container.innerHTML = `<div class="alert alert-secondary text-center">Carrito vacío</div>`;
     return;
   }
 
@@ -110,108 +150,72 @@ function renderCart() {
     const div = document.createElement('div');
     div.className = 'cart-item';
     div.innerHTML = `
-      <strong>${item.product.name}</strong> x${item.quantity}<br/>
-      Subtotal: ${formatCurrency(item.quantity * item.product.price)}<br/>
-      <button onclick="removeFromCart('${item.product.id}')">Quitar</button>
+      <div class="d-flex justify-content-between align-items-center">
+        <strong>${item.name}</strong>
+        <span>${formatCurrency(item.price)} x ${item.qty}</span>
+      </div>
     `;
-    cartDiv.appendChild(div);
+    container.appendChild(div);
   });
 }
 
-function renderSalesList() {
-  const salesList = document.getElementById('productSalesList');
-  salesList.innerHTML = '';
-
-  products.forEach(p => {
-    const card = document.createElement('div');
-    card.className = 'product-card';
-    card.innerHTML = `
-      <strong>${p.name}</strong><br/>
-      Precio: ${formatCurrency(p.price)}<br/>
-      ${p.image ? `<img class="product-img" src="${p.image}" />` : ''}
-      <button onclick="addToCart('${p.id}')">Agregar al carrito</button>
-    `;
-    salesList.appendChild(card);
-  });
-}
-
-// === Cambio de cliente con proforma ===
-
-function handleClientChange(e) {
-  const newClientId = e.target.value;
-
-  if (currentClientId && cart.length > 0) {
-    saveProforma(currentClientId, cart); // Guardar carrito actual
-  }
-
-  currentClientId = newClientId;
-  cart = loadProforma(currentClientId); // Cargar carrito nuevo
+// === Vaciar carrito ===
+function clearCart() {
+  if (!currentClientId) return;
+  cart = [];
+  saveProforma(currentClientId, []);
   renderCart();
 }
 
+// === Finalizar venta (efectiva o deuda) ===
 function finalizeSale() {
-  if (!currentClientId || cart.length === 0) {
-    alert("Selecciona un cliente y agrega productos al carrito.");
-    return;
-  }
+  if (!currentClientId || cart.length === 0) return alert("Selecciona cliente y agrega productos.");
 
+  const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const cost = cart.reduce((sum, item) => sum + (item.cost * item.qty), 0);
+  const profit = total - cost;
   const client = clients.find(c => c.id === currentClientId);
-  if (!client) {
-    alert("Cliente no válido.");
-    return;
-  }
 
-  const total = cart.reduce((sum, item) => sum + item.quantity * item.product.price, 0);
-  const totalCost = cart.reduce((sum, item) => sum + item.quantity * item.product.cost, 0);
-  const profit = total - totalCost;
+  const confirmDebt = !confirm(`¿El cliente ${client.name} pagó ahora?\n\nTotal: ${formatCurrency(total)}\n\nAceptar = pagó\nCancelar = dejar en deuda`);
 
-  const pago = confirm(`¿El cliente pagó el total de ${formatCurrency(total)}?\nAceptar: pagó / Cancelar: registrar deuda.`);
-
-  if (pago) {
+  if (confirmDebt) {
+    debts.push({
+      id: generateId('debt'),
+      clientId: client.id,
+      clientName: client.name,
+      amount: total,
+      reason: 'Venta a crédito',
+      date: new Date().toLocaleDateString()
+    });
+    saveToStorage('debts', debts);
+    renderDebts();
+  } else {
     sales.push({
       id: generateId('sale'),
       clientId: client.id,
       clientName: client.name,
       items: cart,
       total,
-      cost: totalCost,
+      cost,
       profit,
-      date: new Date().toLocaleString()
+      date: new Date().toLocaleDateString()
     });
     saveToStorage('sales', sales);
-  } else {
-    const reason = prompt("Motivo de la deuda:");
-    debts.push({
-      id: generateId('debt'),
-      clientId: client.id,
-      clientName: client.name,
-      amount: total,
-      reason: reason || 'Sin motivo especificado',
-      date: new Date().toLocaleString()
-    });
-    saveToStorage('debts', debts);
   }
 
-  // Limpiar proforma y carrito
-  const proformas = loadFromStorage('proformas');
-  delete proformas[currentClientId];
-  saveToStorage('proformas', proformas);
-
-  cart = [];
-  renderCart();
+  clearCart();
   updateBalanceUI();
-  alert("Transacción registrada.");
+  alert("Venta registrada correctamente.");
 }
 
-// === Gestión de Clientes ===
-
+// === Agregar cliente ===
 function addClient(e) {
   e.preventDefault();
   const name = document.getElementById('clientName').value.trim();
   if (!name) return;
 
   const newClient = {
-    id: generateId('cli'),
+    id: generateId('client'),
     name
   };
 
@@ -222,51 +226,127 @@ function addClient(e) {
   e.target.reset();
 }
 
+// === Mostrar clientes ===
 function renderClients() {
   const list = document.getElementById('clientList');
   list.innerHTML = '';
+
   clients.forEach(c => {
     const li = document.createElement('li');
-    li.className = 'client-card';
-    li.textContent = c.name;
+    li.className = 'client-card list-group-item';
+    li.innerText = c.name;
     list.appendChild(li);
   });
 }
 
-// === Visualización de Deudas ===
+// === Selector de cliente en ventas ===
+function updateClientSelector() {
+  const selector = document.getElementById('clientSelector');
+  selector.innerHTML = `<option disabled selected value="">Selecciona un cliente</option>`;
 
+  clients.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.innerText = c.name;
+    selector.appendChild(opt);
+  });
+}
+
+// === Mostrar deudas ===
 function renderDebts() {
-  const debtList = document.getElementById('debtList');
-  debtList.innerHTML = '';
+  const list = document.getElementById('debtList');
+  list.innerHTML = '';
+
+  if (debts.length === 0) {
+    list.innerHTML = `<div class="alert alert-secondary text-center">Sin deudas registradas</div>`;
+    return;
+  }
+
   debts.forEach(d => {
     const div = document.createElement('div');
     div.className = 'debt-item';
     div.innerHTML = `
-      <strong>${d.clientName}</strong><br/>
-      Monto: ${formatCurrency(d.amount)}<br/>
-      Motivo: ${d.reason}<br/>
-      Fecha: ${d.date}
+      <div><strong>Cliente:</strong> ${d.clientName}</div>
+      <div><strong>Monto:</strong> ${formatCurrency(d.amount)}</div>
+      <div><strong>Fecha:</strong> ${d.date}</div>
+      <div><strong>Motivo:</strong> ${d.reason}</div>
     `;
-    debtList.appendChild(div);
+    list.appendChild(div);
   });
 }
 
-// === Balance General ===
-
+// === Mostrar resumen de balance ===
 function updateBalanceUI() {
-  let totalProfit = 0;
-  let totalLoss = 0;
+  const earnings = sales.reduce((sum, s) => sum + s.profit, 0);
+  const losses = sales.reduce((sum, s) => sum + s.cost, 0);
+  const pending = debts.reduce((sum, d) => sum + d.amount, 0);
 
-  sales.forEach(s => {
-    totalProfit += s.profit;
-    totalLoss += s.cost;
-  });
+  document.getElementById('totalEarnings').innerText = formatCurrency(earnings);
+  document.getElementById('totalLosses').innerText = formatCurrency(losses);
+  document.getElementById('pendingDebts').innerText = formatCurrency(pending);
+}
 
-  const totalDebt = debts.reduce((sum, d) => sum + d.amount, 0);
+// === Instalar como PWA ===
+let deferredPrompt;
 
-  document.getElementById('totalEarnings').textContent = `Ganancias: ${formatCurrency(totalProfit)}`;
-  document.getElementById('totalLosses').textContent = `Pérdidas: ${formatCurrency(totalLoss)}`;
-  document.getElementById('pendingDebts').textContent = `Deudas pendientes: ${formatCurrency(totalDebt)}`;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
 
-  renderDebts();
+// === Instalar como PWA ===
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Aquí podrías mostrar un botón para instalar manualmente
+  console.log("App puede instalarse. Ejecuta deferredPrompt.prompt() para instalar.");
+});
+
+// === Detectar modo oscuro del sistema ===
+function detectDarkMode() {
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.classList.add('dark-mode');
+  } else {
+    document.documentElement.classList.remove('dark-mode');
+  }
+}
+
+// Escuchar cambios en el sistema
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectDarkMode);
+
+// Ejecutar al iniciar
+detectDarkMode();
+
+// === Registrar Service Worker ===
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(reg => console.log("SW registrado:", reg.scope))
+    .catch(err => console.error("SW error:", err));
+}
+
+  // Aquí podrías mostrar un botón para instalar manualmente
+  console.log("App puede instalarse. Ejecuta deferredPrompt.prompt() para instalar.");
+});
+
+// === Detectar modo oscuro del sistema ===
+function detectDarkMode() {
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.classList.add('dark-mode');
+  } else {
+    document.documentElement.classList.remove('dark-mode');
+  }
+}
+
+// Escuchar cambios en el sistema
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectDarkMode);
+
+// Ejecutar al iniciar
+detectDarkMode();
+
+// === Registrar Service Worker ===
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(reg => console.log("SW registrado:", reg.scope))
+    .catch(err => console.error("SW error:", err));
 }
