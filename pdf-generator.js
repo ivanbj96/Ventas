@@ -1,7 +1,4 @@
-// Asegúrate de tener jsPDF y autoTable disponibles en tu index.html
-// Puedes incluir desde CDN:
-// <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-// <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+// Asegúrate de tener jsPDF y autoTable cargados desde CDN en index.html
 
 function generatePDF(section) {
   const { jsPDF } = window.jspdf;
@@ -16,16 +13,16 @@ function generatePDF(section) {
     doc.autoTable({
       head: [['Concepto', 'Valor']],
       body: [
-        ['Ganancias', earnings],
-        ['Pérdidas', losses],
-        ['Deudas pendientes', debts]
+        ['Ganancias', earnings.replace('Ganancias: ', '')],
+        ['Pérdidas', losses.replace('Pérdidas: ', '')],
+        ['Deudas pendientes', debts.replace('Deudas pendientes: ', '')]
       ],
       startY: 30
     });
 
   } else if (section === 'debts') {
-    const debtData = loadFromStorage('debts');
-    const body = debtData.map(d => [
+    const debtsData = loadFromStorage('debts');
+    const body = debtsData.map(d => [
       d.clientName,
       formatCurrency(d.amount),
       d.reason,
