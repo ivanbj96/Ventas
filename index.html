@@ -3,200 +3,173 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TillUp - Punto de Venta</title>
-  <!-- <link rel="manifest" href="./manifest.json" /> -->
-  <link rel="icon" href="./icons/icon-192.png" type="image/png" />
+  <title>TillUp - Gestión de Ventas</title>
 
-  <!-- Bootstrap 5.3.3 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- 🧩 Bootstrap 5.3 (CDN actualizado) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  
+  <!-- 🌓 Soporte para ícono y PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" type="image/png" />
+  <meta name="theme-color" content="#0d6efd" />
 
-  <!-- Bootstrap Icons -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
-
-  <!-- SweetAlert2 (para alertas modernas) -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.3/dist/sweetalert2.all.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.3/dist/sweetalert2.min.css" />
-
-  <!-- jsPDF y autoTable -->
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
-
-  <!-- Estilos propios -->
-  <link rel="stylesheet" href="./style.css" />
+  <!-- Estilo personalizado -->
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="bg-light">
 
-  <!-- Encabezado fijo -->
-  <header class="p-2 border-bottom d-flex justify-content-between align-items-center">
-    <h1 class="fs-4 fw-bold text-primary m-0">TillUp</h1>
-    <div id="installBanner" class="d-none">
-      <button id="btnInstall" class="btn btn-success btn-sm">
-        <i class="bi bi-download me-1"></i> Instalar
-      </button>
-    </div>
+  <!-- ✅ Barra superior fija -->
+  <header class="bg-primary text-white text-center py-3 shadow-sm">
+    <h1 class="h5 mb-0">TillUp - Gestión POS</h1>
   </header>
 
-  <!-- Navegación original -->
-  <div class="p-2">
+  <!-- 🧭 Contenedor principal por secciones -->
+
+<script>
+  function showView(viewName) {
+    document.querySelectorAll('.app-view').forEach(v => v.classList.add('d-none'));
+    document.getElementById(`view-${viewName}`).classList.remove('d-none');
+  }
+
+  // Por defecto, mostrar vista de Inventario
+  document.addEventListener('DOMContentLoaded', () => {
+    showView('inventory');
+  });
+</script>
+
+  <main class="container py-3" id="mainContent">
+
+    <!-- Vista: Inventario -->
+    <section id="view-inventory" class="app-view">
+      <h2 class="mb-3 text-center">Inventario</h2>
+
+      <form id="formProduct" class="mb-4">
+        <div class="mb-2">
+          <input type="text" id="productName" class="form-control" placeholder="Nombre del producto" required />
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col">
+            <input type="number" id="productCost" step="0.01" class="form-control" placeholder="Costo" required />
+          </div>
+          <div class="col">
+            <input type="number" id="productPrice" step="0.01" class="form-control" placeholder="Precio de venta" required />
+          </div>
+        </div>
+        <div class="mb-2">
+          <input type="text" id="productCategory" class="form-control" placeholder="Categoría" />
+        </div>
+        <div class="mb-3">
+          <input type="file" id="productImage" class="form-control" accept="image/*" />
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Agregar producto</button>
+      </form>
+
+      <div id="inventoryList" class="row gy-3"></div>
+    </section>
+
+    <!-- Otras secciones se colocarán aquí (ventas, clientes, deudas, balance, etc.) -->
+
+<!-- Vista: Ventas -->
+<section id="view-sales" class="app-view d-none">
+  <h2 class="mb-3 text-center">Ventas</h2>
+
+  <div class="mb-3">
+    <label for="clientSelector" class="form-label">Seleccionar Cliente</label>
+    <select id="clientSelector" class="form-select" required>
+      <option disabled selected value="">Selecciona un cliente</option>
+    </select>
+  </div>
+
+  <div id="productSalesList" class="row gy-3 mb-4">
+    <!-- Cards de productos para venta -->
+  </div>
+
+  <h5 class="text-center">🛒 Carrito de compra</h5>
+  <div id="cartList" class="mb-3"></div>
+
+  <div class="d-grid gap-2">
+    <button onclick="finalizeSale()" class="btn btn-success">Finalizar venta</button>
+    <button onclick="clearCart()" class="btn btn-outline-danger">Vaciar carrito</button>
+  </div>
+</section>
+
+<!-- Vista: Clientes -->
+<section id="view-clients" class="app-view d-none">
+  <h2 class="mb-3 text-center">Clientes</h2>
+
+  <form id="formClient" class="mb-4">
     <div class="mb-3">
-      <button onclick="showSection('inventory')" class="btn btn-outline-primary btn-sm">Inventario</button>
-      <button onclick="showSection('sales')" class="btn btn-outline-primary btn-sm">Ventas</button>
-      <button onclick="showSection('clients')" class="btn btn-outline-primary btn-sm">Clientes</button>
-      <button onclick="showSection('debts')" class="btn btn-outline-primary btn-sm">Deudas</button>
-      <button onclick="showSection('balance')" class="btn btn-outline-primary btn-sm">Balance</button>
+      <input type="text" id="clientName" class="form-control" placeholder="Nombre del cliente" required />
     </div>
+    <button type="submit" class="btn btn-primary w-100">Agregar cliente</button>
+  </form>
 
-    <!-- Secciones -->
-    <div id="inventorySection" class="section">
-      <h5 class="mb-3">Inventario</h5>
-      <button class="btn btn-primary btn-sm mb-2" data-bs-toggle="modal" data-bs-target="#modalAddProduct">
-        <i class="bi bi-plus-circle me-1"></i> Agregar producto
-      </button>
-      <div id="inventoryList" class="row row-cols-1 row-cols-md-3 g-3"></div>
-    </div>
+  <ul id="clientList" class="list-group">
+    <!-- Clientes renderizados dinámicamente -->
+  </ul>
+</section>
 
-    <div id="salesSection" class="section d-none">
-      <h5 class="mb-3">Ventas</h5>
-      <div class="mb-2">
-        <select id="clientSelector" class="form-select form-select-sm mb-2">
-          <option disabled selected value="">Selecciona un cliente</option>
-        </select>
-      </div>
-      <div class="row" id="productSalesList"></div>
-      <hr />
-      <h6>Carrito</h6>
-      <div id="cartList" class="mb-2"></div>
-      <div class="d-flex justify-content-between">
-        <button class="btn btn-danger btn-sm" onclick="clearCart()">
-          <i class="bi bi-trash3"></i> Vaciar
-        </button>
-        <button class="btn btn-success btn-sm" onclick="finalizeSale()">
-          <i class="bi bi-check-circle"></i> Finalizar venta
-        </button>
-      </div>
-    </div>
+<!-- Vista: Deudas -->
+<section id="view-debt" class="app-view d-none">
+  <h2 class="mb-3 text-center">Deudas</h2>
 
-    <div id="clientsSection" class="section d-none">
-      <h5 class="mb-3">Clientes</h5>
-      <button class="btn btn-primary btn-sm mb-2" data-bs-toggle="modal" data-bs-target="#modalAddClient">
-        <i class="bi bi-person-plus"></i> Nuevo cliente
-      </button>
-      <ul id="clientList" class="list-group small"></ul>
-    </div>
-
-<div id="debtsSection" class="section d-none">
-      <h5 class="mb-3">Deudas</h5>
-      <div id="debtList" class="row row-cols-1 row-cols-md-2 g-3"></div>
-    </div>
-
-    <div id="balanceSection" class="section d-none">
-      <h5 class="mb-3">Balance</h5>
-      <div class="row g-2">
-        <div class="col-6 col-md-3">
-          <div class="card text-bg-success">
-            <div class="card-body">
-              <h6 class="card-title">Utilidad diaria</h6>
-              <p class="fw-bold fs-5 mb-0" id="totalEarnings">0.00</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-md-3">
-          <div class="card text-bg-danger">
-            <div class="card-body">
-              <h6 class="card-title">Costos</h6>
-              <p class="fw-bold fs-5 mb-0" id="totalLosses">0.00</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-md-3">
-          <div class="card text-bg-warning">
-            <div class="card-body">
-              <h6 class="card-title">Deudas pendientes</h6>
-              <p class="fw-bold fs-5 mb-0" id="pendingDebts">0.00</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="mt-3 d-flex justify-content-end">
-        <button class="btn btn-outline-primary btn-sm" onclick="generatePDF('balance')">
-          <i class="bi bi-file-earmark-pdf me-1"></i> Exportar Balance
-        </button>
-      </div>
-    </div>
-  </div> <!-- Fin .p-2 -->
-
-  <!-- ======================= MODALES ========================== -->
-
-  <!-- Modal: Agregar producto -->
-  <div class="modal fade" id="modalAddProduct" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <form class="modal-content" onsubmit="addProduct(event)">
-        <div class="modal-header">
-          <h5 class="modal-title">Nuevo producto</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <input type="text" id="productName" class="form-control mb-2" placeholder="Nombre" required>
-          <input type="number" step="0.01" id="productCost" class="form-control mb-2" placeholder="Costo" required>
-          <input type="number" step="0.01" id="productPrice" class="form-control mb-2" placeholder="Precio" required>
-          <input type="text" id="productCategory" class="form-control mb-2" placeholder="Categoría">
-          <input type="file" id="productImage" class="form-control mb-2" accept="image/*">
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button class="btn btn-primary" type="submit">Guardar</button>
-        </div>
-      </form>
-    </div>
+  <div class="d-flex justify-content-end mb-2">
+    <button onclick="generatePDF('debt')" class="btn btn-outline-dark btn-sm">Exportar PDF</button>
   </div>
 
-  <!-- Modal: Agregar cliente -->
-  <div class="modal fade" id="modalAddClient" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <form class="modal-content" onsubmit="addClient(event)">
-        <div class="modal-header">
-          <h5 class="modal-title">Nuevo cliente</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <input type="text" id="clientName" class="form-control mb-2" placeholder="Nombre completo" required>
-          <input type="text" id="clientPhone" class="form-control mb-2" placeholder="Celular">
-          <input type="text" id="clientAddress" class="form-control mb-2" placeholder="Dirección">
-          <input type="file" id="clientPhoto" class="form-control mb-2" accept="image/*">
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button class="btn btn-primary" type="submit">Guardar</button>
-        </div>
-      </form>
-    </div>
+  <div id="debtList" class="row gy-3">
+    <!-- Lista de deudas cargada por JS -->
   </div>
+</section>
 
-<!-- Modal: Comprobante antes de guardar como deuda -->
-  <div class="modal fade" id="modalComprobante" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Comprobante de venta</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div id="comprobanteDetalle" class="mb-3 small"></div>
-          <input type="number" step="0.01" id="abonoInicial" class="form-control" placeholder="Abono inicial (opcional)">
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button class="btn btn-primary" onclick="confirmarDeuda()">Guardar como deuda</button>
-        </div>
-      </div>
-    </div>
+<!-- Vista: Balance -->
+<section id="view-balance" class="app-view d-none">
+  <h2 class="mb-3 text-center">Balance General</h2>
+
+  <ul class="list-group mb-4">
+    <li class="list-group-item d-flex justify-content-between">
+      <span>Ganancias:</span>
+      <strong id="totalEarnings">$0.00</strong>
+    </li>
+    <li class="list-group-item d-flex justify-content-between">
+      <span>Pérdidas (Costos):</span>
+      <strong id="totalLosses">$0.00</strong>
+    </li>
+    <li class="list-group-item d-flex justify-content-between">
+      <span>Deudas pendientes:</span>
+      <strong id="pendingDebts">$0.00</strong>
+    </li>
+  </ul>
+
+  <div class="text-end">
+    <button onclick="generatePDF('balance')" class="btn btn-outline-dark btn-sm">Exportar Balance PDF</button>
   </div>
+</section>
 
-  <!-- Scripts -->
-  <script src="./utils.js"></script>
-  <script src="./pdf-generator.js"></script>
-  <!-- <script src="./app.js"></script> -->
+  </main>
 
+  <!-- 📱 Barra de navegación inferior estilo app -->
+  <nav class="navbar fixed-bottom bg-white border-top d-flex justify-content-around py-2">
+    <button class="btn btn-link flex-fill text-center" onclick="showView('inventory')">
+      <i class="bi bi-box-seam fs-5"></i><br><small>Inventario</small>
+    </button>
+    <button class="btn btn-link flex-fill text-center" onclick="showView('sales')">
+      <i class="bi bi-cart-check fs-5"></i><br><small>Ventas</small>
+    </button>
+    <button class="btn btn-link flex-fill text-center" onclick="showView('clients')">
+      <i class="bi bi-people fs-5"></i><br><small>Clientes</small>
+    </button>
+    <button class="btn btn-link flex-fill text-center" onclick="showView('debt')">
+      <i class="bi bi-cash-stack fs-5"></i><br><small>Deudas</small>
+    </button>
+    <button class="btn btn-link flex-fill text-center" onclick="showView('balance')">
+      <i class="bi bi-graph-up fs-5"></i><br><small>Balance</small>
+    </button>
+  </nav>
+
+  <!-- JS Bootstrap y lógica principal -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="utils.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
