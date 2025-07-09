@@ -141,18 +141,56 @@ function showInstallButton() {
 }
 
 function forceUpdate() {
+  Swal.fire({
+    title: 'Buscando actualizaciones...',
+    html: '<div class="spinner-border text-primary" role="status"></div><div class="mt-2">Verificando si hay una nueva versión disponible...</div>',
+    showConfirmButton: false,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    didOpen: () => {
+      Swal.showLoading();
+    }
+  });
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistration().then(registration => {
       if (registration && registration.waiting) {
-        // Enviar mensaje al Service Worker para saltar la espera
         registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-        
-        // Recargar cuando el Service Worker se active
         navigator.serviceWorker.addEventListener('controllerchange', () => {
+          Swal.close();
+          Swal.fire({
+            icon: 'success',
+            title: 'Actualización lista',
+            text: 'La app se actualizará ahora.',
+            timer: 1500,
+            showConfirmButton: false
+          });
           window.location.reload();
         });
+      } else {
+        setTimeout(() => {
+          Swal.close();
+          Swal.fire({
+            icon: 'info',
+            title: 'Sin cambios',
+            text: 'La app ya está actualizada.',
+            timer: 1800,
+            showConfirmButton: false
+          });
+        }, 1200);
       }
     });
+  } else {
+    setTimeout(() => {
+      Swal.close();
+      Swal.fire({
+        icon: 'error',
+        title: 'No compatible',
+        text: 'Tu navegador no soporta actualizaciones automáticas.',
+        timer: 2000,
+        showConfirmButton: false
+      });
+    }, 1200);
   }
 }
 
@@ -219,11 +257,14 @@ document.addEventListener('DOMContentLoaded', () => {
   renderBalanceGrid();
 
   // Escuchar cambios en el selector de cliente
-  document.getElementById('clientSelector').addEventListener('change', e => {
-    currentClientId = e.target.value;
-    cart = loadProforma(currentClientId);
-    renderCart();
-  });
+  const clientSelector = document.getElementById('clientSelector');
+  if (clientSelector) {
+    clientSelector.addEventListener('change', e => {
+      currentClientId = e.target.value;
+      cart = loadProforma(currentClientId);
+      renderCart();
+    });
+  }
 
   // Eventos de formularios
   const formProduct = document.getElementById('formProduct');
@@ -246,49 +287,49 @@ document.addEventListener('DOMContentLoaded', () => {
   // Alternar vista inventario
   const toggleInventoryViewBtn = document.getElementById('toggleInventoryView');
   const toggleInventoryViewText = document.getElementById('toggleInventoryViewText');
-  toggleInventoryViewBtn.addEventListener('click', () => {
-    inventoryViewMode = inventoryViewMode === 'grid' ? 'list' : 'grid';
-    localStorage.setItem('inventoryViewMode', inventoryViewMode);
-    renderInventory();
-    toggleInventoryViewBtn.querySelector('i').className = inventoryViewMode === 'grid' ? 'bi bi-grid-3x3-gap-fill' : 'bi bi-list-ul';
-    toggleInventoryViewText.textContent = inventoryViewMode === 'grid' ? 'Cuadrícula' : 'Lista';
-  });
-  // Sincronizar botón al cargar
-  if (inventoryViewMode === 'grid') {
-    toggleInventoryViewBtn.querySelector('i').className = 'bi bi-grid-3x3-gap-fill';
-    toggleInventoryViewText.textContent = 'Cuadrícula';
-  } else {
-    toggleInventoryViewBtn.querySelector('i').className = 'bi bi-list-ul';
-    toggleInventoryViewText.textContent = 'Lista';
+  if (toggleInventoryViewBtn && toggleInventoryViewText) {
+    toggleInventoryViewBtn.addEventListener('click', () => {
+      inventoryViewMode = inventoryViewMode === 'grid' ? 'list' : 'grid';
+      localStorage.setItem('inventoryViewMode', inventoryViewMode);
+      renderInventory();
+      toggleInventoryViewBtn.querySelector('i').className = inventoryViewMode === 'grid' ? 'bi bi-grid-3x3-gap-fill' : 'bi bi-list-ul';
+      toggleInventoryViewText.textContent = inventoryViewMode === 'grid' ? 'Cuadrícula' : 'Lista';
+    });
+    // Sincronizar botón al cargar
+    if (inventoryViewMode === 'grid') {
+      toggleInventoryViewBtn.querySelector('i').className = 'bi bi-grid-3x3-gap-fill';
+      toggleInventoryViewText.textContent = 'Cuadrícula';
+    } else {
+      toggleInventoryViewBtn.querySelector('i').className = 'bi bi-list-ul';
+      toggleInventoryViewText.textContent = 'Lista';
+    }
   }
 
   // Alternar vista clientes
   const toggleClientsViewBtn = document.getElementById('toggleClientsView');
   const toggleClientsViewText = document.getElementById('toggleClientsViewText');
-  toggleClientsViewBtn.addEventListener('click', () => {
-    clientsViewMode = clientsViewMode === 'grid' ? 'list' : 'grid';
-    localStorage.setItem('clientsViewMode', clientsViewMode);
-    renderClients();
-    toggleClientsViewBtn.querySelector('i').className = clientsViewMode === 'grid' ? 'bi bi-grid-3x3-gap-fill' : 'bi bi-list-ul';
-    toggleClientsViewText.textContent = clientsViewMode === 'grid' ? 'Cuadrícula' : 'Lista';
-  });
-  if (clientsViewMode === 'grid') {
-    toggleClientsViewBtn.querySelector('i').className = 'bi bi-grid-3x3-gap-fill';
-    toggleClientsViewText.textContent = 'Cuadrícula';
-  } else {
-    toggleClientsViewBtn.querySelector('i').className = 'bi bi-list-ul';
-    toggleClientsViewText.textContent = 'Lista';
+  if (toggleClientsViewBtn && toggleClientsViewText) {
+    toggleClientsViewBtn.addEventListener('click', () => {
+      clientsViewMode = clientsViewMode === 'grid' ? 'list' : 'grid';
+      localStorage.setItem('clientsViewMode', clientsViewMode);
+      renderClients();
+      toggleClientsViewBtn.querySelector('i').className = clientsViewMode === 'grid' ? 'bi bi-grid-3x3-gap-fill' : 'bi bi-list-ul';
+      toggleClientsViewText.textContent = clientsViewMode === 'grid' ? 'Cuadrícula' : 'Lista';
+    });
+    if (clientsViewMode === 'grid') {
+      toggleClientsViewBtn.querySelector('i').className = 'bi bi-grid-3x3-gap-fill';
+      toggleClientsViewText.textContent = 'Cuadrícula';
+    } else {
+      toggleClientsViewBtn.querySelector('i').className = 'bi bi-list-ul';
+      toggleClientsViewText.textContent = 'Lista';
+    }
   }
 
   // Sidebar
-  const sidebar = document.getElementById('sidebarMenu');
   const sidebarOverlay = document.getElementById('sidebarOverlay');
-  const btnSidebar = document.getElementById('btnSidebar');
-  const btnCloseSidebar = document.getElementById('btnCloseSidebar');
-  const themeSwitch = document.getElementById('themeSwitch');
-
-  // Cerrar sidebar al hacer clic en overlay
-  document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', closeSidebar);
+  }
 
 
 
@@ -318,17 +359,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // === Inicialización PWA ===
   installButton = document.getElementById('installPWA');
   
-  // Verificar si ya está instalada o si el usuario rechazó la instalación
-  if (isAppInstalled()) {
+  // Mostrar solo si hay deferredPrompt y no está instalada ni rechazada
+  if (isAppInstalled() || hasUserRejectedInstallation() || !window.deferredPrompt) {
     installButton.style.display = 'none';
-  } else if (hasUserRejectedInstallation()) {
-    installButton.style.display = 'none';
-  } else if (deferredPrompt) {
-    // Si hay un prompt disponible, mostrar el botón
-    installButton.style.display = 'flex';
-    installButton.classList.add('animate');
   } else {
-    // Forzar mostrar el botón si no está instalada y no hay rechazo, aunque no haya prompt aún
     installButton.style.display = 'flex';
     installButton.classList.add('animate');
   }
@@ -393,6 +427,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     }, 60000); // Verificar cada minuto
+  }
+
+  // Captura de ubicación en formulario de cliente
+  const btnGetLocation = document.getElementById('btnGetLocation');
+  const locationInput = document.getElementById('clientLocation');
+  const locationStatus = document.getElementById('locationStatus');
+  if (btnGetLocation && locationInput && locationStatus) {
+    btnGetLocation.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        locationStatus.textContent = 'La geolocalización no es soportada por tu navegador.';
+        return;
+      }
+      locationStatus.textContent = 'Obteniendo ubicación...';
+      btnGetLocation.disabled = true;
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const coords = `${position.coords.latitude},${position.coords.longitude}`;
+          locationInput.value = coords;
+          locationStatus.textContent = `Ubicación capturada: ${coords}`;
+          btnGetLocation.disabled = false;
+        },
+        (error) => {
+          locationStatus.textContent = 'No se pudo obtener la ubicación.';
+          btnGetLocation.disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
   }
 });
 
@@ -503,20 +565,23 @@ document.getElementById('productImage').addEventListener('change', function(e) {
 });
 
 // Vista previa de imagen para clientes
-document.getElementById('clientPhoto').addEventListener('change', function(e) {
-  const preview = document.getElementById('clientImagePreview');
-  const file = e.target.files[0];
-  
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa">`;
-    };
-    reader.readAsDataURL(file);
-  } else {
-    preview.innerHTML = '';
-  }
-});
+const clientPhotoInput = document.getElementById('clientPhoto');
+if (clientPhotoInput) {
+  clientPhotoInput.addEventListener('change', function(e) {
+    const preview = document.getElementById('clientImagePreview');
+    if (!preview) return;
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa">`;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      preview.innerHTML = '';
+    }
+  });
+}
 
 // === Mostrar productos en Inventario y Venta ===
 // Renderizar inventario con diseño tipo Treinta.co
@@ -528,7 +593,7 @@ function renderInventory() {
     container.className = 'row gy-3';
     container.innerHTML = products.map(product => `
       <div class="col-6 col-md-4 col-lg-3">
-        <div class="product-card-treinta" onclick="showProductDetailModal(${product.id})">
+        <div class="product-card-treinta" onclick="showProductDetailModal('${product.id}')">
           <img src="${product.image || 'icons/descarga.png'}" alt="${product.name}" onerror="this.src='icons/descarga.png'">
           <h5>${product.name}</h5>
           <div class="product-category">${product.category || '-'}</div>
@@ -536,7 +601,7 @@ function renderInventory() {
           <div class="product-cost">Costo: $${product.cost.toFixed(2)}</div>
           <div class="mt-2">
             <span class="badge ${product.stock > 0 ? 'bg-success' : 'bg-danger'}">
-              Stock: ${product.stock}
+              ${product.stock > 0 ? 'Stock: ' + product.stock : 'Sin stock'}
             </span>
           </div>
         </div>
@@ -560,7 +625,7 @@ function renderInventory() {
           <small class="text-muted">Stock: ${product.stock}</small>
         </div>
         <div class="ms-3">
-          <button class="btn btn-sm btn-outline-primary" onclick="showProductDetailModal(${product.id})">
+          <button class="btn btn-sm btn-outline-primary" onclick="showProductDetailModal('${product.id}')">
             <i class="bi bi-eye"></i>
           </button>
         </div>
@@ -571,18 +636,19 @@ function renderInventory() {
 
 // === Agregar producto al carrito ===
 function addToCart(productId) {
-  if (!currentClientId) {
+  const product = products.find(p => p.id == productId);
+  if (!product) return;
+
+  // Verificar stock
+  if (product.stock <= 0) {
     Swal.fire({
-      icon: 'info',
-      title: 'Selecciona un cliente',
-      text: 'Debes seleccionar un cliente primero',
+      icon: 'warning',
+      title: 'Sin stock',
+      text: 'Este producto no tiene stock disponible.',
       confirmButtonText: 'Aceptar'
     });
     return;
   }
-
-  const product = products.find(p => p.id === productId);
-  if (!product) return;
 
   const existing = cart.find(item => item.id === productId);
   if (existing) {
@@ -591,8 +657,21 @@ function addToCart(productId) {
     cart.push({ ...product, qty: 1 });
   }
 
-  saveProforma(currentClientId, cart);
+  // Si hay un cliente seleccionado, guardar proforma
+  if (currentClientId) {
+    saveProforma(currentClientId, cart);
+  }
+  
   renderCart();
+  
+  // Mostrar notificación de producto agregado
+  Swal.fire({
+    icon: 'success',
+    title: 'Producto agregado',
+    text: `${product.name} agregado al carrito`,
+    timer: 1000,
+    showConfirmButton: false
+  });
 }
 
 // === Mostrar carrito con diseño tipo Treinta.co ===
@@ -601,6 +680,7 @@ function renderCart() {
   const totalElement = document.getElementById('cartTotal');
   const finalizeBtn = document.getElementById('finalizeBtn');
   const clearCartBtn = document.getElementById('clearCartBtn');
+  const clientSelectorContainer = document.getElementById('clientSelectorContainer');
   
   if (!container) return;
 
@@ -615,34 +695,78 @@ function renderCart() {
     totalElement.textContent = '$0.00';
     finalizeBtn.disabled = true;
     clearCartBtn.style.display = 'none';
+    if (clientSelectorContainer) clientSelectorContainer.style.display = 'none';
     return;
   }
 
   clearCartBtn.style.display = 'block';
+  if (clientSelectorContainer) clientSelectorContainer.style.display = 'block';
 
-  container.innerHTML = cart.map(item => `
+  // Agregar selector de cliente compacto al inicio del carrito
+  let clientSelectorHTML = '';
+  if (clients.length > 0) {
+    const selectedClient = clients.find(c => c.id === currentClientId);
+    const clientFirstName = selectedClient ? selectedClient.name.split(' ')[0] : '';
+    
+    clientSelectorHTML = `
+      <div class="client-selector-treinta mb-3">
+        ${selectedClient ? `
+          <div class="selected-client-display">
+            <span class="client-name-display">${clientFirstName}</span>
+            <button class="btn btn-sm btn-outline-danger remove-client-btn" onclick="removeSelectedClient()" title="Eliminar cliente">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        ` : `
+          <select id="cartClientSelector" class="form-select form-select-treinta" onchange="selectClientForCart(this.value)">
+            <option value="">Selecciona un cliente</option>
+            ${clients.map(client => `
+              <option value="${client.id}">
+                ${client.name.split(' ')[0]}${client.debt > 0 ? ` (Deuda: $${client.debt.toFixed(2)})` : ''}
+              </option>
+            `).join('')}
+          </select>
+        `}
+      </div>
+    `;
+  } else {
+    clientSelectorHTML = `
+      <div class="client-selector-treinta mb-3">
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i> No hay clientes registrados
+          <button class="btn btn-primary btn-sm ms-2" onclick="showAddClientModal()">
+            <i class="bi bi-person-plus"></i> Agregar Cliente
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = clientSelectorHTML + cart.map(item => `
     <div class="cart-item-treinta">
-      <div class="cart-item-qty-treinta">
-        <button class="btn btn-sm btn-outline-secondary" onclick="changeCartQty('${item.id}', -1)">-</button>
-        <span class="qty-display">${item.qty}</span>
-        <button class="btn btn-sm btn-outline-secondary" onclick="changeCartQty('${item.id}', 1)">+</button>
-      </div>
-      <div class="cart-item-info-treinta">
-        <div class="cart-item-name-treinta">${item.name}</div>
-        <div class="cart-item-price-treinta">$${item.price.toFixed(2)} c/u</div>
-      </div>
-      <div class="cart-item-actions-treinta">
-        <div class="fw-bold fs-6">$${(item.price * item.qty).toFixed(2)}</div>
-        <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('${item.id}')">
-          <i class="bi bi-trash"></i>
-        </button>
+      <div class="cart-item-header-treinta">
+        <div class="cart-item-qty-treinta">
+          <button class="btn btn-sm btn-outline-secondary" onclick="changeCartQty('${item.id}', -1)">-</button>
+          <span class="qty-display">${item.qty}</span>
+          <button class="btn btn-sm btn-outline-secondary" onclick="changeCartQty('${item.id}', 1)">+</button>
+        </div>
+        <div class="cart-item-info-treinta">
+          <div class="cart-item-name-treinta">${item.name}</div>
+          <div class="cart-item-price-treinta">$${item.price.toFixed(2)} c/u</div>
+        </div>
+        <div class="cart-item-actions-treinta">
+          <div class="cart-item-total-treinta">$${(item.price * item.qty).toFixed(2)}</div>
+          <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('${item.id}')">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
       </div>
     </div>
   `).join('');
 
   const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
   totalElement.textContent = `$${total.toFixed(2)}`;
-  finalizeBtn.disabled = false;
+  finalizeBtn.disabled = !currentClientId;
 }
 
 function changeCartQty(productId, delta) {
@@ -680,7 +804,244 @@ function finalizeSale() {
   const client = clients.find(c => c.id === currentClientId);
   const fecha = new Date().toLocaleString();
 
-  // Comprobante moderno tipo Treinta.co
+  // Mostrar opciones de pago
+  Swal.fire({
+    title: 'Finalizar Venta',
+    html: `
+      <div class="sale-summary-treinta">
+        <div class="sale-client-info">
+          <i class="bi bi-person-circle"></i>
+          <strong>Cliente:</strong> ${client.name}
+        </div>
+        <div class="sale-total-info">
+          <div class="sale-items-count">
+            <i class="bi bi-box-seam"></i> ${cart.length} productos
+          </div>
+          <div class="sale-total-amount">
+            <strong>Total: $${total.toFixed(2)}</strong>
+          </div>
+        </div>
+        <div class="sale-payment-options">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="paymentType" id="paymentCash" value="cash" checked>
+            <label class="form-check-label" for="paymentCash">
+              <i class="bi bi-cash-coin"></i> Efectivo
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="paymentType" id="paymentCard" value="card">
+            <label class="form-check-label" for="paymentCard">
+              <i class="bi bi-credit-card"></i> Tarjeta
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="paymentType" id="paymentTransfer" value="transfer">
+            <label class="form-check-label" for="paymentTransfer">
+              <i class="bi bi-bank"></i> Transferencia
+            </label>
+          </div>
+        </div>
+        <div class="sale-discount-section">
+          <label class="form-label">Descuento (opcional):</label>
+          <div class="input-group">
+            <input type="number" id="saleDiscount" class="form-control" placeholder="0.00" min="0" max="${total}" step="0.01">
+            <span class="input-group-text">$</span>
+          </div>
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Completar Venta',
+    cancelButtonText: 'Cancelar',
+    showDenyButton: true,
+    denyButtonText: 'Venta a Crédito',
+    reverseButtons: true,
+    customClass: { 
+      popup: 'swal2-sale-treinta',
+      confirmButton: 'btn btn-success',
+      denyButton: 'btn btn-warning',
+      cancelButton: 'btn btn-secondary'
+    },
+    preConfirm: () => {
+      const discount = parseFloat(document.getElementById('saleDiscount').value) || 0;
+      const paymentType = document.querySelector('input[name="paymentType"]:checked').value;
+      
+      if (discount > total) {
+        Swal.showValidationMessage('El descuento no puede ser mayor al total');
+        return false;
+      }
+      
+      return { discount, paymentType };
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // Venta pagada
+      const { discount, paymentType } = result.value;
+      const finalTotal = total - discount;
+      
+      // Actualizar stock
+      cart.forEach(item => {
+        const product = products.find(p => p.id === item.id);
+        if (product) {
+          product.stock -= item.qty;
+          if (product.stock < 0) product.stock = 0;
+        }
+      });
+      
+      // Registrar venta
+      const sale = {
+        id: generateId('sale'),
+        clientId: client.id,
+        clientName: client.name,
+        items: cart,
+        total: finalTotal,
+        originalTotal: total,
+        discount: discount,
+        cost,
+        profit: finalTotal - cost,
+        paymentType,
+        date: new Date().toLocaleDateString(),
+        time: new Date().toLocaleTimeString()
+      };
+      
+      sales.push(sale);
+      saveToStorage('sales', sales);
+      saveToStorage('products', products);
+      
+      // Limpiar carrito
+      clearCart();
+      
+      // Mostrar comprobante
+      showReceipt(sale);
+      
+    } else if (result.isDenied) {
+      // Venta a crédito
+      showCreditSaleModal(total, cost, client);
+    }
+  });
+}
+
+// Función para mostrar modal de venta a crédito
+function showCreditSaleModal(total, cost, client) {
+  Swal.fire({
+    title: 'Venta a Crédito',
+    html: `
+      <div class="credit-sale-treinta">
+        <div class="alert alert-warning">
+          <i class="bi bi-exclamation-triangle"></i>
+          <strong>Venta a Crédito</strong><br>
+          Cliente: ${client.name}<br>
+          Total: $${total.toFixed(2)}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Motivo del crédito:</label>
+          <input type="text" id="creditReason" class="form-control" placeholder="Ej: Pago en cuotas" value="Venta a crédito">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Abono inicial (opcional):</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" id="creditAbono" class="form-control" placeholder="0.00" min="0" max="${total}" step="0.01">
+          </div>
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Registrar Crédito',
+    cancelButtonText: 'Cancelar',
+    preConfirm: () => {
+      const reason = document.getElementById('creditReason').value;
+      const abono = parseFloat(document.getElementById('creditAbono').value) || 0;
+      
+      if (!reason.trim()) {
+        Swal.showValidationMessage('Debe especificar un motivo');
+        return false;
+      }
+      
+      if (abono > total) {
+        Swal.showValidationMessage('El abono no puede ser mayor al total');
+        return false;
+      }
+      
+      return { reason, abono };
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      const { reason, abono } = result.value;
+      const remainingAmount = total - abono;
+      
+      // Actualizar stock
+      cart.forEach(item => {
+        const product = products.find(p => p.id === item.id);
+        if (product) {
+          product.stock -= item.qty;
+          if (product.stock < 0) product.stock = 0;
+        }
+      });
+      
+      // Registrar venta
+      const sale = {
+        id: generateId('sale'),
+        clientId: client.id,
+        clientName: client.name,
+        items: cart,
+        total: total,
+        cost,
+        profit: total - cost,
+        paymentType: 'credit',
+        date: new Date().toLocaleDateString(),
+        time: new Date().toLocaleTimeString()
+      };
+      
+      sales.push(sale);
+      saveToStorage('sales', sales);
+      saveToStorage('products', products);
+      
+      // Registrar deuda
+      if (remainingAmount > 0) {
+        const debt = {
+          id: generateId('debt'),
+          clientId: client.id,
+          clientName: client.name,
+          amount: remainingAmount,
+          total: total,
+          abono: abono,
+          reason: reason,
+          date: new Date().toLocaleDateString(),
+          saleId: sale.id
+        };
+        
+        debts.push(debt);
+        saveToStorage('debts', debts);
+        
+        // Actualizar deuda del cliente
+        client.debt = (client.debt || 0) + remainingAmount;
+        saveToStorage('clients', clients);
+      }
+      
+      // Limpiar carrito
+      clearCart();
+      
+      // Mostrar confirmación
+      Swal.fire({
+        icon: 'success',
+        title: 'Venta a crédito registrada',
+        text: `Deuda registrada: $${remainingAmount.toFixed(2)}`,
+        confirmButtonText: 'Aceptar'
+      });
+      
+      // Actualizar vistas
+      renderClients();
+      renderDebts();
+      updateBalanceUI();
+    }
+  });
+}
+
+// Función para mostrar comprobante
+function showReceipt(sale) {
+  const fecha = new Date().toLocaleString();
+  
   let detalle = `
     <div class="receipt-treinta">
       <div class="receipt-header">
@@ -693,7 +1054,7 @@ function finalizeSale() {
       
       <div class="receipt-client">
         <i class="bi bi-person-circle"></i>
-        <span><strong>Cliente:</strong> ${client.name}</span>
+        <span><strong>Cliente:</strong> ${sale.clientName}</span>
       </div>
       
       <div class="receipt-items">
@@ -703,7 +1064,7 @@ function finalizeSale() {
           <span>Precio</span>
           <span>Subtotal</span>
         </div>
-        ${cart.map(item => `
+        ${sale.items.map(item => `
           <div class="receipt-item">
             <span class="item-name">${item.name}</span>
             <span class="item-qty">${item.qty}</span>
@@ -715,13 +1076,28 @@ function finalizeSale() {
       
       <div class="receipt-total">
         <div class="total-line">
+          <span>Subtotal:</span>
+          <span>$${sale.originalTotal.toFixed(2)}</span>
+        </div>
+        ${sale.discount > 0 ? `
+          <div class="total-line discount">
+            <span>Descuento:</span>
+            <span>-$${sale.discount.toFixed(2)}</span>
+          </div>
+        ` : ''}
+        <div class="total-line final">
           <span>Total:</span>
-          <span class="total-amount">$${total.toFixed(2)}</span>
+          <span class="total-amount">$${sale.total.toFixed(2)}</span>
+        </div>
+        <div class="payment-type">
+          <i class="bi bi-${getPaymentIcon(sale.paymentType)}"></i>
+          ${getPaymentText(sale.paymentType)}
         </div>
       </div>
       
       <div class="receipt-footer">
         <small>¡Gracias por su compra!</small>
+        <div class="receipt-id">Ticket #${sale.id}</div>
       </div>
     </div>
   `;
@@ -729,99 +1105,65 @@ function finalizeSale() {
   Swal.fire({
     title: '',
     html: detalle,
-    showDenyButton: true,
+    showConfirmButton: true,
+    confirmButtonText: 'Imprimir',
     showCancelButton: true,
-    confirmButtonText: 'Pago Completo',
-    denyButtonText: 'Venta a Crédito',
-    cancelButtonText: 'Cancelar',
-    reverseButtons: true,
+    cancelButtonText: 'Cerrar',
     customClass: { 
-      popup: 'swal2-receipt-treinta',
-      confirmButton: 'btn btn-success',
-      denyButton: 'btn btn-warning',
-      cancelButton: 'btn btn-secondary'
+      popup: 'swal2-receipt-treinta'
     }
   }).then((result) => {
     if (result.isConfirmed) {
-      // Venta pagada
-      sales.push({
-        id: generateId('sale'),
-        clientId: client.id,
-        clientName: client.name,
-        items: cart,
-        total,
-        cost,
-        profit,
-        date: new Date().toLocaleDateString()
-      });
-      saveToStorage('sales', sales);
-      updateBalanceUI();
-      clearCart();
-      Swal.fire({ 
-        icon: 'success', 
-        title: 'Venta registrada', 
-        text: 'Venta registrada correctamente.',
-        confirmButtonText: 'Aceptar'
-      });
-    } else if (result.isDenied) {
-      // Venta a crédito: pedir abono
-      Swal.fire({
-        title: 'Abono inicial',
-        html: `
-          <div class="mb-3">
-            <label class="form-label">¿El cliente desea abonar una parte?</label>
-            <input id='abonoInput' type='number' min='0' max='${total}' step='0.01' 
-                   class='form-control' placeholder='Monto del abono (opcional)' />
-            <div class="form-text">Deja en 0 si no hay abono inicial</div>
-          </div>
-        `,
-        inputAttributes: { min: 0, max: total, step: 0.01 },
-        showCancelButton: true,
-        confirmButtonText: 'Guardar deuda',
-        cancelButtonText: 'Cancelar',
-        preConfirm: () => {
-          const abono = parseFloat(document.getElementById('abonoInput').value) || 0;
-          if (abono < 0 || abono > total) {
-            Swal.showValidationMessage('El abono debe ser entre 0 y el total');
-            return false;
-          }
-          return abono;
-        }
-      }).then((abonoResult) => {
-        if (abonoResult.isConfirmed) {
-          const abono = abonoResult.value;
-          debts.push({
-            id: generateId('debt'),
-            clientId: client.id,
-            clientName: client.name,
-            amount: total - abono,
-            abono,
-            total,
-            reason: 'Venta a crédito',
-            date: new Date().toLocaleString()
-          });
-          saveToStorage('debts', debts);
-          renderDebts();
-          clearCart();
-          Swal.fire({ 
-            icon: 'success', 
-            title: 'Deuda registrada', 
-            text: abono > 0 ? `Abono registrado: ${formatCurrency(abono)}` : 'Deuda registrada correctamente.',
-            confirmButtonText: 'Aceptar'
-          });
-        }
-      });
+      // Aquí puedes implementar la impresión
+      window.print();
     }
   });
+}
+
+// Funciones auxiliares para el comprobante
+function getPaymentIcon(paymentType) {
+  const icons = {
+    cash: 'cash-coin',
+    card: 'credit-card',
+    transfer: 'bank',
+    credit: 'clock-history'
+  };
+  return icons[paymentType] || 'cash-coin';
+}
+
+function getPaymentText(paymentType) {
+  const texts = {
+    cash: 'Efectivo',
+    card: 'Tarjeta',
+    transfer: 'Transferencia',
+    credit: 'A Crédito'
+  };
+  return texts[paymentType] || 'Efectivo';
 }
 
 // === Agregar/Editar cliente con validación mejorada ===
 function addClient(e) {
   e.preventDefault();
-  const name = document.getElementById('clientName').value.trim();
-  const phone = document.getElementById('clientPhone').value.trim();
-  const address = document.getElementById('clientAddress').value.trim();
+  const nameInput = document.getElementById('clientName');
+  const phoneInput = document.getElementById('clientPhone');
+  const addressInput = document.getElementById('clientAddress');
   const photoInput = document.getElementById('clientPhoto');
+  const locationInput = document.getElementById('clientLocation');
+  const locationStatus = document.getElementById('locationStatus');
+  if (!nameInput || !phoneInput || !addressInput) {
+    Swal.fire({ icon: 'error', title: 'Error de formulario', text: 'Faltan campos obligatorios en el formulario.', confirmButtonText: 'Aceptar' });
+    return;
+  }
+  const name = nameInput.value.trim();
+  const phone = phoneInput.value.trim();
+  const address = addressInput.value.trim();
+  const photo = photoInput.files && photoInput.files[0] ? photoInput.files[0] : null;
+  const location = locationInput.value.trim();
+  if (location) {
+    locationStatus.textContent = 'Ubicación válida';
+  } else {
+    locationStatus.textContent = 'Ubicación no válida';
+  }
 
   if (!name) {
     Swal.fire({
@@ -881,9 +1223,9 @@ function addClient(e) {
     updateClientSelector();
     
     // Limpiar formulario
-    document.getElementById('formClient').reset();
-    document.getElementById('clientImagePreview').innerHTML = '';
-    document.getElementById('locationStatus').textContent = '';
+    if (document.getElementById('formClient')) document.getElementById('formClient').reset();
+    if (document.getElementById('clientImagePreview')) document.getElementById('clientImagePreview').innerHTML = '';
+    if (locationStatus) locationStatus.textContent = '';
     
     // Restaurar texto del botón
     const submitBtn = document.querySelector('#modalClient .btn-primary');
@@ -919,7 +1261,7 @@ function renderClients() {
     container.className = 'row gy-3';
     container.innerHTML = clients.map(client => `
       <div class="col-6 col-md-4 col-lg-3">
-        <div class="client-card-treinta" onclick="showClientDetails(${client.id})">
+        <div class="client-card-treinta" onclick="showClientDetails('${client.id}')">
           ${client.photo ? 
             `<img src="${client.photo}" alt="${client.name}" class="client-photo" onerror="this.parentElement.querySelector('.client-avatar').style.display='flex'; this.style.display='none';">` :
             `<div class="client-avatar">${client.name.charAt(0).toUpperCase()}</div>`
@@ -927,6 +1269,13 @@ function renderClients() {
           <div class="client-name">${client.name}</div>
           <div class="client-info">${client.phone || 'Sin teléfono'}</div>
           <div class="client-info">${client.address || 'Sin dirección'}</div>
+          ${client.location ? `
+            <div class="client-location">
+              <a href="https://maps.google.com/?q=${client.location}" target="_blank" onclick="event.stopPropagation();" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-geo-alt-fill"></i> Ver ubicación
+              </a>
+            </div>
+          ` : ''}
           <div class="mt-2">
             <span class="badge ${client.debt > 0 ? 'bg-warning' : 'bg-success'}">
               ${client.debt > 0 ? `Deuda: $${client.debt.toFixed(2)}` : 'Sin deuda'}
@@ -953,8 +1302,13 @@ function renderClients() {
           <div class="fw-bold">${client.debt > 0 ? `$${client.debt.toFixed(2)}` : 'Sin deuda'}</div>
           <small class="text-muted">${client.address || 'Sin dirección'}</small>
         </div>
-        <div class="ms-3">
-          <button class="btn btn-sm btn-outline-primary" onclick="showClientDetails(${client.id})">
+        <div class="ms-3 d-flex gap-1">
+          ${client.location ? `
+            <a href="https://maps.google.com/?q=${client.location}" target="_blank" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-geo-alt-fill"></i>
+            </a>
+          ` : ''}
+          <button class="btn btn-sm btn-outline-primary" onclick="showClientDetails('${client.id}')">
             <i class="bi bi-eye"></i>
           </button>
         </div>
@@ -966,6 +1320,7 @@ function renderClients() {
 // === Selector de cliente en ventas ===
 function updateClientSelector() {
   const selector = document.getElementById('clientSelector');
+  if (!selector) return; // Evitar error si no existe
   selector.innerHTML = `<option disabled selected value="">Selecciona un cliente</option>`;
 
   clients.forEach(c => {
@@ -1024,7 +1379,7 @@ function renderDebts() {
     
     return `
       <div class="col-12 col-md-6 col-lg-4">
-        <div class="debt-card-treinta ${status}" onclick="showDebtDetailModal(${debt.id})">
+        <div class="debt-card-treinta ${status}" onclick="showDebtDetailModal('${debt.id}')">
           <div class="debt-header">
             <div class="debt-client">${debt.clientName}</div>
             <div class="debt-date">${debt.date}</div>
@@ -1233,7 +1588,7 @@ function renderSalesProducts() {
   }
   
   container.innerHTML = filteredProducts.map(product => `
-    <div class="product-card-treinta" onclick="addToCart(${product.id})">
+    <div class="product-card-treinta" onclick="addToCart('${product.id}')">
       <img src="${product.image || 'https://via.placeholder.com/200x120?text=Producto'}" 
            class="product-image-treinta" alt="${product.name}" onerror="this.src='https://via.placeholder.com/200x120?text=Producto'">
       <div class="product-info-treinta">
@@ -1243,10 +1598,10 @@ function renderSalesProducts() {
           <i class="bi bi-box-seam"></i> Stock: ${product.stock}
         </div>
         <div class="product-actions-treinta">
-          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); addToCart(${product.id})" ${product.stock <= 0 ? 'disabled' : ''}>
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); addToCart('${product.id}')" ${product.stock <= 0 ? 'disabled' : ''}>
             <i class="bi bi-plus"></i>
           </button>
-          <button class="btn btn-outline-secondary btn-sm" onclick="event.stopPropagation(); showProductDetailModal(${product.id})">
+          <button class="btn btn-outline-secondary btn-sm" onclick="event.stopPropagation(); showProductDetailModal('${product.id}')">
             <i class="bi bi-eye"></i>
           </button>
         </div>
@@ -1401,8 +1756,8 @@ function renderBalanceGrid() {
     return;
   }
   
-  movementsContainer.innerHTML = movements.map(movement => `
-    <div class="movement-item-treinta">
+  movementsContainer.innerHTML = movements.map((movement, idx) => `
+    <div class="movement-item-treinta" onclick="showMovementDetail(${idx})" style="cursor:pointer;">
       <div class="movement-icon ${movement.type}">
         <i class="bi ${movement.icon}"></i>
       </div>
@@ -1605,7 +1960,7 @@ function showView(viewName) {
 
 // Mostrar detalles del cliente
 function showClientDetails(clientId) {
-  const client = clients.find(c => c.id === clientId);
+  const client = clients.find(c => c.id == clientId);
   if (!client) return;
   
   let html = `
@@ -1752,16 +2107,19 @@ function editClient(clientId) {
   if (!client) return;
   
   // Llenar el formulario con los datos del cliente
-  document.getElementById('clientName').value = client.name;
-  document.getElementById('clientPhone').value = client.phone || '';
-  document.getElementById('clientAddress').value = client.address || '';
-  
-  // Mostrar imagen actual si existe
+  const nameInput = document.getElementById('clientName');
+  const phoneInput = document.getElementById('clientPhone');
+  const addressInput = document.getElementById('clientAddress');
   const preview = document.getElementById('clientImagePreview');
-  if (client.photo) {
-    preview.innerHTML = `<img src="${client.photo}" alt="Foto actual">`;
-  } else {
-    preview.innerHTML = '';
+  if (nameInput) nameInput.value = client.name;
+  if (phoneInput) phoneInput.value = client.phone || '';
+  if (addressInput) addressInput.value = client.address || '';
+  if (preview) {
+    if (client.photo) {
+      preview.innerHTML = `<img src="${client.photo}" alt="Foto actual">`;
+    } else {
+      preview.innerHTML = '';
+    }
   }
   
   // Guardar el ID del cliente a editar
@@ -2578,4 +2936,91 @@ function showCredits() {
     showConfirmButton: true,
     confirmButtonText: 'Cerrar'
   });
+}
+
+// Función para seleccionar cliente desde el carrito
+function selectClientForCart(clientId) {
+  currentClientId = clientId;
+  if (clientId) {
+    // Cargar proforma guardada para este cliente
+    loadProforma(clientId);
+    renderCart();
+    
+    // Mostrar notificación
+    const client = clients.find(c => c.id === clientId);
+    if (client) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Cliente seleccionado',
+        text: `Cliente: ${client.name}`,
+        timer: 1500,
+        showConfirmButton: false
+      });
+    }
+  }
+}
+
+// Función para mostrar modal de agregar cliente desde el carrito
+function showAddClientModal() {
+  const modal = new bootstrap.Modal(document.getElementById('modalClient'));
+  modal.show();
+}
+
+function generatePDF(tipo) {
+  Swal.fire({
+    icon: 'info',
+    title: 'PDF en desarrollo',
+    text: 'La exportación a PDF estará disponible próximamente.',
+    timer: 1800,
+    showConfirmButton: false
+  });
+}
+
+// Función para eliminar el cliente seleccionado
+function removeSelectedClient() {
+  currentClientId = null;
+  renderCart();
+  
+  Swal.fire({
+    icon: 'info',
+    title: 'Cliente eliminado',
+    text: 'Selecciona otro cliente para continuar',
+    timer: 1500,
+    showConfirmButton: false
+  });
+}
+
+// Nueva función para mostrar el modal de detalle de movimiento
+window.showMovementDetail = function(idx) {
+  const currentPeriod = document.querySelector('input[name="periodFilter"]:checked').value;
+  const movements = getRecentMovements(currentPeriod);
+  const movement = movements[idx];
+  if (!movement) return;
+
+  if (movement.type === 'sale') {
+    // Buscar la venta por id
+    const saleId = movement.title.match(/Venta #(\w+)/)?.[1];
+    const sale = sales.find(s => s.id == saleId);
+    if (sale) showReceipt(sale);
+  } else if (movement.type === 'debt') {
+    // Buscar la deuda por id
+    const debtId = movement.title.match(/Deuda #(\w+)/)?.[1];
+    showDebtDetailModal(debtId);
+  } else if (movement.type === 'payment') {
+    // Buscar la deuda y el pago
+    const debtId = movement.title.match(/Pago deuda #(\w+)/)?.[1];
+    const debt = debts.find(d => d.id == debtId);
+    if (debt) {
+      const payment = (debt.payments || []).find(p => p.amount === movement.amount && new Date(p.date).toLocaleDateString() === movement.date.toLocaleDateString());
+      if (payment) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Pago de deuda',
+          html: `<div><strong>Cliente:</strong> ${debt.clientName}</div><div><strong>Monto:</strong> $${payment.amount.toFixed(2)}</div><div><strong>Fecha:</strong> ${new Date(payment.date).toLocaleString()}</div>`,
+          showConfirmButton: true,
+          confirmButtonText: 'Cerrar',
+        });
+      }
+    }
+  }
 }
