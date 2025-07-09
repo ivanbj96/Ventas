@@ -8,6 +8,87 @@ let currentClientId = null;
 let inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'grid'; // 'grid' o 'list'
 let clientsViewMode = localStorage.getItem('clientsViewMode') || 'grid'; // 'grid' o 'list'
 
+
+
+// === Funciones del Sidebar (globales) ===
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').style.display = 'none';
+  document.body.style.overflow = 'auto';
+}
+
+// === Configuración de tema (global) ===
+function setTheme(mode) {
+  // Remover clases activas de todos los botones
+  document.querySelectorAll('.sidebar-action-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  // Activar el botón seleccionado
+  document.getElementById(`theme-${mode}`).classList.add('active');
+  
+  if (mode === 'auto') {
+    // Detectar automáticamente
+    detectDarkMode();
+  } else if (mode === 'dark') {
+    document.documentElement.classList.add('dark-mode');
+  } else {
+    document.documentElement.classList.remove('dark-mode');
+  }
+  
+  // Guardar preferencia
+  localStorage.setItem('theme', mode);
+  
+  // Mostrar notificación
+  const themeNames = {
+    light: 'Modo Claro',
+    dark: 'Modo Oscuro',
+    auto: 'Automático'
+  };
+  
+  Swal.fire({
+    icon: 'success',
+    title: 'Tema cambiado',
+    text: `Cambiado a ${themeNames[mode]}`,
+    timer: 1500,
+    showConfirmButton: false
+  });
+}
+
+// === Actualizar fecha y hora en tiempo real ===
+function updateDateTime() {
+  const now = new Date();
+  
+  // Formatear fecha
+  const dateOptions = { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  };
+  const dateStr = now.toLocaleDateString('es-ES', dateOptions);
+  document.getElementById('currentDate').textContent = dateStr;
+  
+  // Formatear hora
+  const timeOptions = { 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit' 
+  };
+  const timeStr = now.toLocaleTimeString('es-ES', timeOptions);
+  document.getElementById('currentTime').textContent = timeStr;
+}
+
+// Actualizar cada segundo
+setInterval(updateDateTime, 1000);
+updateDateTime(); // Ejecutar inmediatamente
+
 // === Al cargar la app ===
 document.addEventListener('DOMContentLoaded', () => {
   products = loadFromStorage('products');
@@ -78,110 +159,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCloseSidebar = document.getElementById('btnCloseSidebar');
   const themeSwitch = document.getElementById('themeSwitch');
 
-  // === Funciones del Sidebar ===
-  function openSidebar() {
-    document.getElementById('sidebar').classList.add('open');
-    document.getElementById('sidebarOverlay').style.display = 'block';
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeSidebar() {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('sidebarOverlay').style.display = 'none';
-    document.body.style.overflow = 'auto';
-  }
-
   // Cerrar sidebar al hacer clic en overlay
   document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
 
-  // === Configuración de tema ===
-  function setTheme(mode) {
-    // Remover clases activas de todos los botones
-    document.querySelectorAll('.sidebar-action-btn').forEach(btn => {
-      btn.classList.remove('active');
-    });
-    
-    // Activar el botón seleccionado
-    document.getElementById(`theme-${mode}`).classList.add('active');
-    
-    if (mode === 'auto') {
-      // Detectar automáticamente
-      detectDarkMode();
-    } else if (mode === 'dark') {
-      document.documentElement.classList.add('dark-mode');
-    } else {
-      document.documentElement.classList.remove('dark-mode');
-    }
-    
-    // Guardar preferencia
-    localStorage.setItem('theme', mode);
-    
-    // Mostrar notificación
-    const themeNames = {
-      light: 'Modo Claro',
-      dark: 'Modo Oscuro',
-      auto: 'Automático'
-    };
-    
-    Swal.fire({
-      icon: 'success',
-      title: 'Tema cambiado',
-      text: `Cambiado a ${themeNames[mode]}`,
-      timer: 1500,
-      showConfirmButton: false
-    });
-  }
 
-  // === Actualizar fecha y hora en tiempo real ===
-  function updateDateTime() {
-    const now = new Date();
-    
-    // Formatear fecha
-    const dateOptions = { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    };
-    const dateStr = now.toLocaleDateString('es-ES', dateOptions);
-    document.getElementById('currentDate').textContent = dateStr;
-    
-    // Formatear hora
-    const timeOptions = { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit' 
-    };
-    const timeStr = now.toLocaleTimeString('es-ES', timeOptions);
-    document.getElementById('currentTime').textContent = timeStr;
-  }
 
-  // Actualizar cada segundo
-  setInterval(updateDateTime, 1000);
-  updateDateTime(); // Ejecutar inmediatamente
 
-  // === Inicialización del sidebar ===
-  document.addEventListener('DOMContentLoaded', function() {
-    // Cargar tema guardado
-    const savedTheme = localStorage.getItem('theme') || 'auto';
-    setTheme(savedTheme);
-    
-    // Configurar botón del sidebar
-    document.getElementById('btnSidebar').addEventListener('click', openSidebar);
-    
-    // Cerrar sidebar con Escape
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        closeSidebar();
-      }
-    });
-  });
+
+
 
   // Filtros de balance
   document.querySelectorAll('input[name="periodFilter"]').forEach(radio => {
     radio.addEventListener('change', () => {
       renderBalanceGrid();
     });
+  });
+
+  // === Inicialización del sidebar ===
+  // Cargar tema guardado
+  const savedTheme = localStorage.getItem('theme') || 'auto';
+  setTheme(savedTheme);
+  
+  // Cerrar sidebar con Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeSidebar();
+    }
   });
 });
 
