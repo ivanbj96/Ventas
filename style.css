@@ -4283,3 +4283,802 @@ button:active {
     padding: 0.5rem 0.7rem;
   }
 }
+
+/* === Estilos para Plantillas Profesionales === */
+
+/* Estilos para comprobantes profesionales */
+.receipt-treinta {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.receipt-header {
+  background: linear-gradient(135deg, #1F2D3D 0%, #2a3f5a 100%);
+  color: white;
+  padding: 20px;
+  text-align: center;
+  position: relative;
+}
+
+.receipt-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.receipt-logo h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.receipt-info {
+  margin-top: 15px;
+}
+
+.receipt-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+  opacity: 0.9;
+}
+
+.receipt-number {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.receipt-date {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.receipt-client {
+  padding: 15px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.receipt-items {
+  padding: 20px;
+}
+
+.receipt-items-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 2px solid #e9ecef;
+  font-weight: 600;
+  font-size: 12px;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.receipt-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f3f4;
+  font-size: 14px;
+}
+
+.item-name {
+  font-weight: 500;
+  color: #1F2D3D;
+}
+
+.item-qty {
+  text-align: center;
+  color: #6c757d;
+}
+
+.item-price, .item-subtotal {
+  text-align: right;
+  font-weight: 600;
+  color: #1F2D3D;
+}
+
+.receipt-total {
+  padding: 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+}
+
+.total-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.total-line.final {
+  border-top: 2px solid #1F2D3D;
+  margin-top: 10px;
+  padding-top: 15px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1F2D3D;
+}
+
+.total-line.discount {
+  color: #dc3545;
+}
+
+.total-amount {
+  color: #28a745;
+}
+
+.payment-type {
+  margin-top: 15px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.receipt-footer {
+  padding: 20px;
+  background: #1F2D3D;
+  color: white;
+  text-align: center;
+}
+
+.footer-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.footer-message i {
+  color: #ff6b6b;
+}
+
+.footer-brand {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.footer-brand small {
+  display: block;
+  margin-top: 5px;
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+/* Estilos para modales de comprobante */
+.swal2-receipt-treinta {
+  max-width: 500px !important;
+}
+
+.swal2-receipt-treinta .swal2-html-container {
+  margin: 0;
+  padding: 0;
+}
+
+/* Estilos para reportes de movimientos */
+.period-summary-treinta {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.summary-card-treinta {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  border: 1px solid #dee2e6;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summary-card-treinta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.summary-icon {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #1F2D3D 0%, #2a3f5a 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+  color: white;
+  font-size: 20px;
+}
+
+.summary-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1F2D3D;
+  margin-bottom: 5px;
+}
+
+.summary-label {
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: 500;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-amount {
+  font-size: 16px;
+  font-weight: 600;
+  color: #28a745;
+}
+
+/* Estilos para filtros de fecha */
+.date-filters-treinta {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.date-filters-treinta .form-label {
+  font-weight: 600;
+  color: #1F2D3D;
+  margin-bottom: 8px;
+}
+
+.date-filters-treinta .form-control {
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.date-filters-treinta .form-control:focus {
+  border-color: #1F2D3D;
+  box-shadow: 0 0 0 0.2rem rgba(31, 45, 61, 0.25);
+}
+
+/* Estilos para movimientos filtrados */
+.movements-list-treinta {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.movement-item-treinta {
+  display: flex;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #f1f3f4;
+  transition: background-color 0.2s ease;
+}
+
+.movement-item-treinta:hover {
+  background-color: #f8f9fa;
+}
+
+.movement-item-treinta:last-child {
+  border-bottom: none;
+}
+
+.movement-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #1F2D3D 0%, #2a3f5a 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+  margin-right: 15px;
+  flex-shrink: 0;
+}
+
+.movement-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.movement-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1F2D3D;
+  margin-bottom: 4px;
+}
+
+.movement-subtitle {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.movement-amount {
+  font-size: 16px;
+  font-weight: 700;
+  margin-left: 15px;
+  flex-shrink: 0;
+}
+
+.movement-amount.positive {
+  color: #28a745;
+}
+
+.movement-amount.negative {
+  color: #dc3545;
+}
+
+/* Estilos para modales de detalle de pago */
+.payment-detail {
+  text-align: left;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+.payment-detail div {
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.payment-detail strong {
+  color: #1F2D3D;
+}
+
+/* Responsive design para plantillas */
+@media (max-width: 768px) {
+  .receipt-items-header,
+  .receipt-item {
+    grid-template-columns: 1.5fr 0.8fr 0.8fr 0.8fr;
+    gap: 8px;
+    font-size: 12px;
+  }
+  
+  .summary-card-treinta {
+    padding: 15px;
+  }
+  
+  .summary-value {
+    font-size: 24px;
+  }
+  
+  .movement-item-treinta {
+    padding: 12px 15px;
+  }
+  
+  .movement-icon {
+    width: 35px;
+    height: 35px;
+    font-size: 14px;
+    margin-right: 12px;
+  }
+}
+
+/* Animaciones para plantillas */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.receipt-treinta,
+.period-summary-treinta,
+.movements-list-treinta {
+  animation: slideInUp 0.3s ease-out;
+}
+
+/* Estilos para selector de cliente */
+.client-selector-treinta {
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.client-selector-treinta .form-label {
+  font-weight: 600;
+  color: #1F2D3D;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.client-selector-treinta .form-select {
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.client-selector-treinta .form-select:focus {
+  border-color: #1F2D3D;
+  box-shadow: 0 0 0 0.2rem rgba(31, 45, 61, 0.25);
+}
+
+.selected-client-info {
+  margin-top: 10px;
+  padding: 10px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #28a745;
+  background-color: #d4edda;
+}
+
+.selected-client-info span {
+  font-weight: 600;
+  color: #155724;
+}
+
+/* Estilos para impresión */
+@media print {
+  .receipt-treinta {
+    box-shadow: none;
+    border: 2px solid #333;
+  }
+  
+  .receipt-header {
+    background: #333 !important;
+    color: white !important;
+  }
+  
+  .receipt-footer {
+    background: #333 !important;
+    color: white !important;
+  }
+}
+
+/* Estilos para la sección de Pollos */
+
+.chicken-config-treinta {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px #0001;
+}
+
+.chicken-stats-treinta .stat-card-treinta {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.2s ease;
+  border: 1px solid #dee2e6;
+}
+
+.chicken-stats-treinta .stat-card-treinta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px #0002;
+}
+
+.chicken-stats-treinta .stat-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  color: white;
+  background: linear-gradient(135deg, #1F2D3D, #2a3f5a);
+  margin: 0 auto 1rem;
+}
+
+.chicken-stats-treinta .stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1F2D3D;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.chicken-stats-treinta .stat-label {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.chicken-sale-treinta {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px #0001;
+}
+
+.calculation-display-treinta {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #e9ecef;
+}
+
+.calculation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.calculation-item:last-child {
+  border-bottom: none;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.calculation-item .total-amount {
+  color: #1F2D3D;
+  font-weight: 700;
+}
+
+.payment-options-treinta {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #e9ecef;
+}
+
+.payment-options-treinta .form-check {
+  margin-bottom: 0.5rem;
+}
+
+.payment-options-treinta .form-check:last-child {
+  margin-bottom: 0;
+}
+
+.payment-options-treinta .form-check-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.chicken-sales-list-treinta {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.chicken-sale-item-treinta {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.chicken-sale-item-treinta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px #0002;
+}
+
+.chicken-sale-header-treinta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.chicken-sale-client-treinta {
+  font-weight: 600;
+  color: #1F2D3D;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chicken-sale-date-treinta {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.chicken-sale-details-treinta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.chicken-sale-detail-treinta {
+  display: flex;
+  flex-direction: column;
+}
+
+.chicken-sale-detail-label-treinta {
+  font-size: 0.8rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+
+.chicken-sale-detail-value-treinta {
+  font-weight: 600;
+  color: #1F2D3D;
+}
+
+.chicken-sale-total-treinta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.chicken-sale-total-label-treinta {
+  font-weight: 600;
+  color: #1F2D3D;
+}
+
+.chicken-sale-total-amount-treinta {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1F2D3D;
+}
+
+.chicken-sale-payment-treinta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.chicken-sale-payment-treinta.cash {
+  color: #28a745;
+}
+
+.chicken-sale-payment-treinta.credit {
+  color: #ffc107;
+}
+
+/* Modo oscuro para pollos */
+.dark-mode .chicken-config-treinta,
+.dark-mode .chicken-sale-treinta {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+}
+
+.dark-mode .chicken-stats-treinta .stat-card-treinta {
+  background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+  border-color: #4a5568;
+  color: #eaf6ff;
+}
+
+.dark-mode .chicken-stats-treinta .stat-value {
+  color: #eaf6ff;
+}
+
+.dark-mode .chicken-stats-treinta .stat-label {
+  color: #b0b8c1;
+}
+
+.dark-mode .calculation-display-treinta,
+.dark-mode .payment-options-treinta {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #eaf6ff;
+}
+
+.dark-mode .calculation-item {
+  border-color: #4a5568;
+}
+
+.dark-mode .calculation-item .total-amount {
+  color: #eaf6ff;
+}
+
+.dark-mode .chicken-sale-item-treinta {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+}
+
+.dark-mode .chicken-sale-client-treinta {
+  color: #eaf6ff;
+}
+
+.dark-mode .chicken-sale-date-treinta {
+  color: #b0b8c1;
+}
+
+.dark-mode .chicken-sale-detail-label-treinta {
+  color: #b0b8c1;
+}
+
+.dark-mode .chicken-sale-detail-value-treinta {
+  color: #eaf6ff;
+}
+
+.dark-mode .chicken-sale-total-treinta {
+  border-color: #444;
+}
+
+.dark-mode .chicken-sale-total-label-treinta,
+.dark-mode .chicken-sale-total-amount-treinta {
+  color: #eaf6ff;
+}
+
+/* Responsive para pollos */
+@media (max-width: 768px) {
+  .chicken-stats-treinta .row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .chicken-stats-treinta .stat-card-treinta {
+    padding: 1rem;
+  }
+  
+  .chicken-stats-treinta .stat-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
+  
+  .chicken-stats-treinta .stat-value {
+    font-size: 1.5rem;
+  }
+  
+  .chicken-sale-details-treinta {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .chicken-sale-header-treinta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .chicken-stats-treinta .row {
+    grid-template-columns: 1fr;
+  }
+  
+  .chicken-stats-treinta .stat-card-treinta {
+    padding: 0.75rem;
+  }
+  
+  .chicken-stats-treinta .stat-value {
+    font-size: 1.25rem;
+  }
+  
+  .calculation-display-treinta,
+  .payment-options-treinta {
+    padding: 0.75rem;
+  }
+}
