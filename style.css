@@ -638,37 +638,33 @@ button:active {
 
 /* Barra superior tipo Treinta.co */
 .header-treinta {
-  background: #ffe066 !important;
-  color: #222 !important;
-  border-bottom: 1.5px solid #f7c948;
+  background: #1F2D3D !important;
+  color: #fff !important;
+  border-bottom: 1.5px solid #2a3f5a;
   position: relative;
   min-height: 56px;
-}
-.header-treinta .h5 {
-  color: #222 !important;
-  font-weight: 700;
-  letter-spacing: 0.5px;
 }
 .header-treinta .header-title {
   font-size: 1.1rem;
   font-weight: 700;
   margin-bottom: 0;
+  color: #fff !important;
 }
 .header-treinta .header-sub {
   font-size: 0.95rem;
-  color: #888;
+  color: #b0b8c1;
   margin-top: -2px;
 }
 .header-treinta .btn {
   background: transparent;
   border: none;
-  color: #222;
+  color: #fff;
 }
 
 /* Barra inferior tipo Treinta.co */
 .navbar-treinta {
-  background: #fffbe6 !important;
-  border-top: 1.5px solid #ffe066;
+  background: #fff !important;
+  border-top: 1.5px solid #e0e0e0;
   height: 64px;
   box-shadow: 0 -2px 8px #0001;
 }
@@ -682,9 +678,9 @@ button:active {
   border: none;
 }
 .navbar-treinta .btn.active, .navbar-treinta .btn:focus {
-  color: #f7b500;
+  color: #1F2D3D;
   font-weight: 700;
-  border-bottom: 2.5px solid #f7b500;
+  border-bottom: 2.5px solid #1F2D3D;
   background: none;
 }
 .navbar-treinta .btn i {
@@ -694,22 +690,2564 @@ button:active {
 
 /* Ajustes para modo oscuro */
 .dark-mode .header-treinta {
-  background: #222 !important;
-  color: #ffe066 !important;
-  border-bottom: 1.5px solid #444;
+  background: #1F2D3D !important;
+  color: #fff !important;
+  border-bottom: 1.5px solid #2a3f5a;
 }
-.dark-mode .header-treinta .h5,
 .dark-mode .header-treinta .header-title {
-  color: #ffe066 !important;
+  color: #fff !important;
 }
 .dark-mode .navbar-treinta {
   background: #181818 !important;
-  border-top: 1.5px solid #444;
+  border-top: 1.5px solid #333;
 }
 .dark-mode .navbar-treinta .btn {
   color: #aaa;
 }
 .dark-mode .navbar-treinta .btn.active, .dark-mode .navbar-treinta .btn:focus {
-  color: #ffe066;
-  border-bottom: 2.5px solid #ffe066;
+  color: #4ea8ff;
+  border-bottom: 2.5px solid #4ea8ff;
+}
+
+/* Filtros de periodo tipo Treinta.co */
+.period-filters .btn-group {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px #0001;
+}
+.period-filters .btn {
+  border: none;
+  padding: 0.6rem 1rem;
+  font-weight: 500;
+  color: #666;
+  background: #f8f9fa;
+}
+.period-filters .btn-check:checked + .btn {
+  background: #1F2D3D;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Tarjetas de balance tipo Treinta.co */
+.balance-card-treinta {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px #0001;
+  border: 1px solid #e0e0e0;
+  padding: 1.5rem;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  height: 100%;
+}
+.balance-card-treinta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px #0002;
+}
+.balance-card-treinta .card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  font-size: 1.5rem;
+  color: #fff;
+}
+.balance-card-treinta .card-icon.income {
+  background: linear-gradient(135deg, #27ae60, #2ecc71);
+}
+.balance-card-treinta .card-icon.expense {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+.balance-card-treinta .card-icon.profit {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+}
+.balance-card-treinta .card-title {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+.balance-card-treinta .card-amount {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+.balance-card-treinta .card-amount.income {
+  color: #27ae60;
+}
+.balance-card-treinta .card-amount.expense {
+  color: #e74c3c;
+}
+.balance-card-treinta .card-amount.profit {
+  color: #3498db;
+}
+
+/* Listado de movimientos */
+.movements-list {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #0001;
+  overflow: hidden;
+}
+.movement-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.2s;
+}
+.movement-item:last-child {
+  border-bottom: none;
+}
+.movement-item:hover {
+  background: #f8f9fa;
+}
+.movement-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  font-size: 1.1rem;
+  color: #fff;
+}
+.movement-icon.sale {
+  background: #27ae60;
+}
+.movement-icon.debt {
+  background: #e67e22;
+}
+.movement-icon.payment {
+  background: #3498db;
+}
+.movement-details {
+  flex: 1;
+}
+.movement-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.2rem;
+}
+.movement-subtitle {
+  font-size: 0.9rem;
+  color: #666;
+}
+.movement-amount {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.movement-amount.positive {
+  color: #27ae60;
+}
+.movement-amount.negative {
+  color: #e74c3c;
+}
+
+/* Modo oscuro */
+.dark-mode .period-filters .btn {
+  background: #2a2a2a;
+  color: #aaa;
+}
+.dark-mode .period-filters .btn-check:checked + .btn {
+  background: #1F2D3D;
+  color: #fff;
+}
+.dark-mode .balance-card-treinta {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+}
+.dark-mode .movements-list {
+  background: #23272b;
+  color: #eaf6ff;
+}
+.dark-mode .movement-item {
+  border-color: #333;
+}
+.dark-mode .movement-item:hover {
+  background: #2a2a2a;
+}
+.dark-mode .movement-title {
+  color: #eaf6ff;
+}
+.dark-mode .movement-subtitle {
+  color: #b0b8c1;
+}
+
+/* Tarjetas de producto mejoradas tipo Treinta.co */
+.product-card-treinta {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px #0001;
+  border: 1px solid #e0e0e0;
+  padding: 1.2rem;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  height: 100%;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.product-card-treinta:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px #0002;
+}
+.product-card-treinta img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  transition: transform 0.2s;
+}
+.product-card-treinta:hover img {
+  transform: scale(1.05);
+}
+.product-card-treinta h5 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+.product-card-treinta .product-category {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+.product-card-treinta .product-price {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1F2D3D;
+  margin-bottom: 0.5rem;
+}
+.product-card-treinta .product-cost {
+  font-size: 0.9rem;
+  color: #888;
+}
+
+/* Tarjetas de cliente mejoradas */
+.client-card-treinta {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px #0001;
+  border: 1px solid #e0e0e0;
+  padding: 1.2rem;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  height: 100%;
+  cursor: pointer;
+}
+.client-card-treinta:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px #0002;
+}
+.client-card-treinta .client-photo {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto 1rem;
+  border: 3px solid #1F2D3D;
+}
+.client-card-treinta .client-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1F2D3D, #2a3f5a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  border: 3px solid #1F2D3D;
+}
+.client-card-treinta .client-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+.client-card-treinta .client-info {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.3rem;
+}
+
+/* Modo oscuro */
+.dark-mode .product-card-treinta,
+.dark-mode .client-card-treinta {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+}
+.dark-mode .product-card-treinta h5,
+.dark-mode .client-card-treinta .client-name {
+  color: #eaf6ff;
+}
+.dark-mode .product-card-treinta .product-category,
+.dark-mode .product-card-treinta .product-cost,
+.dark-mode .client-card-treinta .client-info {
+  color: #b0b8c1;
+}
+.dark-mode .product-card-treinta .product-price {
+  color: #4ea8ff;
+}
+
+/* Tarjetas de deuda tipo Treinta.co */
+.debt-card-treinta {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px #0001;
+  border: 1px solid #e0e0e0;
+  padding: 1.2rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+  height: 100%;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.debt-card-treinta:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px #0002;
+}
+.debt-card-treinta.paid {
+  border-left: 4px solid #28a745;
+}
+.debt-card-treinta.partial {
+  border-left: 4px solid #17a2b8;
+}
+.debt-card-treinta.unpaid {
+  border-left: 4px solid #ffc107;
+}
+.debt-card-treinta .debt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+.debt-card-treinta .debt-client {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+}
+.debt-card-treinta .debt-date {
+  font-size: 0.85rem;
+  color: #666;
+  text-align: right;
+}
+.debt-card-treinta .debt-body {
+  margin-bottom: 1rem;
+}
+.debt-card-treinta .debt-amount {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1F2D3D;
+  margin-bottom: 0.5rem;
+}
+.debt-card-treinta .debt-abono {
+  font-size: 0.9rem;
+  color: #28a745;
+  margin-bottom: 0.3rem;
+}
+.debt-card-treinta .debt-saldo {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #dc3545;
+}
+.debt-card-treinta .debt-footer {
+  text-align: center;
+}
+
+/* Modo oscuro para tarjetas de deuda */
+.dark-mode .debt-card-treinta {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+}
+.dark-mode .debt-card-treinta .debt-client {
+  color: #eaf6ff;
+}
+.dark-mode .debt-card-treinta .debt-date {
+  color: #b0b8c1;
+}
+.dark-mode .debt-card-treinta .debt-amount {
+  color: #4ea8ff;
+}
+.dark-mode .debt-card-treinta .debt-abono {
+  color: #6fcf97;
+}
+.dark-mode .debt-card-treinta .debt-saldo {
+  color: #ff6b6b;
+}
+
+/* Estilos para vista de ventas tipo Treinta.co */
+.cart-container {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.cart-item {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.cart-item:hover {
+  background: #e9ecef;
+  transform: translateX(4px);
+}
+
+.cart-total {
+  background: linear-gradient(135deg, #1F2D3D, #2a3f5a) !important;
+  color: white;
+  border: none;
+}
+
+.cart-total .fw-bold {
+  color: white;
+}
+
+/* Productos en ventas */
+.sales-product-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #0001;
+  border: 1px solid #e0e0e0;
+  padding: 1rem;
+  text-align: center;
+  transition: all 0.2s ease;
+  height: 100%;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.sales-product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px #0002;
+  border-color: #1F2D3D;
+}
+
+.sales-product-card img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  transition: transform 0.2s;
+}
+
+.sales-product-card:hover img {
+  transform: scale(1.05);
+}
+
+.sales-product-card h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
+}
+
+.sales-product-card .product-price {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1F2D3D;
+  margin-bottom: 0.5rem;
+}
+
+.sales-product-card .product-stock {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 0.75rem;
+}
+
+.sales-product-card .add-to-cart-btn {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: none;
+  background: #1F2D3D;
+  color: white;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.sales-product-card .add-to-cart-btn:hover {
+  background: #2a3f5a;
+  transform: translateY(-1px);
+}
+
+.sales-product-card .add-to-cart-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Controles de cantidad en carrito */
+.cart-qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cart-qty-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.cart-qty-btn.minus {
+  border-color: #dc3545;
+  color: #dc3545;
+  background: transparent;
+}
+
+.cart-qty-btn.minus:hover {
+  background: #dc3545;
+  color: white;
+}
+
+.cart-qty-btn.plus {
+  border-color: #28a745;
+  color: #28a745;
+  background: transparent;
+}
+
+.cart-qty-btn.plus:hover {
+  background: #28a745;
+  color: white;
+}
+
+.cart-qty-display {
+  font-size: 1.1rem;
+  font-weight: 600;
+  min-width: 2rem;
+  text-align: center;
+  color: #1F2D3D;
+}
+
+/* Modo oscuro para ventas */
+.dark-mode .cart-item {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #eaf6ff;
+}
+
+.dark-mode .cart-total {
+  background: linear-gradient(135deg, #2a3f5a, #1F2D3D) !important;
+}
+
+.dark-mode .sales-product-card {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+}
+
+.dark-mode .sales-product-card h6 {
+  color: #eaf6ff;
+}
+
+.dark-mode .sales-product-card .product-price {
+  color: #4ea8ff;
+}
+
+.dark-mode .sales-product-card .product-stock {
+  color: #b0b8c1;
+}
+
+.dark-mode .cart-qty-display {
+  color: #4ea8ff;
+}
+
+/* Comprobante tipo Treinta.co */
+.receipt-treinta {
+  max-width: 400px;
+  margin: auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px #0001;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.receipt-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.receipt-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.receipt-logo h3 {
+  margin: 0;
+  color: #1F2D3D;
+  font-weight: 700;
+  font-size: 1.4rem;
+}
+
+.receipt-date {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.receipt-client {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.receipt-client i {
+  color: #1F2D3D;
+  font-size: 1.1rem;
+}
+
+.receipt-items {
+  margin-bottom: 1.5rem;
+}
+
+.receipt-items-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e0e0e0;
+  font-weight: 600;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.receipt-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.9rem;
+}
+
+.item-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.item-qty {
+  text-align: center;
+  color: #666;
+}
+
+.item-price {
+  text-align: right;
+  color: #666;
+}
+
+.item-subtotal {
+  text-align: right;
+  font-weight: 600;
+  color: #1F2D3D;
+}
+
+.receipt-total {
+  padding: 1rem 0;
+  border-top: 2px solid #1F2D3D;
+  margin-bottom: 1rem;
+}
+
+.total-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.total-amount {
+  color: #1F2D3D;
+  font-size: 1.4rem;
+}
+
+.receipt-footer {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding-top: 1rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* Estilos para SweetAlert2 con comprobante */
+.swal2-receipt-treinta {
+  max-width: 500px !important;
+}
+
+.swal2-receipt-treinta .swal2-html-container {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Modo oscuro para comprobante */
+.dark-mode .receipt-treinta {
+  background: #23272b;
+  color: #eaf6ff;
+}
+
+.dark-mode .receipt-logo h3 {
+  color: #4ea8ff;
+}
+
+.dark-mode .receipt-client {
+  background: #2d3748;
+  color: #eaf6ff;
+}
+
+.dark-mode .receipt-client i {
+  color: #4ea8ff;
+}
+
+.dark-mode .receipt-items-header {
+  border-bottom-color: #444;
+  color: #b0b8c1;
+}
+
+.dark-mode .receipt-item {
+  border-bottom-color: #2d3748;
+}
+
+.dark-mode .item-name {
+  color: #eaf6ff;
+}
+
+.dark-mode .item-qty,
+.dark-mode .item-price {
+  color: #b0b8c1;
+}
+
+.dark-mode .item-subtotal {
+  color: #4ea8ff;
+}
+
+.dark-mode .receipt-total {
+  border-top-color: #4ea8ff;
+}
+
+.dark-mode .total-amount {
+  color: #4ea8ff;
+}
+
+.dark-mode .receipt-footer {
+  color: #b0b8c1;
+  border-top-color: #2d3748;
+}
+
+/* Modales tipo Treinta.co */
+.modal-treinta {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px #0002;
+}
+
+.modal-treinta .modal-header {
+  background: linear-gradient(135deg, #1F2D3D, #2a3f5a);
+  color: white;
+  border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  padding: 1.5rem;
+}
+
+.modal-treinta .modal-title {
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.modal-treinta .modal-title i {
+  margin-right: 0.5rem;
+  color: #4ea8ff;
+}
+
+.modal-treinta .btn-close {
+  filter: invert(1);
+  opacity: 0.8;
+}
+
+.modal-treinta .btn-close:hover {
+  opacity: 1;
+}
+
+.modal-treinta .modal-body {
+  padding: 2rem;
+}
+
+/* Formularios tipo Treinta.co */
+.form-treinta .form-label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-treinta .form-label i {
+  color: #1F2D3D;
+  font-size: 1rem;
+}
+
+.form-control-treinta {
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background: #fafafa;
+}
+
+.form-control-treinta:focus {
+  border-color: #1F2D3D;
+  box-shadow: 0 0 0 0.2rem #1F2D3D20;
+  background: white;
+}
+
+.form-control-treinta::placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+.input-group-text {
+  background: #1F2D3D;
+  color: white;
+  border: 2px solid #1F2D3D;
+  border-radius: 12px 0 0 12px;
+  font-weight: 600;
+}
+
+.input-group .form-control-treinta {
+  border-radius: 0 12px 12px 0;
+  border-left: none;
+}
+
+/* Botones tipo Treinta.co */
+.btn-treinta {
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-treinta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px #0002;
+}
+
+.btn-primary.btn-treinta {
+  background: linear-gradient(135deg, #1F2D3D, #2a3f5a);
+  color: white;
+}
+
+.btn-primary.btn-treinta:hover {
+  background: linear-gradient(135deg, #2a3f5a, #1F2D3D);
+}
+
+.btn-outline-primary.btn-treinta {
+  border: 2px solid #1F2D3D;
+  color: #1F2D3D;
+  background: transparent;
+}
+
+.btn-outline-primary.btn-treinta:hover {
+  background: #1F2D3D;
+  color: white;
+}
+
+/* Contenedor de imagen */
+.image-upload-container {
+  position: relative;
+}
+
+.image-preview {
+  margin-top: 1rem;
+  text-align: center;
+  min-height: 100px;
+  border: 2px dashed #e0e0e0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+  transition: all 0.2s ease;
+}
+
+.image-preview:hover {
+  border-color: #1F2D3D;
+  background: #f0f0f0;
+}
+
+.image-preview img {
+  max-width: 100%;
+  max-height: 150px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px #0001;
+}
+
+.image-preview:empty::before {
+  content: '📷 Vista previa de imagen';
+  color: #999;
+  font-style: italic;
+}
+
+/* Form text mejorado */
+.form-text {
+  color: #666;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+/* Modo oscuro para modales */
+.dark-mode .modal-treinta {
+  background: #23272b;
+  color: #eaf6ff;
+}
+
+.dark-mode .modal-treinta .modal-header {
+  background: linear-gradient(135deg, #2a3f5a, #1F2D3D);
+}
+
+.dark-mode .form-treinta .form-label {
+  color: #eaf6ff;
+}
+
+.dark-mode .form-treinta .form-label i {
+  color: #4ea8ff;
+}
+
+.dark-mode .form-control-treinta {
+  background: #2d3748;
+  border-color: #444;
+  color: #eaf6ff;
+}
+
+.dark-mode .form-control-treinta:focus {
+  border-color: #4ea8ff;
+  box-shadow: 0 0 0 0.2rem #4ea8ff20;
+  background: #23272b;
+}
+
+.dark-mode .form-control-treinta::placeholder {
+  color: #b0b8c1;
+}
+
+.dark-mode .input-group-text {
+  background: #4ea8ff;
+  border-color: #4ea8ff;
+  color: #1F2D3D;
+}
+
+.dark-mode .image-preview {
+  background: #2d3748;
+  border-color: #444;
+}
+
+.dark-mode .image-preview:hover {
+  border-color: #4ea8ff;
+  background: #23272b;
+}
+
+.dark-mode .image-preview:empty::before {
+  color: #b0b8c1;
+}
+
+.dark-mode .form-text {
+  color: #b0b8c1;
+}
+
+/* Sidebar tipo Treinta.co */
+.sidebar-treinta {
+  position: fixed;
+  top: 0;
+  left: -320px;
+  width: 320px;
+  height: 100vh;
+  background: linear-gradient(180deg, #1F2D3D 0%, #2a3f5a 100%);
+  color: #eaf6ff;
+  z-index: 1052;
+  transition: left 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 0 20px #0003;
+}
+
+.sidebar-treinta.open {
+  left: 0;
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #4a5568;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.logo-text {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #eaf6ff;
+}
+
+.btn-close-sidebar {
+  background: none;
+  border: none;
+  color: #eaf6ff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-close-sidebar:hover {
+  background: #4a5568;
+  color: #4ea8ff;
+}
+
+.sidebar-content {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  margin-bottom: 2rem;
+}
+
+.sidebar-section-title {
+  color: #4ea8ff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-nav-item {
+  background: none;
+  border: none;
+  color: #b0b8c1;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: left;
+  width: 100%;
+}
+
+.sidebar-nav-item:hover {
+  background: #4a5568;
+  color: #eaf6ff;
+  transform: translateX(4px);
+}
+
+.sidebar-nav-item.active {
+  background: #4ea8ff;
+  color: #1F2D3D;
+  font-weight: 600;
+}
+
+.sidebar-nav-item i {
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+}
+
+.sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-action-btn {
+  background: none;
+  border: 1px solid #4a5568;
+  color: #b0b8c1;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  text-align: left;
+  width: 100%;
+}
+
+.sidebar-action-btn:hover {
+  background: #4a5568;
+  color: #eaf6ff;
+  border-color: #4ea8ff;
+}
+
+.sidebar-action-btn.active {
+  background: #4ea8ff;
+  color: #1F2D3D;
+  border-color: #4ea8ff;
+  font-weight: 600;
+}
+
+.sidebar-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: #2d3748;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #b0b8c1;
+}
+
+.info-item i {
+  color: #4ea8ff;
+  width: 16px;
+  text-align: center;
+}
+
+.sidebar-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #4a5568;
+  text-align: center;
+}
+
+.sidebar-version {
+  color: #b0b8c1;
+  font-size: 0.8rem;
+}
+
+/* Overlay del sidebar */
+#sidebarOverlay {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  transition: opacity 0.3s ease;
+}
+
+/* Header mejorado */
+.header-treinta {
+  background: linear-gradient(135deg, #1F2D3D, #2a3f5a);
+  color: #eaf6ff;
+  position: sticky;
+  top: 0;
+  z-index: 1050;
+  box-shadow: 0 2px 12px #0002;
+}
+
+.header-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 0.25rem;
+}
+
+.header-sub {
+  font-size: 0.9rem;
+  color: #4ea8ff;
+  font-weight: 500;
+}
+
+#btnSidebar {
+  background: none;
+  border: none;
+  color: #eaf6ff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+#btnSidebar:hover {
+  background: #4a5568;
+  color: #4ea8ff;
+}
+
+/* Navegación inferior mejorada */
+.navbar-treinta {
+  background: #fff;
+  border-top: 1px solid #e0e0e0;
+  box-shadow: 0 -2px 12px #0001;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1040;
+}
+
+.navbar-treinta .btn {
+  background: none;
+  border: none;
+  color: #666;
+  padding: 0.75rem 0.5rem;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 60px;
+}
+
+.navbar-treinta .btn:hover {
+  color: #1F2D3D;
+  background: #f8f9fa;
+}
+
+.navbar-treinta .btn.active {
+  color: #1F2D3D;
+  background: #e3f2fd;
+  font-weight: 600;
+}
+
+.navbar-treinta .btn i {
+  font-size: 1.2rem;
+}
+
+/* Modo oscuro para sidebar */
+.dark-mode .navbar-treinta {
+  background: #23272b;
+  border-top-color: #444;
+}
+
+.dark-mode .navbar-treinta .btn {
+  color: #b0b8c1;
+}
+
+.dark-mode .navbar-treinta .btn:hover {
+  color: #4ea8ff;
+  background: #2d3748;
+}
+
+.dark-mode .navbar-treinta .btn.active {
+  color: #4ea8ff;
+  background: #2d3748;
+}
+
+/* Responsive para sidebar */
+@media (max-width: 768px) {
+  .sidebar-treinta {
+    width: 280px;
+    left: -280px;
+  }
+  
+  .sidebar-header {
+    padding: 1rem;
+  }
+  
+  .sidebar-content {
+    padding: 1rem;
+  }
+  
+  .logo-text {
+    font-size: 1.1rem;
+  }
+}
+
+/* Vista de Balance tipo Treinta.co */
+
+/* Filtros de periodo */
+.period-filters-treinta {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: 0 4px 16px #0001;
+  border: 1px solid #e0e0e0;
+}
+
+.period-filters-treinta .btn-treinta {
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.period-filters-treinta .btn-treinta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px #0002;
+}
+
+.period-filters-treinta .btn-check:checked + .btn-treinta {
+  background: #1F2D3D;
+  border-color: #1F2D3D;
+  color: white;
+}
+
+/* Tarjetas de balance */
+.balance-cards-treinta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.balance-card-treinta {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 16px #0001;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.balance-card-treinta:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px #0002;
+}
+
+.balance-card-treinta::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--card-color), var(--card-color-light));
+}
+
+.balance-card-treinta.income {
+  --card-color: #28a745;
+  --card-color-light: #6fcf97;
+}
+
+.balance-card-treinta.expenses {
+  --card-color: #dc3545;
+  --card-color-light: #ff6b6b;
+}
+
+.balance-card-treinta.profit {
+  --card-color: #17a2b8;
+  --card-color-light: #4ea8ff;
+}
+
+.balance-card-treinta.credits {
+  --card-color: #ffc107;
+  --card-color-light: #ffd54f;
+}
+
+.balance-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.balance-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: white;
+  background: linear-gradient(135deg, var(--card-color), var(--card-color-light));
+}
+
+.balance-card-title {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+  margin: 0;
+}
+
+.balance-card-amount {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--card-color);
+  margin: 0.5rem 0;
+}
+
+.balance-card-change {
+  font-size: 0.85rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.balance-card-change.positive {
+  color: #28a745;
+}
+
+.balance-card-change.negative {
+  color: #dc3545;
+}
+
+/* Sección de movimientos */
+.movements-section-treinta {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 16px #0001;
+  border: 1px solid #e0e0e0;
+}
+
+.movements-list-treinta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.movement-item-treinta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  border: 1px solid #e9ecef;
+}
+
+.movement-item-treinta:hover {
+  background: #e9ecef;
+  transform: translateX(4px);
+}
+
+.movement-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: white;
+}
+
+.movement-icon.sale {
+  background: linear-gradient(135deg, #28a745, #6fcf97);
+}
+
+.movement-icon.debt {
+  background: linear-gradient(135deg, #ffc107, #ffd54f);
+}
+
+.movement-icon.payment {
+  background: linear-gradient(135deg, #17a2b8, #4ea8ff);
+}
+
+.movement-content {
+  flex: 1;
+}
+
+.movement-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.movement-subtitle {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.movement-amount {
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-align: right;
+}
+
+.movement-amount.positive {
+  color: #28a745;
+}
+
+.movement-amount.negative {
+  color: #dc3545;
+}
+
+/* Modo oscuro para balance */
+.dark-mode .period-filters-treinta {
+  background: #23272b;
+  border-color: #444;
+}
+
+.dark-mode .balance-card-treinta {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+}
+
+.dark-mode .balance-card-title {
+  color: #b0b8c1;
+}
+
+.dark-mode .movements-section-treinta {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+}
+
+.dark-mode .movement-item-treinta {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #eaf6ff;
+}
+
+.dark-mode .movement-item-treinta:hover {
+  background: #4a5568;
+}
+
+.dark-mode .movement-title {
+  color: #eaf6ff;
+}
+
+.dark-mode .movement-subtitle {
+  color: #b0b8c1;
+}
+
+/* Responsive para balance */
+@media (max-width: 768px) {
+  .balance-cards-treinta {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .balance-card-treinta {
+    padding: 1rem;
+  }
+  
+  .balance-card-amount {
+    font-size: 1.5rem;
+  }
+  
+  .movements-section-treinta {
+    padding: 1rem;
+  }
+}
+
+/* Vista de Ventas tipo Treinta.co */
+
+/* Panel de productos */
+.products-panel-treinta {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 16px #0001;
+  border: 1px solid #e0e0e0;
+  height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.search-bar-treinta .input-group {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px #0001;
+}
+
+.search-bar-treinta .input-group-text {
+  background: #1F2D3D;
+  border: none;
+  color: white;
+  padding: 0.75rem 1rem;
+}
+
+.search-bar-treinta .form-control-treinta {
+  border: none;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+}
+
+.search-bar-treinta .form-control-treinta:focus {
+  box-shadow: none;
+  background: #f8f9fa;
+}
+
+/* Grid de productos */
+.products-grid-treinta {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.product-card-treinta {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px #0001;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.product-card-treinta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px #0002;
+  border-color: #1F2D3D;
+}
+
+.product-card-treinta::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #1F2D3D, #2a3f5a);
+}
+
+.product-image-treinta {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+
+.product-info-treinta {
+  text-align: center;
+}
+
+.product-name-treinta {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.product-price-treinta {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1F2D3D;
+  margin-bottom: 0.5rem;
+}
+
+.product-stock-treinta {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 0.75rem;
+}
+
+.product-actions-treinta {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.product-actions-treinta .btn {
+  padding: 0.5rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  min-width: 40px;
+}
+
+/* Panel del carrito */
+.cart-panel-treinta {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px #0001;
+  border: 1px solid #e0e0e0;
+  height: calc(100vh - 200px);
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-header-treinta {
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cart-content-treinta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.5rem;
+}
+
+.cart-items-treinta {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+.cart-item-treinta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+  border: 1px solid #e9ecef;
+}
+
+.cart-item-image-treinta {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.cart-item-info-treinta {
+  flex: 1;
+}
+
+.cart-item-name-treinta {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.cart-item-price-treinta {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.cart-item-actions-treinta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cart-item-qty-treinta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.25rem;
+  border: 1px solid #dee2e6;
+}
+
+.cart-item-qty-treinta .btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-item-qty-treinta .qty-display {
+  min-width: 30px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.cart-summary-treinta {
+  border-top: 1px solid #e9ecef;
+  padding-top: 1rem;
+}
+
+.cart-total-treinta {
+  background: linear-gradient(135deg, #1F2D3D, #2a3f5a);
+  color: white;
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.cart-total-label {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.cart-total-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.cart-actions-treinta .btn-treinta {
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/* Modo oscuro para ventas */
+.dark-mode .products-panel-treinta {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+}
+
+.dark-mode .search-bar-treinta .form-control-treinta {
+  background: #2d3748;
+  color: #eaf6ff;
+  border-color: #4a5568;
+}
+
+.dark-mode .search-bar-treinta .form-control-treinta:focus {
+  background: #4a5568;
+}
+
+.dark-mode .product-card-treinta {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+}
+
+.dark-mode .product-name-treinta {
+  color: #eaf6ff;
+}
+
+.dark-mode .product-price-treinta {
+  color: #4ea8ff;
+}
+
+.dark-mode .product-stock-treinta {
+  color: #b0b8c1;
+}
+
+.dark-mode .cart-panel-treinta {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+}
+
+.dark-mode .cart-header-treinta {
+  border-color: #444;
+}
+
+.dark-mode .cart-item-treinta {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #eaf6ff;
+}
+
+.dark-mode .cart-item-name-treinta {
+  color: #eaf6ff;
+}
+
+.dark-mode .cart-item-price-treinta {
+  color: #b0b8c1;
+}
+
+.dark-mode .cart-item-qty-treinta {
+  background: #4a5568;
+  border-color: #718096;
+}
+
+.dark-mode .cart-summary-treinta {
+  border-color: #444;
+}
+
+/* Responsive para ventas */
+@media (max-width: 992px) {
+  .products-grid-treinta {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
+  }
+  
+  .product-card-treinta {
+    padding: 0.75rem;
+  }
+  
+  .product-image-treinta {
+    height: 100px;
+  }
+  
+  .cart-panel-treinta {
+    margin-top: 1rem;
+    height: auto;
+    max-height: 400px;
+  }
+}
+
+@media (max-width: 768px) {
+  .products-grid-treinta {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.5rem;
+  }
+  
+  .product-card-treinta {
+    padding: 0.5rem;
+  }
+  
+  .product-image-treinta {
+    height: 80px;
+  }
+  
+  .product-name-treinta {
+    font-size: 0.8rem;
+  }
+  
+  .product-price-treinta {
+    font-size: 1rem;
+  }
+  
+  .cart-item-treinta {
+    padding: 0.5rem;
+  }
+  
+  .cart-item-image-treinta {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* Estadísticas Avanzadas tipo Treinta.co */
+
+.advanced-stats-treinta {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 16px #0001;
+  border: 1px solid #e0e0e0;
+}
+
+.advanced-stats-header h5 {
+  color: #1F2D3D;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.advanced-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card-treinta {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.2s ease;
+  border: 1px solid #dee2e6;
+}
+
+.stat-card-treinta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px #0002;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: white;
+  background: linear-gradient(135deg, #1F2D3D, #2a3f5a);
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1F2D3D;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+/* Insights Section */
+.insights-section h6 {
+  color: #1F2D3D;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.insight-card-treinta {
+  background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.2s ease;
+  border: 1px solid #e9ecef;
+  position: relative;
+  overflow: hidden;
+}
+
+.insight-card-treinta::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #1F2D3D, #2a3f5a);
+}
+
+.insight-card-treinta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px #0002;
+}
+
+.insight-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: white;
+}
+
+.insight-card-treinta:first-child .insight-icon {
+  background: linear-gradient(135deg, #ffc107, #ffca2c);
+}
+
+.insight-card-treinta:last-child .insight-icon {
+  background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.insight-content {
+  flex: 1;
+}
+
+.insight-title {
+  font-size: 0.8rem;
+  color: #666;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+
+.insight-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1F2D3D;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
+.insight-subtitle {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+/* Modo oscuro para estadísticas avanzadas */
+.dark-mode .advanced-stats-treinta {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+}
+
+.dark-mode .advanced-stats-header h5 {
+  color: #eaf6ff;
+}
+
+.dark-mode .stat-card-treinta {
+  background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+  border-color: #4a5568;
+  color: #eaf6ff;
+}
+
+.dark-mode .stat-value {
+  color: #eaf6ff;
+}
+
+.dark-mode .stat-label {
+  color: #b0b8c1;
+}
+
+.dark-mode .insights-section h6 {
+  color: #eaf6ff;
+}
+
+.dark-mode .insight-card-treinta {
+  background: linear-gradient(135deg, #23272b 0%, #2d3748 100%);
+  border-color: #4a5568;
+  color: #eaf6ff;
+}
+
+.dark-mode .insight-title {
+  color: #b0b8c1;
+}
+
+.dark-mode .insight-value {
+  color: #eaf6ff;
+}
+
+.dark-mode .insight-subtitle {
+  color: #b0b8c1;
+}
+
+/* Responsive para estadísticas avanzadas */
+@media (max-width: 768px) {
+  .advanced-stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+  }
+  
+  .stat-card-treinta {
+    padding: 0.75rem;
+  }
+  
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+  
+  .stat-value {
+    font-size: 1.2rem;
+  }
+  
+  .insights-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .insight-card-treinta {
+    padding: 0.75rem;
+  }
+  
+  .insight-icon {
+    width: 35px;
+    height: 35px;
+    font-size: 1rem;
+  }
+}
+
+/* Estilos para elementos de estado y utilidades */
+
+.status-details {
+  text-align: left;
+}
+
+.status-section {
+  margin-bottom: 1.5rem;
+}
+
+.status-section h6 {
+  color: #1F2D3D;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 0.5rem;
+}
+
+.status-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.status-section li {
+  padding: 0.25rem 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Mensaje de bienvenida */
+.welcome-message {
+  text-align: center;
+}
+
+.welcome-features {
+  text-align: left;
+  margin: 1rem 0;
+}
+
+.welcome-features div {
+  padding: 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.welcome-features i {
+  font-size: 1.1rem;
+}
+
+/* Créditos */
+.credits-content {
+  text-align: left;
+}
+
+.credits-section {
+  margin-bottom: 1.5rem;
+}
+
+.credits-section h6 {
+  color: #1F2D3D;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 0.25rem;
+}
+
+.credits-section p {
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.credits-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.credits-section li {
+  padding: 0.25rem 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Modo oscuro para elementos de estado */
+.dark-mode .status-section h6 {
+  color: #eaf6ff;
+  border-color: #4a5568;
+}
+
+.dark-mode .status-section li {
+  color: #b0b8c1;
+}
+
+.dark-mode .credits-section h6 {
+  color: #eaf6ff;
+  border-color: #4a5568;
+}
+
+.dark-mode .credits-section p,
+.dark-mode .credits-section li {
+  color: #b0b8c1;
+}
+
+/* Animaciones adicionales */
+@keyframes slideInUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.stat-card-treinta,
+.insight-card-treinta,
+.balance-card-treinta {
+  animation: slideInUp 0.3s ease-out;
+}
+
+/* Mejoras de accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card-treinta,
+  .insight-card-treinta,
+  .balance-card-treinta {
+    animation: none;
+  }
+  
+  .receipt-header::before {
+    animation: none;
+  }
+}
+
+/* Estilos para elementos de carga */
+.loading-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px;
+  height: 1rem;
+  margin: 0.5rem 0;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.dark-mode .loading-skeleton {
+  background: linear-gradient(90deg, #2d3748 25%, #4a5568 50%, #2d3748 75%);
+  background-size: 200% 100%;
+}
+
+/* Mejoras de rendimiento */
+.product-card-treinta img,
+.client-card-treinta img {
+  will-change: transform;
+}
+
+.cart-item-treinta,
+.movement-item-treinta {
+  will-change: transform;
+}
+
+/* Estilos para notificaciones toast personalizadas */
+.toast-treinta {
+  background: linear-gradient(135deg, #1F2D3D, #2a3f5a);
+  color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.toast-treinta .toast-header {
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.toast-treinta .toast-body {
+  color: white;
+}
+
+/* Estilos para tooltips personalizados */
+.tooltip-treinta {
+  background: #1F2D3D;
+  color: white;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Estilos para scrollbars personalizados */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1F2D3D;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2a3f5a;
+}
+
+.dark-mode ::-webkit-scrollbar-track {
+  background: #2d3748;
+}
+
+.dark-mode ::-webkit-scrollbar-thumb {
+  background: #4a5568;
+}
+
+.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: #718096;
+}
+
+/* Estilos para selección de texto */
+::selection {
+  background: #1F2D3D;
+  color: white;
+}
+
+::-moz-selection {
+  background: #1F2D3D;
+  color: white;
+}
+
+/* Estilos para focus mejorado */
+.btn:focus,
+.form-control:focus,
+.form-select:focus {
+  box-shadow: 0 0 0 0.2rem rgba(31, 45, 61, 0.25);
+  border-color: #1F2D3D;
+}
+
+.dark-mode .btn:focus,
+.dark-mode .form-control:focus,
+.dark-mode .form-select:focus {
+  box-shadow: 0 0 0 0.2rem rgba(78, 168, 255, 0.25);
+  border-color: #4ea8ff;
+}
+
+/* Estilos para elementos de estado de carga */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #1F2D3D;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.dark-mode .loading-spinner {
+  border-color: #2d3748;
+  border-top-color: #4ea8ff;
+}
+
+/* Estilos para mensajes de error mejorados */
+.error-message {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+  padding: 1rem;
+  border-radius: 12px;
+  margin: 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.error-message i {
+  font-size: 1.2rem;
+}
+
+/* Estilos para mensajes de éxito mejorados */
+.success-message {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  padding: 1rem;
+  border-radius: 12px;
+  margin: 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.success-message i {
+  font-size: 1.2rem;
+}
+
+/* Estilos para mensajes de información mejorados */
+.info-message {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
+  padding: 1rem;
+  border-radius: 12px;
+  margin: 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.info-message i {
+  font-size: 1.2rem;
 }
