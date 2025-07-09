@@ -226,8 +226,22 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Eventos de formularios
-  document.getElementById('formProduct').addEventListener('submit', addProduct);
-  document.getElementById('formClient').addEventListener('submit', addClient);
+  const formProduct = document.getElementById('formProduct');
+  const formClient = document.getElementById('formClient');
+  if (formProduct) {
+    formProduct.removeEventListener('submit', addProduct); // Evitar duplicados
+    formProduct.addEventListener('submit', addProduct);
+    console.log('Formulario de producto inicializado');
+  } else {
+    console.error('No se encontró el formulario de producto');
+  }
+  if (formClient) {
+    formClient.removeEventListener('submit', addClient); // Evitar duplicados
+    formClient.addEventListener('submit', addClient);
+    console.log('Formulario de cliente inicializado');
+  } else {
+    console.error('No se encontró el formulario de cliente');
+  }
 
   // Alternar vista inventario
   const toggleInventoryViewBtn = document.getElementById('toggleInventoryView');
@@ -306,13 +320,17 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Verificar si ya está instalada o si el usuario rechazó la instalación
   if (isAppInstalled()) {
-    console.log('App ya está instalada');
     installButton.style.display = 'none';
   } else if (hasUserRejectedInstallation()) {
-    console.log('Usuario rechazó la instalación anteriormente');
     installButton.style.display = 'none';
+  } else if (deferredPrompt) {
+    // Si hay un prompt disponible, mostrar el botón
+    installButton.style.display = 'flex';
+    installButton.classList.add('animate');
   } else {
-    console.log('App no está instalada, mostrando botón de instalación');
+    // Forzar mostrar el botón si no está instalada y no hay rechazo, aunque no haya prompt aún
+    installButton.style.display = 'flex';
+    installButton.classList.add('animate');
   }
 
   // Evento beforeinstallprompt
