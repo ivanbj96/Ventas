@@ -61,6 +61,101 @@ function setTheme(mode) {
   });
 }
 
+// === Funciones de instalación PWA ===
+function installPWA() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('Usuario aceptó la instalación');
+        Swal.fire({
+          icon: 'success',
+          title: '¡Instalación exitosa!',
+          text: 'TillUp POS ha sido instalado en tu dispositivo.',
+          timer: 3000,
+          showConfirmButton: false
+        });
+      } else {
+        console.log('Usuario rechazó la instalación');
+        Swal.fire({
+          icon: 'info',
+          title: 'Instalación cancelada',
+          text: 'Puedes instalar la app más tarde desde el menú del navegador.',
+          timer: 3000,
+          showConfirmButton: false
+        });
+      }
+      deferredPrompt = null;
+      installButton.style.display = 'none';
+      // Limpiar el flag de rechazo ya que el usuario instaló la app
+      localStorage.removeItem('pwa-installation-rejected');
+    });
+  }
+}
+
+function showInstallButton() {
+  // Verificar nuevamente si la app está instalada
+  if (isAppInstalled()) {
+    console.log('App ya está instalada, ocultando botón');
+    if (installButton) {
+      installButton.style.display = 'none';
+    }
+    return;
+  }
+  
+  // Verificar si el usuario ya rechazó la instalación
+  if (hasUserRejectedInstallation()) {
+    console.log('Usuario rechazó la instalación anteriormente');
+    if (installButton) {
+      installButton.style.display = 'none';
+    }
+    return;
+  }
+  
+  if (installButton && deferredPrompt) {
+    installButton.style.display = 'flex';
+    installButton.classList.add('animate');
+    
+    // Mostrar notificación
+    Swal.fire({
+      icon: 'info',
+      title: '¡Instala TillUp POS!',
+      text: 'Instala la app para acceder más rápido y usar sin conexión.',
+      showCancelButton: true,
+      confirmButtonText: 'Instalar',
+      cancelButtonText: 'Más tarde',
+      timer: 10000,
+      timerProgressBar: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        installPWA();
+      } else {
+        // Marcar que el usuario rechazó la instalación
+        markInstallationRejected();
+        if (installButton) {
+          installButton.style.display = 'none';
+        }
+      }
+    });
+  }
+}
+
+function forceUpdate() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then(registration => {
+      if (registration && registration.waiting) {
+        // Enviar mensaje al Service Worker para saltar la espera
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        
+        // Recargar cuando el Service Worker se active
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          window.location.reload();
+        });
+      }
+    });
+  }
+}
+
 // === Actualizar fecha y hora en tiempo real ===
 function updateDateTime() {
   const now = new Date();
@@ -88,6 +183,25 @@ function updateDateTime() {
 // Actualizar cada segundo
 setInterval(updateDateTime, 1000);
 updateDateTime(); // Ejecutar inmediatamente
+
+// === Variables PWA ===
+let installButton;
+
+// === Función helper para verificar instalación ===
+function isAppInstalled() {
+  return window.matchMedia('(display-mode: standalone)').matches || 
+         window.navigator.standalone === true;
+}
+
+// === Función helper para verificar si el usuario rechazó la instalación ===
+function hasUserRejectedInstallation() {
+  return localStorage.getItem('pwa-installation-rejected') === 'true';
+}
+
+// === Función helper para marcar que el usuario rechazó la instalación ===
+function markInstallationRejected() {
+  localStorage.setItem('pwa-installation-rejected', 'true');
+}
 
 // === Al cargar la app ===
 document.addEventListener('DOMContentLoaded', () => {
@@ -186,6 +300,82 @@ document.addEventListener('DOMContentLoaded', () => {
       closeSidebar();
     }
   });
+
+  // === Inicialización PWA ===
+  installButton = document.getElementById('installPWA');
+  
+  // Verificar si ya está instalada o si el usuario rechazó la instalación
+  if (isAppInstalled()) {
+    console.log('App ya está instalada');
+    installButton.style.display = 'none';
+  } else if (hasUserRejectedInstallation()) {
+    console.log('Usuario rechazó la instalación anteriormente');
+    installButton.style.display = 'none';
+  } else {
+    console.log('App no está instalada, mostrando botón de instalación');
+  }
+
+  // Evento beforeinstallprompt
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    console.log("App puede instalarse. Ejecuta deferredPrompt.prompt() para instalar.");
+    
+    // Solo mostrar botón si NO está instalada y hay un prompt disponible
+    if (!isAppInstalled() && deferredPrompt) {
+      setTimeout(() => {
+        showInstallButton();
+      }, 3000);
+    }
+  });
+
+  // Evento appinstalled
+  window.addEventListener('appinstalled', (evt) => {
+    console.log('App instalada');
+    installButton.style.display = 'none';
+    Swal.fire({
+      icon: 'success',
+      title: '¡Instalación completada!',
+      text: 'TillUp POS está ahora instalado en tu dispositivo.',
+      timer: 3000,
+      showConfirmButton: false
+    });
+  });
+
+  // === Detección de actualizaciones del Service Worker ===
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', event => {
+      if (event.data && event.data.type === 'SW_UPDATED') {
+        console.log('Service Worker actualizado:', event.data.cacheName);
+        
+        // Mostrar notificación de actualización
+        Swal.fire({
+          icon: 'info',
+          title: '¡Nueva versión disponible!',
+          text: 'Se han descargado mejoras. Recarga la página para aplicar los cambios.',
+          showCancelButton: true,
+          confirmButtonText: 'Recargar ahora',
+          cancelButtonText: 'Más tarde',
+          timer: 15000,
+          timerProgressBar: true
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Recargar la página para aplicar actualizaciones
+            window.location.reload();
+          }
+        });
+      }
+    });
+
+    // Verificar actualizaciones periódicamente
+    setInterval(() => {
+      navigator.serviceWorker.getRegistration().then(registration => {
+        if (registration) {
+          registration.update();
+        }
+      });
+    }, 60000); // Verificar cada minuto
+  }
 });
 
 // === Agregar producto con vista previa de imagen ===

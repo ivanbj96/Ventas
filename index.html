@@ -32,6 +32,13 @@
   <header class="header-treinta text-center py-3 shadow-sm position-relative">
     <div class="header-title">TillUp</div>
     <div class="header-sub">Gestión POS</div>
+    
+    <!-- Botón de instalación PWA -->
+    <button id="installPWA" class="btn btn-install-pwa position-absolute top-50 start-0 translate-middle-y ms-2" style="z-index:1051; display: none;" onclick="installPWA()">
+      <img src="TillUp.png" alt="TillUp" class="install-logo">
+      <span class="install-text">Instalar</span>
+    </button>
+    
     <button id="btnSidebar" class="btn position-absolute top-50 end-0 translate-middle-y me-2" style="z-index:1051;" onclick="openSidebar()">
       <i class="bi bi-list fs-4"></i>
     </button>
@@ -94,6 +101,11 @@
           <button class="sidebar-action-btn" onclick="setTheme('auto')" id="theme-auto">
             <i class="bi bi-circle-half"></i>
             <span>Automático</span>
+          </button>
+          
+          <button class="sidebar-action-btn" onclick="forceUpdate()" id="btn-update">
+            <i class="bi bi-arrow-clockwise"></i>
+            <span>Actualizar App</span>
           </button>
         </div>
       </div>

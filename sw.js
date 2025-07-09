@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tillup-cache-v1.0.0';
+const CACHE_NAME = 'tillup-cache-v1.1.0';
 const ASSETS = [
   './',
   './index.html',
@@ -26,38 +26,78 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// === Activación: limpiar cachés viejos ===
+// === Activación: limpiar cachés viejos y notificar actualización ===
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => Promise.all(
-      keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-    ))
+      keys.filter(k => k !== CACHE_NAME).map(k => {
+        console.log('[SW] Eliminando cache viejo:', k);
+        return caches.delete(k);
+      })
+    )).then(() => {
+      console.log('[SW] Cache actualizado a:', CACHE_NAME);
+      // Notificar a todos los clientes sobre la actualización
+      return self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'SW_UPDATED',
+            cacheName: CACHE_NAME
+          });
+        });
+      });
+    })
   );
   self.clients.claim();
 });
 
-// === Fetch: Cache first, luego red ===
+// === Fetch: Network first para datos dinámicos, Cache first para assets ===
 self.addEventListener('fetch', event => {
   const { request } = event;
 
   // Evitar cachear llamadas POST
   if (request.method !== 'GET') return;
 
-  event.respondWith(
-    caches.match(request).then(cached => {
-      return cached || fetch(request)
+  // Estrategia Network First para archivos principales (para obtener actualizaciones)
+  if (request.url.includes('app.js') || request.url.includes('style.css') || request.url.includes('utils.js')) {
+    event.respondWith(
+      fetch(request)
         .then(response => {
+          // Cachear la nueva respuesta
           return caches.open(CACHE_NAME).then(cache => {
             cache.put(request, response.clone());
             return response;
           });
         })
         .catch(() => {
-          // Respuesta alternativa para offline (opcional)
-          if (request.destination === 'document') {
-            return caches.match('./index.html');
-          }
-        });
-    })
-  );
+          // Si falla la red, usar cache
+          return caches.match(request);
+        })
+    );
+  } else {
+    // Cache First para otros recursos
+    event.respondWith(
+      caches.match(request).then(cached => {
+        return cached || fetch(request)
+          .then(response => {
+            return caches.open(CACHE_NAME).then(cache => {
+              cache.put(request, response.clone());
+              return response;
+            });
+          })
+          .catch(() => {
+            // Respuesta alternativa para offline
+            if (request.destination === 'document') {
+              return caches.match('./index.html');
+            }
+          });
+      })
+    );
+  }
+});
+
+// === Mensajes del Service Worker ===
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
