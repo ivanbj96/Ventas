@@ -13,6 +13,7 @@ let clientsViewMode = localStorage.getItem('clientsViewMode') || 'grid'; // 'gri
 // Variables globales para pollos
 let chickenSales = [];
 let pricePerPound = 2.50; // Precio por libra por defecto
+let costPerPound = 1.80; // Costo por libra por defecto
 
 // Inicializar datos de pollos
 function initializeChickenData() {
@@ -28,17 +29,29 @@ function initializeChickenData() {
     pricePerPound = parseFloat(savedPricePerPound);
   }
   
-  // Actualizar campo de precio
+  // Cargar costo por libra
+  const savedCostPerPound = localStorage.getItem('costPerPound');
+  if (savedCostPerPound) {
+    costPerPound = parseFloat(savedCostPerPound);
+  }
+  
+  // Actualizar campos de precio y costo
   const priceInput = document.getElementById('pricePerPound');
+  const costInput = document.getElementById('costPerPound');
   if (priceInput) {
     priceInput.value = pricePerPound.toFixed(2);
   }
+  if (costInput) {
+    costInput.value = costPerPound.toFixed(2);
+  }
 }
 
-// Actualizar precio por libra
-function updatePricePerPound() {
+// Actualizar configuración de pollos (precio y costo)
+function updateChickenConfig() {
   const priceInput = document.getElementById('pricePerPound');
+  const costInput = document.getElementById('costPerPound');
   const newPrice = parseFloat(priceInput.value);
+  const newCost = parseFloat(costInput.value);
   
   if (isNaN(newPrice) || newPrice < 0) {
     Swal.fire({
@@ -50,17 +63,39 @@ function updatePricePerPound() {
     return;
   }
   
+  if (isNaN(newCost) || newCost < 0) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Costo inválido',
+      text: 'Por favor ingresa un costo válido mayor a 0.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+  
+  if (newCost >= newPrice) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Configuración inválida',
+      text: 'El costo debe ser menor al precio para generar ganancia.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+  
   pricePerPound = newPrice;
+  costPerPound = newCost;
   localStorage.setItem('pricePerPound', pricePerPound.toString());
+  localStorage.setItem('costPerPound', costPerPound.toString());
   
   // Actualizar display
   updateChickenCalculation();
   
   Swal.fire({
     icon: 'success',
-    title: 'Precio actualizado',
-    text: `El precio por libra se ha actualizado a $${pricePerPound.toFixed(2)}`,
-    timer: 2000,
+    title: 'Configuración actualizada',
+    text: `Precio: $${pricePerPound.toFixed(2)} | Costo: $${costPerPound.toFixed(2)} | Ganancia: $${(pricePerPound - costPerPound).toFixed(2)}`,
+    timer: 3000,
     showConfirmButton: false
   });
 }
@@ -71,15 +106,32 @@ function updateChickenCalculation() {
   const weight = parseFloat(document.getElementById('chickenWeight')?.value) || 0;
   
   const displayPricePerPound = document.getElementById('displayPricePerPound');
+  const displayCostPerPound = document.getElementById('displayCostPerPound');
+  const displayProfitPerPound = document.getElementById('displayProfitPerPound');
   const displayTotalAmount = document.getElementById('displayTotalAmount');
+  const displayTotalProfit = document.getElementById('displayTotalProfit');
   
   if (displayPricePerPound) {
     displayPricePerPound.textContent = `$${pricePerPound.toFixed(2)}`;
   }
   
+  if (displayCostPerPound) {
+    displayCostPerPound.textContent = `$${costPerPound.toFixed(2)}`;
+  }
+  
+  if (displayProfitPerPound) {
+    const profitPerPound = pricePerPound - costPerPound;
+    displayProfitPerPound.textContent = `$${profitPerPound.toFixed(2)}`;
+  }
+  
   if (displayTotalAmount) {
     const total = weight * pricePerPound;
     displayTotalAmount.textContent = `$${total.toFixed(2)}`;
+  }
+  
+  if (displayTotalProfit) {
+    const totalProfit = weight * (pricePerPound - costPerPound);
+    displayTotalProfit.textContent = `$${totalProfit.toFixed(2)}`;
   }
 }
 
@@ -192,7 +244,10 @@ function handleChickenSale(e) {
     quantity: quantity,
     weight: weight,
     pricePerPound: pricePerPound,
+    costPerPound: costPerPound,
     total: total,
+    cost: weight * costPerPound,
+    profit: weight * (pricePerPound - costPerPound),
     paymentType: paymentType,
     abono: abono,
     remainingAmount: paymentType === 'credit' ? total - abono : 0,
@@ -541,17 +596,20 @@ function updateChickenStats() {
   const totalChickens = todaySales.reduce((sum, sale) => sum + sale.quantity, 0);
   const totalWeight = todaySales.reduce((sum, sale) => sum + sale.weight, 0);
   const totalRevenue = todaySales.reduce((sum, sale) => sum + sale.total, 0);
+  const totalProfit = todaySales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
   const avgWeight = totalChickens > 0 ? totalWeight / totalChickens : 0;
   
   // Actualizar elementos en el DOM
   const totalChickensElement = document.getElementById('totalChickensSold');
   const totalWeightElement = document.getElementById('totalWeightSold');
   const totalRevenueElement = document.getElementById('totalRevenue');
+  const totalProfitElement = document.getElementById('totalProfit');
   const avgWeightElement = document.getElementById('avgWeight');
   
   if (totalChickensElement) totalChickensElement.textContent = totalChickens;
   if (totalWeightElement) totalWeightElement.textContent = totalWeight.toFixed(1);
   if (totalRevenueElement) totalRevenueElement.textContent = `$${totalRevenue.toFixed(2)}`;
+  if (totalProfitElement) totalProfitElement.textContent = `$${totalProfit.toFixed(2)}`;
   if (avgWeightElement) avgWeightElement.textContent = avgWeight.toFixed(1);
 }
 
@@ -947,6 +1005,14 @@ document.addEventListener('DOMContentLoaded', () => {
       currentClientId = e.target.value;
       cart = loadProforma(currentClientId);
       renderCart();
+    });
+  }
+  
+  // Inicializar búsqueda de productos en ventas
+  const productSearch = document.getElementById('productSearch');
+  if (productSearch) {
+    productSearch.addEventListener('input', (e) => {
+      filterProductsInSales(e.target.value);
     });
   }
 
@@ -1393,17 +1459,26 @@ function addToCart(productId) {
   
   renderCart();
   
-  // Mostrar notificación de producto agregado
-  Swal.fire({
+  // Mostrar notificación de producto agregado mejorada
+  const toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 2000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.addEventListener('mouseenter', Swal.stopTimer)
+      toast.addEventListener('mouseleave', Swal.resumeTimer)
+    }
+  });
+  
+  toast.fire({
     icon: 'success',
-    title: 'Producto agregado',
-    text: `${product.name} agregado al carrito`,
-    timer: 1000,
-    showConfirmButton: false
+    title: `${product.name} agregado al carrito`
   });
 }
 
-// === Mostrar carrito con diseño tipo Treinta.co ===
+// === Mostrar carrito con diseño tipo Treinta.co mejorado ===
 function renderCart() {
   const container = document.getElementById('cartList');
   const totalElement = document.getElementById('cartTotal');
@@ -1415,10 +1490,10 @@ function renderCart() {
 
   if (cart.length === 0) {
     container.innerHTML = `
-      <div class="text-center py-4">
-        <i class="bi bi-cart-x" style="font-size: 3rem; color: #ccc;"></i>
-        <p class="text-muted mt-2">Carrito vacío</p>
-        <small class="text-muted">Selecciona productos para comenzar</small>
+      <div class="text-center py-5">
+        <i class="bi bi-cart-x" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+        <h6 class="text-muted">Carrito vacío</h6>
+        <p class="text-muted small">Selecciona productos para comenzar</p>
       </div>
     `;
     totalElement.textContent = '$0.00';
@@ -1441,7 +1516,11 @@ function renderCart() {
       <div class="client-selector-treinta mb-3">
         ${selectedClient ? `
           <div class="selected-client-display">
-            <span class="client-name-display">${clientFirstName}</span>
+            <div class="d-flex align-items-center">
+              <i class="bi bi-person-circle me-2"></i>
+              <span class="client-name-display">${clientFirstName}</span>
+              ${selectedClient.debt > 0 ? `<span class="badge bg-warning ms-2">Deuda: $${selectedClient.debt.toFixed(2)}</span>` : ''}
+            </div>
             <button class="btn btn-sm btn-outline-danger remove-client-btn" onclick="removeSelectedClient()" title="Eliminar cliente">
               <i class="bi bi-x"></i>
             </button>
@@ -1475,17 +1554,22 @@ function renderCart() {
     <div class="cart-item-treinta">
       <div class="cart-item-header-treinta">
         <div class="cart-item-qty-treinta">
-          <button class="btn btn-sm btn-outline-secondary" onclick="changeCartQty('${item.id}', -1)">-</button>
+          <button class="btn btn-sm btn-outline-secondary qty-btn" onclick="changeCartQty('${item.id}', -1)" ${item.qty <= 1 ? 'disabled' : ''}>
+            <i class="bi bi-dash"></i>
+          </button>
           <span class="qty-display">${item.qty}</span>
-          <button class="btn btn-sm btn-outline-secondary" onclick="changeCartQty('${item.id}', 1)">+</button>
+          <button class="btn btn-sm btn-outline-secondary qty-btn" onclick="changeCartQty('${item.id}', 1)">
+            <i class="bi bi-plus"></i>
+          </button>
         </div>
         <div class="cart-item-info-treinta">
           <div class="cart-item-name-treinta">${item.name}</div>
+          <div class="cart-item-category-treinta">${item.category || 'Sin categoría'}</div>
           <div class="cart-item-price-treinta">$${item.price.toFixed(2)} c/u</div>
         </div>
         <div class="cart-item-actions-treinta">
           <div class="cart-item-total-treinta">$${(item.price * item.qty).toFixed(2)}</div>
-          <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('${item.id}')">
+          <button class="btn btn-sm btn-outline-danger remove-btn" onclick="removeFromCart('${item.id}')" title="Eliminar">
             <i class="bi bi-trash"></i>
           </button>
         </div>
@@ -2321,7 +2405,7 @@ function editProduct(productId) {
   modal.show();
 }
 
-// Renderizar productos en ventas con diseño tipo Treinta.co
+// Renderizar productos en ventas con diseño tipo Treinta.co mejorado
 function renderSalesProducts() {
   const container = document.getElementById('salesProductsGrid');
   const productsCount = document.getElementById('productsCount');
@@ -2331,16 +2415,18 @@ function renderSalesProducts() {
   const searchTerm = document.getElementById('productSearch')?.value?.toLowerCase() || '';
   const filteredProducts = products.filter(product => 
     product.name.toLowerCase().includes(searchTerm) ||
-    product.description?.toLowerCase().includes(searchTerm)
+    product.description?.toLowerCase().includes(searchTerm) ||
+    product.category?.toLowerCase().includes(searchTerm)
   );
   
   productsCount.textContent = `${filteredProducts.length} productos`;
   
   if (filteredProducts.length === 0) {
     container.innerHTML = `
-      <div class="text-center py-4" style="grid-column: 1 / -1;">
-        <i class="bi bi-search" style="font-size: 3rem; color: #ccc;"></i>
-        <p class="text-muted mt-2">No se encontraron productos</p>
+      <div class="text-center py-5" style="grid-column: 1 / -1;">
+        <i class="bi bi-search" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
+        <h5 class="text-muted">No se encontraron productos</h5>
+        <p class="text-muted">Intenta con otros términos de búsqueda</p>
       </div>
     `;
     return;
@@ -2348,21 +2434,73 @@ function renderSalesProducts() {
   
   container.innerHTML = filteredProducts.map(product => `
     <div class="product-card-treinta" onclick="addToCart('${product.id}')">
-      <img src="${product.image || 'https://via.placeholder.com/200x120?text=Producto'}" 
-           class="product-image-treinta" alt="${product.name}" onerror="this.src='https://via.placeholder.com/200x120?text=Producto'">
+      <div class="product-image-container">
+        <img src="${product.image || 'icons/descarga.png'}" 
+             class="product-image-treinta" alt="${product.name}" 
+             onerror="this.src='icons/descarga.png'">
+        <div class="product-overlay">
+          <button class="btn btn-primary btn-sm add-to-cart-btn" onclick="event.stopPropagation(); addToCart('${product.id}')" ${product.stock <= 0 ? 'disabled' : ''}>
+            <i class="bi bi-plus"></i> Agregar
+          </button>
+        </div>
+      </div>
       <div class="product-info-treinta">
         <div class="product-name-treinta">${product.name}</div>
+        <div class="product-category-treinta">${product.category || 'Sin categoría'}</div>
         <div class="product-price-treinta">$${product.price.toFixed(2)}</div>
-        <div class="product-stock-treinta">
-          <i class="bi bi-box-seam"></i> Stock: ${product.stock}
+        <div class="product-stock-treinta ${product.stock <= 0 ? 'out-of-stock' : ''}">
+          <i class="bi bi-box-seam"></i> 
+          ${product.stock <= 0 ? 'Sin stock' : `Stock: ${product.stock}`}
         </div>
-        <div class="product-actions-treinta">
-          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); addToCart('${product.id}')" ${product.stock <= 0 ? 'disabled' : ''}>
-            <i class="bi bi-plus"></i>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Función para filtrar productos en tiempo real
+function filterProductsInSales(searchTerm) {
+  const container = document.getElementById('salesProductsGrid');
+  const productsCount = document.getElementById('productsCount');
+  if (!container) return;
+  
+  const filteredProducts = products.filter(product => 
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.category?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  productsCount.textContent = `${filteredProducts.length} productos`;
+  
+  if (filteredProducts.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-5" style="grid-column: 1 / -1;">
+        <i class="bi bi-search" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
+        <h5 class="text-muted">No se encontraron productos</h5>
+        <p class="text-muted">Intenta con otros términos de búsqueda</p>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = filteredProducts.map(product => `
+    <div class="product-card-treinta" onclick="addToCart('${product.id}')">
+      <div class="product-image-container">
+        <img src="${product.image || 'icons/descarga.png'}" 
+             class="product-image-treinta" alt="${product.name}" 
+             onerror="this.src='icons/descarga.png'">
+        <div class="product-overlay">
+          <button class="btn btn-primary btn-sm add-to-cart-btn" onclick="event.stopPropagation(); addToCart('${product.id}')" ${product.stock <= 0 ? 'disabled' : ''}>
+            <i class="bi bi-plus"></i> Agregar
           </button>
-          <button class="btn btn-outline-secondary btn-sm" onclick="event.stopPropagation(); showProductDetailModal('${product.id}')">
-            <i class="bi bi-eye"></i>
-          </button>
+        </div>
+      </div>
+      <div class="product-info-treinta">
+        <div class="product-name-treinta">${product.name}</div>
+        <div class="product-category-treinta">${product.category || 'Sin categoría'}</div>
+        <div class="product-price-treinta">$${product.price.toFixed(2)}</div>
+        <div class="product-stock-treinta ${product.stock <= 0 ? 'out-of-stock' : ''}">
+          <i class="bi bi-box-seam"></i> 
+          ${product.stock <= 0 ? 'Sin stock' : `Stock: ${product.stock}`}
         </div>
       </div>
     </div>
@@ -3734,24 +3872,51 @@ function showCredits() {
 
 // Función para seleccionar cliente desde el carrito
 function selectClientForCart(clientId) {
-  currentClientId = clientId;
-  if (clientId) {
-    // Cargar proforma guardada para este cliente
-    loadProforma(clientId);
+  if (!clientId) {
+    currentClientId = null;
     renderCart();
-    
-    // Mostrar notificación
-    const client = clients.find(c => c.id === clientId);
-    if (client) {
-      Swal.fire({
-        icon: 'info',
-        title: 'Cliente seleccionado',
-        text: `Cliente: ${client.name}`,
-        timer: 1500,
-        showConfirmButton: false
-      });
-    }
+    return;
   }
+  
+  currentClientId = clientId;
+  const client = clients.find(c => c.id === clientId);
+  
+  // Cargar proforma guardada para este cliente
+  const proforma = loadProforma(clientId);
+  if (proforma && proforma.length > 0) {
+    cart = proforma;
+  }
+  
+  renderCart();
+  
+  // Mostrar información del cliente seleccionado
+  const selectedClientInfo = document.getElementById('selectedClientInfo');
+  const selectedClientName = document.getElementById('selectedClientName');
+  const cartClientSelector = document.getElementById('cartClientSelector');
+  
+  if (selectedClientInfo && selectedClientName && cartClientSelector) {
+    selectedClientInfo.style.display = 'block';
+    selectedClientName.textContent = client.name;
+    cartClientSelector.style.display = 'none';
+  }
+  
+  // Mostrar notificación de cliente seleccionado
+  const toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 2000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.addEventListener('mouseenter', Swal.stopTimer)
+      toast.addEventListener('mouseleave', Swal.resumeTimer)
+    }
+  });
+  
+  toast.fire({
+    icon: 'info',
+    title: `Cliente seleccionado: ${client.name}`
+  });
 }
 
 // Función para mostrar modal de agregar cliente desde el carrito
@@ -3818,12 +3983,31 @@ function removeSelectedClient() {
   currentClientId = null;
   renderCart();
   
-  Swal.fire({
+  // Mostrar información del cliente seleccionado
+  const selectedClientInfo = document.getElementById('selectedClientInfo');
+  const cartClientSelector = document.getElementById('cartClientSelector');
+  
+  if (selectedClientInfo && cartClientSelector) {
+    selectedClientInfo.style.display = 'none';
+    cartClientSelector.style.display = 'block';
+  }
+  
+  // Mostrar notificación
+  const toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 2000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.addEventListener('mouseenter', Swal.stopTimer)
+      toast.addEventListener('mouseleave', Swal.resumeTimer)
+    }
+  });
+  
+  toast.fire({
     icon: 'info',
-    title: 'Cliente eliminado',
-    text: 'Selecciona otro cliente para continuar',
-    timer: 1500,
-    showConfirmButton: false
+    title: 'Cliente eliminado del carrito'
   });
 }
 
@@ -3889,6 +4073,23 @@ function getMovementsByDateRange(startDate, endDate) {
     }
   });
   
+  // Agregar ventas de pollos del rango
+  chickenSales.forEach(sale => {
+    const saleDate = new Date(sale.date);
+    if (saleDate >= startDate && saleDate <= endDate) {
+      movements.push({
+        type: 'chicken',
+        icon: 'bi-egg-fried',
+        title: `Venta Pollos #${sale.id}`,
+        subtitle: `${sale.clientName} - ${sale.quantity} pollo(s) - ${saleDate.toLocaleDateString()}`,
+        amount: sale.total,
+        amountClass: 'positive',
+        date: saleDate,
+        data: sale
+      });
+    }
+  });
+  
   // Agregar deudas del rango
   debts.forEach(debt => {
     const debtDate = new Date(debt.date);
@@ -3939,7 +4140,9 @@ function calculatePeriodSummary(movements) {
     totalExpenses: 0,
     totalDebts: 0,
     totalPayments: 0,
+    totalProfit: 0,
     sales: 0,
+    chickenSales: 0,
     debts: 0,
     payments: 0
   };
@@ -3948,6 +4151,10 @@ function calculatePeriodSummary(movements) {
     if (movement.type === 'sale') {
       summary.totalIncome += movement.amount;
       summary.sales++;
+    } else if (movement.type === 'chicken') {
+      summary.totalIncome += movement.amount;
+      summary.totalProfit += movement.data.profit || 0;
+      summary.chickenSales++;
     } else if (movement.type === 'debt') {
       summary.totalDebts += movement.amount;
       summary.debts++;
@@ -3968,7 +4175,7 @@ function renderPeriodSummary(summary) {
   
   container.innerHTML = `
     <div class="row g-3">
-      <div class="col-md-3">
+      <div class="col-md-2">
         <div class="summary-card-treinta">
           <div class="summary-icon">
             <i class="bi bi-cart-check"></i>
@@ -3976,11 +4183,23 @@ function renderPeriodSummary(summary) {
           <div class="summary-content">
             <div class="summary-value">${summary.sales}</div>
             <div class="summary-label">Ventas</div>
-            <div class="summary-amount">$${summary.totalIncome.toFixed(2)}</div>
+            <div class="summary-amount">$${(summary.totalIncome - (summary.chickenSales > 0 ? summary.totalIncome * (summary.chickenSales / summary.totalMovements) : 0)).toFixed(2)}</div>
           </div>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-2">
+        <div class="summary-card-treinta">
+          <div class="summary-icon">
+            <i class="bi bi-egg-fried"></i>
+          </div>
+          <div class="summary-content">
+            <div class="summary-value">${summary.chickenSales}</div>
+            <div class="summary-label">Pollos</div>
+            <div class="summary-amount">$${(summary.totalIncome * (summary.chickenSales / summary.totalMovements)).toFixed(2)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-2">
         <div class="summary-card-treinta">
           <div class="summary-icon">
             <i class="bi bi-cash-stack"></i>
@@ -3992,7 +4211,7 @@ function renderPeriodSummary(summary) {
           </div>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-2">
         <div class="summary-card-treinta">
           <div class="summary-icon">
             <i class="bi bi-cash-coin"></i>
@@ -4004,7 +4223,7 @@ function renderPeriodSummary(summary) {
           </div>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-2">
         <div class="summary-card-treinta">
           <div class="summary-icon">
             <i class="bi bi-graph-up"></i>
@@ -4013,6 +4232,18 @@ function renderPeriodSummary(summary) {
             <div class="summary-value">${summary.totalMovements}</div>
             <div class="summary-label">Total</div>
             <div class="summary-amount">Movimientos</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="summary-card-treinta">
+          <div class="summary-icon">
+            <i class="bi bi-cash-stack"></i>
+          </div>
+          <div class="summary-content">
+            <div class="summary-value profit">$${summary.totalProfit.toFixed(2)}</div>
+            <div class="summary-label">Ganancia</div>
+            <div class="summary-amount">Pollos</div>
           </div>
         </div>
       </div>
@@ -4049,6 +4280,11 @@ function renderFilteredMovements(movements) {
       <div class="movement-amount ${movement.amountClass}">
         $${movement.amount.toFixed(2)}
       </div>
+      <div class="movement-actions">
+        <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); showMovementPDF(${idx})" title="Ver PDF">
+          <i class="bi bi-file-pdf"></i>
+        </button>
+      </div>
     </div>
   `).join('');
 }
@@ -4084,6 +4320,32 @@ window.showFilteredMovementDetail = function(idx) {
       showConfirmButton: true,
       confirmButtonText: 'Cerrar',
     });
+  }
+}
+
+// Función para mostrar PDF del movimiento
+window.showMovementPDF = function(idx) {
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const movements = getMovementsByDateRange(start, end);
+  const movement = movements[idx];
+  
+  if (!movement) return;
+
+  if (movement.type === 'sale') {
+    // Mostrar el mismo modal que se muestra al finalizar la venta
+    showReceipt(movement.data);
+  } else if (movement.type === 'chicken') {
+    // Mostrar el modal de recibo de pollos
+    showChickenReceipt(movement.data);
+  } else if (movement.type === 'debt') {
+    // Generar PDF de deuda
+    generateDebtPDF(movement.data);
+  } else if (movement.type === 'payment') {
+    // Generar PDF de pago
+    generatePaymentPDF(movement.data);
   }
 }
 
@@ -4308,4 +4570,111 @@ function downloadReceiptPDF(sale) {
   doc.text("Generado por TillUp POS - Diseño inspirado en Treinta.co", 14, finalY + 55);
   
   doc.save(`Comprobante_${sale.id}_${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+// Función para generar PDF de deuda
+function generateDebtPDF(debt) {
+  if (typeof window.jspdf === 'undefined') {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'La librería PDF no está disponible. Verifica tu conexión a internet.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  // Configurar fuente
+  doc.setFont('helvetica');
+  doc.setFontSize(12);
+  
+  // Título
+  doc.setFontSize(18);
+  doc.text('COMPROBANTE DE DEUDA', 105, 20, { align: 'center' });
+  
+  // Información de la deuda
+  doc.setFontSize(12);
+  doc.text(`Deuda #${debt.id}`, 14, 35);
+  doc.text(`Fecha: ${new Date(debt.date).toLocaleDateString()}`, 14, 45);
+  doc.text(`Cliente: ${debt.clientName}`, 14, 55);
+  doc.text(`Monto: $${debt.amount.toFixed(2)}`, 14, 65);
+  doc.text(`Descripción: ${debt.description || 'Sin descripción'}`, 14, 75);
+  
+  // Estado de la deuda
+  const remainingAmount = debt.amount - (debt.payments || []).reduce((sum, p) => sum + p.amount, 0);
+  doc.text(`Monto restante: $${remainingAmount.toFixed(2)}`, 14, 85);
+  
+  // Historial de pagos
+  if (debt.payments && debt.payments.length > 0) {
+    doc.text('Historial de pagos:', 14, 105);
+    let yPos = 115;
+    debt.payments.forEach((payment, index) => {
+      if (yPos < 250) {
+        doc.text(`${index + 1}. $${payment.amount.toFixed(2)} - ${new Date(payment.date).toLocaleDateString()}`, 20, yPos);
+        yPos += 10;
+      }
+    });
+  }
+  
+  // Pie de página
+  doc.setFontSize(10);
+  doc.text('Generado por TillUp POS', 105, 280, { align: 'center' });
+  
+  // Descargar PDF
+  doc.save(`deuda_${debt.id}.pdf`);
+}
+
+// Función para generar PDF de pago
+function generatePaymentPDF(data) {
+  if (typeof window.jspdf === 'undefined') {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'La librería PDF no está disponible. Verifica tu conexión a internet.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const { debt, payment } = data;
+  
+  // Configurar fuente
+  doc.setFont('helvetica');
+  doc.setFontSize(12);
+  
+  // Título
+  doc.setFontSize(18);
+  doc.text('COMPROBANTE DE PAGO', 105, 20, { align: 'center' });
+  
+  // Información del pago
+  doc.setFontSize(12);
+  doc.text(`Pago de Deuda #${debt.id}`, 14, 35);
+  doc.text(`Fecha: ${new Date(payment.date).toLocaleDateString()}`, 14, 45);
+  doc.text(`Cliente: ${debt.clientName}`, 14, 55);
+  doc.text(`Monto pagado: $${payment.amount.toFixed(2)}`, 14, 65);
+  
+  // Información de la deuda original
+  doc.text(`Deuda original: $${debt.amount.toFixed(2)}`, 14, 80);
+  
+  // Calcular monto restante
+  const totalPaid = (debt.payments || []).reduce((sum, p) => sum + p.amount, 0);
+  const remainingAmount = debt.amount - totalPaid;
+  doc.text(`Monto restante: $${remainingAmount.toFixed(2)}`, 14, 90);
+  
+  // Descripción si existe
+  if (debt.description) {
+    doc.text(`Descripción: ${debt.description}`, 14, 105);
+  }
+  
+  // Pie de página
+  doc.setFontSize(10);
+  doc.text('Generado por TillUp POS', 105, 280, { align: 'center' });
+  
+  // Descargar PDF
+  doc.save(`pago_deuda_${debt.id}_${new Date(payment.date).getTime()}.pdf`);
 }

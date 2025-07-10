@@ -290,7 +290,9 @@
     <!-- Vista: Ventas -->
     <section id="view-sales" class="app-view d-none">
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Ventas</h2>
+        <h2 class="mb-0">
+          <i class="bi bi-cart-check"></i> Ventas
+        </h2>
         <div class="d-flex gap-2">
           <button id="toggleSalesView" class="btn btn-outline-primary btn-sm" type="button" onclick="toggleSalesView()">
             <i class="bi bi-grid-3x3-gap-fill"></i> <span id="toggleSalesViewText">Cuadrícula</span>
@@ -301,7 +303,7 @@
         </div>
       </div>
 
-      <div class="row">
+      <div class="row g-3">
         <!-- Panel de productos tipo Treinta.co -->
         <div class="col-lg-8">
           <div class="products-panel-treinta">
@@ -319,7 +321,7 @@
                   <i class="bi bi-search"></i>
                 </span>
                 <input type="text" id="productSearch" class="form-control form-control-treinta" 
-                       placeholder="Buscar productos..." />
+                       placeholder="Buscar productos..." oninput="filterProductsInSales(this.value)" />
               </div>
             </div>
             
@@ -343,7 +345,7 @@
             </div>
             
             <div class="cart-content-treinta">
-              <!-- Selector de cliente -->
+              <!-- Selector de cliente mejorado -->
               <div id="clientSelectorContainer" class="client-selector-treinta mb-3">
                 <label for="cartClientSelector" class="form-label">
                   <i class="bi bi-person"></i> Seleccionar Cliente
@@ -361,10 +363,12 @@
                 </div>
               </div>
               
+              <!-- Lista de productos en carrito -->
               <div id="cartList" class="cart-items-treinta">
                 <!-- Items del carrito generados por JS -->
               </div>
               
+              <!-- Resumen del carrito -->
               <div class="cart-summary-treinta">
                 <div class="cart-total-treinta">
                   <div class="d-flex justify-content-between align-items-center">
@@ -373,18 +377,13 @@
                   </div>
                 </div>
               </div>
+              
+              <!-- Acciones del carrito -->
               <div class="cart-actions-treinta">
                 <button onclick="finalizeSale()" class="btn btn-primary btn-treinta w-100" id="finalizeBtn" disabled>
                   <i class="bi bi-cart-check"></i> Finalizar Venta
                 </button>
               </div>
-            </div>
-          </div>
-          
-          <!-- Botón de finalizar venta fuera del contenedor -->
-          <div class="finalize-sale-container mt-3">
-            
-          </div>
             </div>
           </div>
         </div>
@@ -518,15 +517,15 @@
     </div>
   </div>
 
-  <!-- Configuración de precio por libra -->
+  <!-- Configuración de precios y costos -->
   <div class="chicken-config-treinta mb-4">
     <div class="card card-custom">
       <div class="card-body">
         <h5 class="card-title">
-          <i class="bi bi-gear"></i> Configuración de Precio
+          <i class="bi bi-gear"></i> Configuración de Precios y Costos
         </h5>
         <div class="row g-3">
-          <div class="col-md-6">
+          <div class="col-md-4">
             <label for="pricePerPound" class="form-label">
               <i class="bi bi-currency-dollar"></i> Precio por Libra
             </label>
@@ -535,12 +534,23 @@
               <input type="number" id="pricePerPound" class="form-control form-control-treinta" 
                      step="0.01" placeholder="0.00" value="2.50" />
             </div>
-            <div class="form-text">Precio actual por libra de pollo</div>
+            <div class="form-text">Precio de venta por libra</div>
           </div>
-          <div class="col-md-6">
+          <div class="col-md-4">
+            <label for="costPerPound" class="form-label">
+              <i class="bi bi-cart-dash"></i> Costo por Libra
+            </label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" id="costPerPound" class="form-control form-control-treinta" 
+                     step="0.01" placeholder="0.00" value="1.80" />
+            </div>
+            <div class="form-text">Costo de compra por libra</div>
+          </div>
+          <div class="col-md-4">
             <label class="form-label">&nbsp;</label>
-            <button onclick="updatePricePerPound()" class="btn btn-primary btn-treinta w-100">
-              <i class="bi bi-check-circle"></i> Actualizar Precio
+            <button onclick="updateChickenConfig()" class="btn btn-primary btn-treinta w-100">
+              <i class="bi bi-check-circle"></i> Actualizar Configuración
             </button>
           </div>
         </div>
@@ -595,6 +605,17 @@
           </div>
         </div>
       </div>
+      <div class="col-md-3">
+        <div class="stat-card-treinta">
+          <div class="stat-icon">
+            <i class="bi bi-cash-stack"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value" id="totalProfit">$0.00</div>
+            <div class="stat-label">Ganancia Hoy</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -642,8 +663,20 @@
                   <span id="displayPricePerPound">$0.00</span>
                 </div>
                 <div class="calculation-item">
+                  <span>Costo por libra:</span>
+                  <span id="displayCostPerPound">$0.00</span>
+                </div>
+                <div class="calculation-item">
+                  <span>Ganancia por libra:</span>
+                  <span id="displayProfitPerPound" class="profit-amount">$0.00</span>
+                </div>
+                <div class="calculation-item">
                   <span>Total a pagar:</span>
                   <span id="displayTotalAmount" class="total-amount">$0.00</span>
+                </div>
+                <div class="calculation-item">
+                  <span>Ganancia total:</span>
+                  <span id="displayTotalProfit" class="profit-amount">$0.00</span>
                 </div>
               </div>
             </div>
