@@ -10,6 +10,251 @@ let currentClientId = null;
 let inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'grid'; // 'grid' o 'list'
 let clientsViewMode = localStorage.getItem('clientsViewMode') || 'grid'; // 'grid' o 'list'
 
+// === FUNCIONES DE GESTIÓN DE DATOS ===
+
+// Función para cargar datos desde localStorage
+function loadData() {
+  try {
+    // Cargar productos
+    const savedProducts = localStorage.getItem('products');
+    if (savedProducts) {
+      products = JSON.parse(savedProducts);
+    }
+    
+    // Cargar clientes
+    const savedClients = localStorage.getItem('clients');
+    if (savedClients) {
+      clients = JSON.parse(savedClients);
+    }
+    
+    // Cargar ventas
+    const savedSales = localStorage.getItem('sales');
+    if (savedSales) {
+      sales = JSON.parse(savedSales);
+    }
+    
+    // Cargar deudas
+    const savedDebts = localStorage.getItem('debts');
+    if (savedDebts) {
+      debts = JSON.parse(savedDebts);
+    }
+    
+    // Cargar ventas de pollos
+    const savedChickenSales = localStorage.getItem('chickenSales');
+    if (savedChickenSales) {
+      chickenSales = JSON.parse(savedChickenSales);
+    }
+    
+    // Cargar carrito
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      cart = JSON.parse(savedCart);
+    }
+    
+    // Cargar cliente seleccionado
+    const savedCurrentClientId = localStorage.getItem('currentClientId');
+    if (savedCurrentClientId) {
+      currentClientId = savedCurrentClientId;
+    }
+    
+    console.log('Datos cargados exitosamente');
+  } catch (error) {
+    console.error('Error cargando datos:', error);
+    // Si hay error, inicializar con arrays vacíos
+    products = [];
+    clients = [];
+    sales = [];
+    debts = [];
+    chickenSales = [];
+    cart = [];
+    currentClientId = null;
+  }
+}
+
+// Función para guardar datos en localStorage
+function saveData() {
+  try {
+    localStorage.setItem('products', JSON.stringify(products));
+    localStorage.setItem('clients', JSON.stringify(clients));
+    localStorage.setItem('sales', JSON.stringify(sales));
+    localStorage.setItem('debts', JSON.stringify(debts));
+    localStorage.setItem('chickenSales', JSON.stringify(chickenSales));
+    localStorage.setItem('cart', JSON.stringify(cart));
+    localStorage.setItem('currentClientId', currentClientId);
+    
+    console.log('Datos guardados exitosamente');
+  } catch (error) {
+    console.error('Error guardando datos:', error);
+  }
+}
+
+// Función para configurar todos los event listeners
+function setupEventListeners() {
+  // Event listeners para el sidebar
+  const btnSidebar = document.getElementById('btnSidebar');
+  if (btnSidebar) {
+    btnSidebar.addEventListener('click', openSidebar);
+  }
+  
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', closeSidebar);
+  }
+  
+  // Event listeners para formularios
+  const formProduct = document.getElementById('formProduct');
+  if (formProduct) {
+    formProduct.addEventListener('submit', addProduct);
+  }
+  
+  const formClient = document.getElementById('formClient');
+  if (formClient) {
+    formClient.addEventListener('submit', addClient);
+  }
+  
+  // Event listeners para botones de navegación
+  document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+    item.addEventListener('click', function() {
+      const viewName = this.getAttribute('onclick').match(/showView\('([^']+)'\)/)[1];
+      showView(viewName);
+    });
+  });
+  
+  // Event listeners para filtros de período
+  document.querySelectorAll('input[name="periodFilter"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      renderBalanceGrid();
+    });
+  });
+  
+  // Event listener para búsqueda de productos
+  const productSearch = document.getElementById('productSearch');
+  if (productSearch) {
+    productSearch.addEventListener('input', function() {
+      renderSalesProducts();
+    });
+  }
+  
+  // Event listeners para botones de tema
+  document.querySelectorAll('[onclick^="setTheme"]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const theme = this.getAttribute('onclick').match(/setTheme\('([^']+)'\)/)[1];
+      setTheme(theme);
+    });
+  });
+  
+  // Event listeners para botones de actualización
+  const btnUpdate = document.getElementById('btn-update');
+  if (btnUpdate) {
+    btnUpdate.addEventListener('click', forceUpdate);
+  }
+  
+  // Event listeners para botones de instalación
+  const btnInstallPWA = document.getElementById('installPWA');
+  if (btnInstallPWA) {
+    btnInstallPWA.addEventListener('click', installPWA);
+  }
+  
+  // Event listeners para botones flotantes
+  const floatingActionBtn = document.getElementById('floatingActionBtn');
+  if (floatingActionBtn) {
+    floatingActionBtn.addEventListener('click', showQuickActions);
+  }
+  
+  // Event listeners para acciones rápidas
+  document.querySelectorAll('.quick-action-item').forEach(item => {
+    item.addEventListener('click', function() {
+      const action = this.getAttribute('onclick').match(/quickAction\('([^']+)'\)/)[1];
+      quickAction(action);
+    });
+  });
+  
+  // Event listeners para botones de pollos
+  const chickenForm = document.getElementById('chickenForm');
+  if (chickenForm) {
+    chickenForm.addEventListener('submit', handleChickenSale);
+  }
+  
+  // Event listeners para configuración de pollos
+  const costPerPoundInput = document.getElementById('costPerPound');
+  if (costPerPoundInput) {
+    costPerPoundInput.addEventListener('input', updateChickenConfig);
+  }
+  
+  // Event listeners para reportes
+  const reportTypeSelect = document.getElementById('reportType');
+  if (reportTypeSelect) {
+    reportTypeSelect.addEventListener('change', changeReportType);
+  }
+  
+  const reportFilterSelect = document.getElementById('reportFilter');
+  if (reportFilterSelect) {
+    reportFilterSelect.addEventListener('change', changeReportFilter);
+  }
+  
+  // Event listeners para filtros de fecha
+  const startDateInput = document.getElementById('startDate');
+  const endDateInput = document.getElementById('endDate');
+  
+  if (startDateInput) {
+    startDateInput.addEventListener('change', function() {
+      calculateCompleteStats();
+      updateReportUI();
+    });
+  }
+  
+  if (endDateInput) {
+    endDateInput.addEventListener('change', function() {
+      calculateCompleteStats();
+      updateReportUI();
+    });
+  }
+  
+  console.log('Event listeners configurados');
+}
+
+// Función para acciones rápidas
+function quickAction(action) {
+  switch (action) {
+    case 'addProduct':
+      const modalProduct = new bootstrap.Modal(document.getElementById('modalProduct'));
+      modalProduct.show();
+      break;
+    case 'addClient':
+      const modalClient = new bootstrap.Modal(document.getElementById('modalClient'));
+      modalClient.show();
+      break;
+    case 'newSale':
+      showView('sales');
+      break;
+    case 'chickenSale':
+      showView('chicken');
+      break;
+    default:
+      console.log('Acción no reconocida:', action);
+  }
+  
+  hideQuickActions();
+  hapticFeedback('medium');
+}
+
+// Función para mostrar acciones rápidas
+function showQuickActions() {
+  const menu = document.getElementById('quickActionsMenu');
+  if (menu) {
+    menu.style.display = 'block';
+    hapticFeedback('light');
+  }
+}
+
+// Función para ocultar acciones rápidas
+function hideQuickActions() {
+  const menu = document.getElementById('quickActionsMenu');
+  if (menu) {
+    menu.style.display = 'none';
+  }
+}
+
 // === MEJORAS PARA EXPERIENCIA NATIVA ===
 
 // Configuración de gestos táctiles
@@ -3647,13 +3892,42 @@ function getRecentMovements(period) {
 
 // Función para cambiar de vista
 function showView(viewName) {
+  // Remover foco de elementos en vistas ocultas antes de cambiar
+  removeFocusFromHiddenElements();
+  
   // Ocultar todas las vistas
-  document.querySelectorAll('.app-view').forEach(v => v.classList.add('d-none'));
+  const views = document.querySelectorAll('.app-view');
+  views.forEach(view => {
+    view.classList.add('d-none');
+    // Remover foco de elementos dentro de vistas ocultas
+    const focusableElements = view.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    focusableElements.forEach(element => {
+      element.setAttribute('tabindex', '-1');
+    });
+  });
   
   // Mostrar la vista seleccionada
   const targetView = document.getElementById(`view-${viewName}`);
   if (targetView) {
     targetView.classList.remove('d-none');
+    
+    // Restaurar tabindex de elementos focusables en la vista activa
+    const focusableElements = targetView.querySelectorAll('button, input, select, textarea, [tabindex="-1"]');
+    focusableElements.forEach(element => {
+      // Solo restaurar si no es un elemento que debe permanecer sin foco
+      if (!element.hasAttribute('data-no-focus')) {
+        element.removeAttribute('tabindex');
+      }
+    });
+    
+    // Enfocar el primer elemento focusable de la vista
+    const firstFocusable = targetView.querySelector('button:not([tabindex="-1"]), input:not([tabindex="-1"]), select:not([tabindex="-1"]), textarea:not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])');
+    if (firstFocusable && !firstFocusable.hasAttribute('data-no-focus')) {
+      // Usar setTimeout para asegurar que la vista esté visible antes de enfocar
+      setTimeout(() => {
+        safeFocus(firstFocusable);
+      }, 100);
+    }
   }
   
   // Actualizar botones activos en el sidebar
@@ -3670,6 +3944,9 @@ function showView(viewName) {
     activeBottomBtn.classList.add('active');
   }
   
+  // Actualizar título de la página
+  updatePageTitle(viewName);
+  
   // Ejecutar funciones específicas según la vista
   switch (viewName) {
     case 'balance':
@@ -3678,6 +3955,7 @@ function showView(viewName) {
       break;
     case 'sales':
       renderSalesProducts();
+      renderCart();
       break;
     case 'debt':
       renderDebts();
@@ -3707,12 +3985,140 @@ function showView(viewName) {
     case 'chickens':
       showChickenView();
       break;
+    case 'reports':
+      showReportsView();
+      break;
   }
   
   // Cerrar sidebar en móviles
   if (window.innerWidth <= 768) {
     closeSidebar();
   }
+  
+  // Feedback táctil
+  hapticFeedback('light');
+  
+  // Notificar cambio de vista para lectores de pantalla
+  announceViewChange(viewName);
+}
+
+// Función para actualizar el título de la página
+function updatePageTitle(viewName) {
+  const titles = {
+    'balance': 'Balance - TillUp',
+    'sales': 'Ventas - TillUp',
+    'clients': 'Clientes - TillUp',
+    'debt': 'Deudas - TillUp',
+    'inventory': 'Inventario - TillUp',
+    'chickens': 'Ventas de Pollos - TillUp',
+    'movements': 'Movimientos - TillUp',
+    'reports': 'Reportes - TillUp'
+  };
+  
+  document.title = titles[viewName] || 'TillUp';
+}
+
+// Función para anunciar cambios de vista para lectores de pantalla
+function announceViewChange(viewName) {
+  const announcements = {
+    'balance': 'Vista de balance activa',
+    'sales': 'Vista de ventas activa',
+    'clients': 'Vista de clientes activa',
+    'debt': 'Vista de deudas activa',
+    'inventory': 'Vista de inventario activa',
+    'chickens': 'Vista de ventas de pollos activa',
+    'movements': 'Vista de movimientos activa',
+    'reports': 'Vista de reportes activa'
+  };
+  
+  // Crear elemento para anuncio
+  const announcement = document.createElement('div');
+  announcement.setAttribute('aria-live', 'polite');
+  announcement.setAttribute('aria-atomic', 'true');
+  announcement.className = 'sr-only';
+  announcement.textContent = announcements[viewName] || 'Vista cambiada';
+  
+  document.body.appendChild(announcement);
+  
+  // Remover después de un momento
+  setTimeout(() => {
+    if (announcement.parentNode) {
+      announcement.parentNode.removeChild(announcement);
+    }
+  }, 1000);
+}
+
+// Función para manejar el foco de manera segura
+function safeFocus(element) {
+  if (element && element.offsetParent !== null) {
+    // Verificar que el elemento esté visible
+    const rect = element.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      element.focus();
+      return true;
+    }
+  }
+  return false;
+}
+
+// Función para remover foco de elementos ocultos
+function removeFocusFromHiddenElements() {
+  const hiddenViews = document.querySelectorAll('.app-view.d-none');
+  hiddenViews.forEach(view => {
+    const focusedElement = view.querySelector(':focus');
+    if (focusedElement) {
+      focusedElement.blur();
+    }
+  });
+}
+
+// Función para configurar manejo de foco en modales
+function setupModalFocusManagement() {
+  const modals = document.querySelectorAll('.modal');
+  
+  modals.forEach(modal => {
+    modal.addEventListener('show.bs.modal', function() {
+      // Guardar elemento que tenía el foco antes del modal
+      this.previousActiveElement = document.activeElement;
+      
+      // Enfocar el primer elemento focusable del modal
+      const firstFocusable = this.querySelector('button:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])');
+      if (firstFocusable) {
+        setTimeout(() => firstFocusable.focus(), 100);
+      }
+    });
+    
+    modal.addEventListener('hidden.bs.modal', function() {
+      // Restaurar foco al elemento anterior
+      if (this.previousActiveElement && this.previousActiveElement.offsetParent !== null) {
+        this.previousActiveElement.focus();
+      }
+    });
+    
+    // Manejar foco dentro del modal (trap focus)
+    const focusableElements = modal.querySelectorAll('button:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])');
+    
+    if (focusableElements.length > 0) {
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      
+      modal.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+          if (e.shiftKey) {
+            if (document.activeElement === firstElement) {
+              e.preventDefault();
+              lastElement.focus();
+            }
+          } else {
+            if (document.activeElement === lastElement) {
+              e.preventDefault();
+              firstElement.focus();
+            }
+          }
+        }
+      });
+    }
+  });
 }
 
 // Mostrar detalles del cliente
@@ -5585,6 +5991,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Cargar datos guardados
   loadData();
   
+  // Configurar event listeners
+  setupEventListeners();
+  
   // Inicializar datos de pollos
   initializeChickenData();
   
@@ -5619,6 +6028,9 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Inicializar mejoras para experiencia nativa
   initializeNativeEnhancements();
+  
+  // Configurar manejo de foco en modales
+  setupModalFocusManagement();
   
   // Mostrar botón de instalación si es necesario
   if ('serviceWorker' in navigator) {
