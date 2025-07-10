@@ -4,6 +4,8 @@ let clients = [];
 let sales = [];
 let debts = [];
 let cart = [];
+let chickenSales = [];
+let costPerPound = parseFloat(localStorage.getItem('costPerPound')) || 2.50;
 let currentClientId = null;
 let inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'grid'; // 'grid' o 'list'
 let clientsViewMode = localStorage.getItem('clientsViewMode') || 'grid'; // 'grid' o 'list'
@@ -5586,6 +5588,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // Inicializar datos de pollos
   initializeChickenData();
   
+  // Inicializar sistema de reportes
+  initializeReportsSystem();
+  
+  // Configurar eventos de reportes
+  setupReportsEvents();
+  
   // Actualizar UI
   updateBalanceUI();
   renderInventory();
@@ -5654,4 +5662,1204 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     localStorage.setItem('appInitialized', 'true');
   }
+  
+  // Calcular estadísticas iniciales
+  calculateCompleteStats();
 });
+
+// === SISTEMA DE CÁLCULOS AUTOMÁTICOS MEJORADO ===
+
+// Variables para el sistema de reportes
+let dailyStats = {};
+let weeklyStats = {};
+let monthlyStats = {};
+let yearlyStats = {};
+let selectedDate = new Date();
+let reportFilters = {
+  startDate: null,
+  endDate: null,
+  type: 'all', // 'all', 'sales', 'chickens', 'debts', 'payments'
+  view: 'daily' // 'daily', 'weekly', 'monthly', 'yearly'
+};
+
+// Función para calcular estadísticas completas
+function calculateCompleteStats() {
+  const today = new Date();
+  const currentDate = selectedDate || today;
+  
+  // Calcular estadísticas diarias
+  dailyStats = calculateDailyStats(currentDate);
+  
+  // Calcular estadísticas semanales
+  weeklyStats = calculateWeeklyStats(currentDate);
+  
+  // Calcular estadísticas mensuales
+  monthlyStats = calculateMonthlyStats(currentDate);
+  
+  // Calcular estadísticas anuales
+  yearlyStats = calculateYearlyStats(currentDate);
+  
+  // Actualizar UI con las nuevas estadísticas
+  updateBalanceUI();
+  updateChickenStats();
+  updateReportUI();
+  
+  // Guardar estadísticas en localStorage
+  saveStatsToStorage();
+}
+
+// Función para calcular estadísticas diarias
+function calculateDailyStats(date) {
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+  
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+  
+  // Filtrar ventas del día
+  const dailySales = sales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    return saleDate >= startOfDay && saleDate <= endOfDay;
+  });
+  
+  // Filtrar ventas de pollos del día
+  const dailyChickenSales = chickenSales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    return saleDate >= startOfDay && saleDate <= endOfDay;
+  });
+  
+  // Filtrar deudas del día
+  const dailyDebts = debts.filter(debt => {
+    const debtDate = new Date(debt.date);
+    return debtDate >= startOfDay && debtDate <= endOfDay;
+  });
+  
+  // Filtrar pagos del día
+  const dailyPayments = debts.flatMap(debt => 
+    (debt.payments || []).filter(payment => {
+      const paymentDate = new Date(payment.date);
+      return paymentDate >= startOfDay && paymentDate <= endOfDay;
+    }).map(payment => ({
+      ...payment,
+      debtId: debt.id,
+      clientName: debt.clientName,
+      originalAmount: debt.amount
+    }))
+  );
+  
+  // Calcular totales
+  const totalSales = dailySales.reduce((sum, sale) => sum + sale.total, 0);
+  const totalSalesCost = dailySales.reduce((sum, sale) => sum + sale.cost, 0);
+  const totalSalesProfit = totalSales - totalSalesCost;
+  
+  const totalChickenSales = dailyChickenSales.reduce((sum, sale) => sum + sale.total, 0);
+  const totalChickenCost = dailyChickenSales.reduce((sum, sale) => sum + (sale.weight * costPerPound), 0);
+  const totalChickenProfit = totalChickenSales - totalChickenCost;
+  
+  const totalDebts = dailyDebts.reduce((sum, debt) => sum + debt.amount, 0);
+  const totalPayments = dailyPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  
+  const totalRevenue = totalSales + totalChickenSales + totalPayments;
+  const totalCost = totalSalesCost + totalChickenCost;
+  const totalProfit = totalRevenue - totalCost;
+  
+  return {
+    date: date,
+    sales: {
+      count: dailySales.length,
+      total: totalSales,
+      cost: totalSalesCost,
+      profit: totalSalesProfit,
+      items: dailySales
+    },
+    chickens: {
+      count: dailyChickenSales.length,
+      total: totalChickenSales,
+      cost: totalChickenCost,
+      profit: totalChickenProfit,
+      weight: dailyChickenSales.reduce((sum, sale) => sum + sale.weight, 0),
+      quantity: dailyChickenSales.reduce((sum, sale) => sum + sale.quantity, 0),
+      items: dailyChickenSales
+    },
+    debts: {
+      count: dailyDebts.length,
+      total: totalDebts,
+      items: dailyDebts
+    },
+    payments: {
+      count: dailyPayments.length,
+      total: totalPayments,
+      items: dailyPayments
+    },
+    summary: {
+      revenue: totalRevenue,
+      cost: totalCost,
+      profit: totalProfit,
+      profitMargin: totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0
+    }
+  };
+}
+
+// Función para calcular estadísticas semanales
+function calculateWeeklyStats(date) {
+  const startOfWeek = new Date(date);
+  startOfWeek.setDate(date.getDate() - date.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+  
+  return calculateStatsForPeriod(startOfWeek, endOfWeek, 'weekly');
+}
+
+// Función para calcular estadísticas mensuales
+function calculateMonthlyStats(date) {
+  const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+  
+  return calculateStatsForPeriod(startOfMonth, endOfMonth, 'monthly');
+}
+
+// Función para calcular estadísticas anuales
+function calculateYearlyStats(date) {
+  const startOfYear = new Date(date.getFullYear(), 0, 1);
+  const endOfYear = new Date(date.getFullYear(), 11, 31, 23, 59, 59, 999);
+  
+  return calculateStatsForPeriod(startOfYear, endOfYear, 'yearly');
+}
+
+// Función genérica para calcular estadísticas por período
+function calculateStatsForPeriod(startDate, endDate, periodType) {
+  // Filtrar datos por período
+  const periodSales = sales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    return saleDate >= startDate && saleDate <= endDate;
+  });
+  
+  const periodChickenSales = chickenSales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    return saleDate >= startDate && saleDate <= endDate;
+  });
+  
+  const periodDebts = debts.filter(debt => {
+    const debtDate = new Date(debt.date);
+    return debtDate >= startDate && debtDate <= endDate;
+  });
+  
+  const periodPayments = debts.flatMap(debt => 
+    (debt.payments || []).filter(payment => {
+      const paymentDate = new Date(payment.date);
+      return paymentDate >= startDate && paymentDate <= endDate;
+    }).map(payment => ({
+      ...payment,
+      debtId: debt.id,
+      clientName: debt.clientName,
+      originalAmount: debt.amount
+    }))
+  );
+  
+  // Calcular totales
+  const totalSales = periodSales.reduce((sum, sale) => sum + sale.total, 0);
+  const totalSalesCost = periodSales.reduce((sum, sale) => sum + sale.cost, 0);
+  const totalSalesProfit = totalSales - totalSalesCost;
+  
+  const totalChickenSales = periodChickenSales.reduce((sum, sale) => sum + sale.total, 0);
+  const totalChickenCost = periodChickenSales.reduce((sum, sale) => sum + (sale.weight * costPerPound), 0);
+  const totalChickenProfit = totalChickenSales - totalChickenCost;
+  
+  const totalDebts = periodDebts.reduce((sum, debt) => sum + debt.amount, 0);
+  const totalPayments = periodPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  
+  const totalRevenue = totalSales + totalChickenSales + totalPayments;
+  const totalCost = totalSalesCost + totalChickenCost;
+  const totalProfit = totalRevenue - totalCost;
+  
+  // Calcular promedios diarios
+  const daysInPeriod = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+  const avgDailyRevenue = totalRevenue / daysInPeriod;
+  const avgDailyProfit = totalProfit / daysInPeriod;
+  
+  return {
+    period: periodType,
+    startDate: startDate,
+    endDate: endDate,
+    daysInPeriod: daysInPeriod,
+    sales: {
+      count: periodSales.length,
+      total: totalSales,
+      cost: totalSalesCost,
+      profit: totalSalesProfit,
+      avgDaily: totalSales / daysInPeriod,
+      items: periodSales
+    },
+    chickens: {
+      count: periodChickenSales.length,
+      total: totalChickenSales,
+      cost: totalChickenCost,
+      profit: totalChickenProfit,
+      weight: periodChickenSales.reduce((sum, sale) => sum + sale.weight, 0),
+      quantity: periodChickenSales.reduce((sum, sale) => sum + sale.quantity, 0),
+      avgDaily: totalChickenSales / daysInPeriod,
+      items: periodChickenSales
+    },
+    debts: {
+      count: periodDebts.length,
+      total: totalDebts,
+      avgDaily: totalDebts / daysInPeriod,
+      items: periodDebts
+    },
+    payments: {
+      count: periodPayments.length,
+      total: totalPayments,
+      avgDaily: totalPayments / daysInPeriod,
+      items: periodPayments
+    },
+    summary: {
+      revenue: totalRevenue,
+      cost: totalCost,
+      profit: totalProfit,
+      profitMargin: totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0,
+      avgDailyRevenue: avgDailyRevenue,
+      avgDailyProfit: avgDailyProfit
+    }
+  };
+}
+
+// Función para actualizar estadísticas de pollos
+function updateChickenStats() {
+  const today = new Date();
+  const todayStats = dailyStats.chickens || { count: 0, total: 0, profit: 0, weight: 0, quantity: 0 };
+  
+  // Actualizar elementos en la UI
+  const totalChickensSold = document.getElementById('totalChickensSold');
+  const totalWeightSold = document.getElementById('totalWeightSold');
+  const totalRevenue = document.getElementById('totalRevenue');
+  const totalProfit = document.getElementById('totalProfit');
+  const avgWeight = document.getElementById('avgWeight');
+  
+  if (totalChickensSold) totalChickensSold.textContent = todayStats.quantity;
+  if (totalWeightSold) totalWeightSold.textContent = todayStats.weight.toFixed(1);
+  if (totalRevenue) totalRevenue.textContent = `$${todayStats.total.toFixed(2)}`;
+  if (totalProfit) totalProfit.textContent = `$${todayStats.profit.toFixed(2)}`;
+  if (avgWeight) {
+    const avg = todayStats.quantity > 0 ? todayStats.weight / todayStats.quantity : 0;
+    avgWeight.textContent = avg.toFixed(1);
+  }
+  
+  // Actualizar lista de ventas de pollos
+  updateChickenSalesList();
+}
+
+// Función para actualizar UI de reportes
+function updateReportUI() {
+  // Actualizar tarjetas de balance
+  renderBalanceGrid();
+  
+  // Actualizar movimientos recientes
+  renderRecentMovements();
+  
+  // Actualizar gráficos si existen
+  updateCharts();
+}
+
+// Función para guardar estadísticas en localStorage
+function saveStatsToStorage() {
+  const statsData = {
+    dailyStats,
+    weeklyStats,
+    monthlyStats,
+    yearlyStats,
+    lastCalculated: new Date().toISOString()
+  };
+  
+  localStorage.setItem('appStats', JSON.stringify(statsData));
+}
+
+// Función para cargar estadísticas desde localStorage
+function loadStatsFromStorage() {
+  const statsData = localStorage.getItem('appStats');
+  if (statsData) {
+    try {
+      const parsed = JSON.parse(statsData);
+      dailyStats = parsed.dailyStats || {};
+      weeklyStats = parsed.weeklyStats || {};
+      monthlyStats = parsed.monthlyStats || {};
+      yearlyStats = parsed.yearlyStats || {};
+    } catch (error) {
+      console.error('Error cargando estadísticas:', error);
+    }
+  }
+}
+
+// Función para cambiar fecha seleccionada
+function changeSelectedDate(newDate) {
+  selectedDate = new Date(newDate);
+  calculateCompleteStats();
+  updateDateDisplay();
+}
+
+// Función para actualizar display de fecha
+function updateDateDisplay() {
+  const dateDisplay = document.getElementById('selectedDateDisplay');
+  if (dateDisplay) {
+    dateDisplay.textContent = selectedDate.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }
+}
+
+// Función para generar reporte PDF
+function generateReportPDF(type = 'daily', customDate = null) {
+  const reportDate = customDate || selectedDate || new Date();
+  let reportData;
+  
+  switch (type) {
+    case 'daily':
+      reportData = calculateDailyStats(reportDate);
+      break;
+    case 'weekly':
+      reportData = calculateWeeklyStats(reportDate);
+      break;
+    case 'monthly':
+      reportData = calculateMonthlyStats(reportDate);
+      break;
+    case 'yearly':
+      reportData = calculateYearlyStats(reportDate);
+      break;
+    default:
+      reportData = calculateDailyStats(reportDate);
+  }
+  
+  generateDetailedReportPDF(reportData, type);
+}
+
+// Función para generar reporte PDF detallado
+function generateDetailedReportPDF(data, type) {
+  if (typeof window.jspdf === 'undefined') {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'La librería PDF no está disponible.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  // Configurar fuente
+  doc.setFont('helvetica');
+  
+  // Título del reporte
+  doc.setFontSize(18);
+  doc.text(`REPORTE ${type.toUpperCase()} - TILLUP`, 105, 20, { align: 'center' });
+  
+  // Fecha del reporte
+  doc.setFontSize(12);
+  const dateText = type === 'daily' ? 
+    data.date.toLocaleDateString('es-ES') :
+    `${data.startDate.toLocaleDateString('es-ES')} - ${data.endDate.toLocaleDateString('es-ES')}`;
+  doc.text(`Período: ${dateText}`, 14, 35);
+  
+  let yPos = 50;
+  
+  // Resumen general
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('RESUMEN GENERAL', 14, yPos);
+  yPos += 10;
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Ingresos totales: $${data.summary.revenue.toFixed(2)}`, 20, yPos);
+  yPos += 7;
+  doc.text(`Costos totales: $${data.summary.cost.toFixed(2)}`, 20, yPos);
+  yPos += 7;
+  doc.text(`Ganancia total: $${data.summary.profit.toFixed(2)}`, 20, yPos);
+  yPos += 7;
+  doc.text(`Margen de ganancia: ${data.summary.profitMargin.toFixed(1)}%`, 20, yPos);
+  yPos += 15;
+  
+  // Ventas regulares
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('VENTAS REGULARES', 14, yPos);
+  yPos += 10;
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Cantidad de ventas: ${data.sales.count}`, 20, yPos);
+  yPos += 7;
+  doc.text(`Total ventas: $${data.sales.total.toFixed(2)}`, 20, yPos);
+  yPos += 7;
+  doc.text(`Ganancia ventas: $${data.sales.profit.toFixed(2)}`, 20, yPos);
+  yPos += 15;
+  
+  // Ventas de pollos
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('VENTAS DE POLLOS', 14, yPos);
+  yPos += 10;
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Cantidad de ventas: ${data.chickens.count}`, 20, yPos);
+  yPos += 7;
+  doc.text(`Pollos vendidos: ${data.chickens.quantity}`, 20, yPos);
+  yPos += 7;
+  doc.text(`Peso total: ${data.chickens.weight.toFixed(1)} lbs`, 20, yPos);
+  yPos += 7;
+  doc.text(`Total ventas: $${data.chickens.total.toFixed(2)}`, 20, yPos);
+  yPos += 7;
+  doc.text(`Ganancia pollos: $${data.chickens.profit.toFixed(2)}`, 20, yPos);
+  yPos += 15;
+  
+  // Deudas y pagos
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DEUDAS Y PAGOS', 14, yPos);
+  yPos += 10;
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Nuevas deudas: ${data.debts.count}`, 20, yPos);
+  yPos += 7;
+  doc.text(`Total deudas: $${data.debts.total.toFixed(2)}`, 20, yPos);
+  yPos += 7;
+  doc.text(`Pagos recibidos: ${data.payments.count}`, 20, yPos);
+  yPos += 7;
+  doc.text(`Total pagos: $${data.payments.total.toFixed(2)}`, 20, yPos);
+  
+  // Pie de página
+  doc.setFontSize(8);
+  doc.setTextColor(128, 128, 128);
+  doc.text('Generado por TillUp POS', 105, 280, { align: 'center' });
+  
+  // Descargar PDF
+  const fileName = `reporte_${type}_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(fileName);
+}
+
+// Función para mostrar selector de fecha
+function showDateSelector() {
+  const today = new Date();
+  const maxDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  
+  Swal.fire({
+    title: 'Seleccionar Fecha',
+    html: `
+      <input type="date" id="dateSelector" class="form-control" 
+             max="${maxDate.toISOString().split('T')[0]}" 
+             value="${selectedDate.toISOString().split('T')[0]}">
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Aplicar',
+    cancelButtonText: 'Cancelar',
+    preConfirm: () => {
+      const dateInput = document.getElementById('dateSelector');
+      if (dateInput.value) {
+        return dateInput.value;
+      }
+      Swal.showValidationMessage('Por favor selecciona una fecha');
+      return false;
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      changeSelectedDate(result.value);
+      hapticFeedback('success');
+    }
+  });
+}
+
+// Función para resetear estadísticas diarias de pollos
+function resetDailyChickenStats() {
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const lastReset = localStorage.getItem('lastChickenReset');
+  
+  if (lastReset !== todayStr) {
+    // Resetear contadores diarios
+    localStorage.setItem('lastChickenReset', todayStr);
+    
+    // Recalcular estadísticas
+    calculateCompleteStats();
+    
+    console.log('Estadísticas diarias de pollos reseteadas');
+  }
+}
+
+// Función para obtener movimientos por fecha
+function getMovementsByDate(date) {
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+  
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+  
+  const movements = [];
+  
+  // Agregar ventas regulares
+  sales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    return saleDate >= startOfDay && saleDate <= endOfDay;
+  }).forEach(sale => {
+    movements.push({
+      type: 'sale',
+      date: sale.date,
+      title: `Venta #${sale.id}`,
+      subtitle: sale.clientName,
+      amount: sale.total,
+      amountClass: 'positive',
+      icon: 'bi-cart-check',
+      data: sale
+    });
+  });
+  
+  // Agregar ventas de pollos
+  chickenSales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    return saleDate >= startOfDay && saleDate <= endOfDay;
+  }).forEach(sale => {
+    movements.push({
+      type: 'chicken',
+      date: sale.date,
+      title: `Venta Pollo #${sale.id}`,
+      subtitle: sale.clientName,
+      amount: sale.total,
+      amountClass: 'positive',
+      icon: 'bi-egg-fried',
+      data: sale
+    });
+  });
+  
+  // Agregar deudas
+  debts.filter(debt => {
+    const debtDate = new Date(debt.date);
+    return debtDate >= startOfDay && debtDate <= endOfDay;
+  }).forEach(debt => {
+    movements.push({
+      type: 'debt',
+      date: debt.date,
+      title: `Deuda #${debt.id}`,
+      subtitle: debt.clientName,
+      amount: debt.amount,
+      amountClass: 'negative',
+      icon: 'bi-cash-stack',
+      data: debt
+    });
+  });
+  
+  // Agregar pagos
+  debts.forEach(debt => {
+    (debt.payments || []).filter(payment => {
+      const paymentDate = new Date(payment.date);
+      return paymentDate >= startOfDay && paymentDate <= endOfDay;
+    }).forEach(payment => {
+      movements.push({
+        type: 'payment',
+        date: payment.date,
+        title: `Pago Deuda #${debt.id}`,
+        subtitle: debt.clientName,
+        amount: payment.amount,
+        amountClass: 'positive',
+        icon: 'bi-cash-coin',
+        data: { debt, payment }
+      });
+    });
+  });
+  
+  // Ordenar por fecha
+  return movements.sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+// Función para renderizar movimientos por fecha
+function renderMovementsByDate(date) {
+  const movements = getMovementsByDate(date);
+  const container = document.getElementById('movementsList');
+  
+  if (!container) return;
+  
+  if (movements.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-4">
+        <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+        <p class="text-muted mt-2">Sin movimientos en esta fecha</p>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = movements.map((movement, idx) => `
+    <div class="movement-item-treinta" onclick="showMovementDetail(${idx}, '${date.toISOString().split('T')[0]}')" style="cursor:pointer;">
+      <div class="movement-icon">
+        <i class="bi ${movement.icon}"></i>
+      </div>
+      <div class="movement-content">
+        <div class="movement-title">${movement.title}</div>
+        <div class="movement-subtitle">${movement.subtitle}</div>
+      </div>
+      <div class="movement-amount ${movement.amountClass}">
+        $${movement.amount.toFixed(2)}
+      </div>
+    </div>
+  `).join('');
+}
+
+// Función para mostrar detalle de movimiento por fecha
+function showMovementDetail(index, dateStr) {
+  const date = new Date(dateStr);
+  const movements = getMovementsByDate(date);
+  const movement = movements[index];
+  
+  if (!movement) return;
+  
+  switch (movement.type) {
+    case 'sale':
+      showReceipt(movement.data);
+      break;
+    case 'chicken':
+      showChickenReceipt(movement.data);
+      break;
+    case 'debt':
+      showDebtDetailModal(movement.data.id);
+      break;
+    case 'payment':
+      const { debt, payment } = movement.data;
+      Swal.fire({
+        icon: 'info',
+        title: 'Pago de deuda',
+        html: `
+          <div class="payment-detail">
+            <div><strong>Cliente:</strong> ${debt.clientName}</div>
+            <div><strong>Monto:</strong> $${payment.amount.toFixed(2)}</div>
+            <div><strong>Fecha:</strong> ${new Date(payment.date).toLocaleString()}</div>
+            <div><strong>Deuda:</strong> #${debt.id}</div>
+          </div>
+        `,
+        confirmButtonText: 'Cerrar'
+      });
+      break;
+  }
+}
+
+// Función para cambiar tipo de reporte
+function changeReportType() {
+  const reportType = document.getElementById('reportType').value;
+  reportFilters.view = reportType;
+  
+  // Actualizar filtros de fecha según el tipo
+  const today = new Date();
+  const startDateInput = document.getElementById('startDate');
+  const endDateInput = document.getElementById('endDate');
+  
+  switch (reportType) {
+    case 'daily':
+      startDateInput.value = today.toISOString().split('T')[0];
+      endDateInput.value = today.toISOString().split('T')[0];
+      break;
+    case 'weekly':
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay());
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      
+      startDateInput.value = startOfWeek.toISOString().split('T')[0];
+      endDateInput.value = endOfWeek.toISOString().split('T')[0];
+      break;
+    case 'monthly':
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      
+      startDateInput.value = startOfMonth.toISOString().split('T')[0];
+      endDateInput.value = endOfMonth.toISOString().split('T')[0];
+      break;
+    case 'yearly':
+      const startOfYear = new Date(today.getFullYear(), 0, 1);
+      const endOfYear = new Date(today.getFullYear(), 11, 31);
+      
+      startDateInput.value = startOfYear.toISOString().split('T')[0];
+      endDateInput.value = endOfYear.toISOString().split('T')[0];
+      break;
+  }
+  
+  // Recalcular estadísticas
+  calculateCompleteStats();
+  updateReportUI();
+}
+
+// Función para cambiar filtro de reporte
+function changeReportFilter() {
+  const reportFilter = document.getElementById('reportFilter').value;
+  reportFilters.type = reportFilter;
+  
+  // Actualizar UI según el filtro
+  updateReportUI();
+}
+
+// Función para actualizar UI de reportes con datos filtrados
+function updateReportUI() {
+  const stats = getFilteredStats();
+  
+  // Actualizar tarjetas de resumen
+  document.getElementById('totalRevenue').textContent = `$${stats.summary.revenue.toFixed(2)}`;
+  document.getElementById('totalCost').textContent = `$${stats.summary.cost.toFixed(2)}`;
+  document.getElementById('totalProfit').textContent = `$${stats.summary.profit.toFixed(2)}`;
+  document.getElementById('profitMargin').textContent = `${stats.summary.profitMargin.toFixed(1)}%`;
+  
+  // Actualizar detalles por categoría
+  document.getElementById('salesCount').textContent = stats.sales.count;
+  document.getElementById('salesTotal').textContent = `$${stats.sales.total.toFixed(2)}`;
+  document.getElementById('salesProfit').textContent = `$${stats.sales.profit.toFixed(2)}`;
+  
+  document.getElementById('chickenSalesCount').textContent = stats.chickens.count;
+  document.getElementById('chickenQuantity').textContent = stats.chickens.quantity;
+  document.getElementById('chickenWeight').textContent = `${stats.chickens.weight.toFixed(1)} lbs`;
+  document.getElementById('chickenTotal').textContent = `$${stats.chickens.total.toFixed(2)}`;
+  document.getElementById('chickenProfit').textContent = `$${stats.chickens.profit.toFixed(2)}`;
+  
+  document.getElementById('debtsCount').textContent = stats.debts.count;
+  document.getElementById('debtsTotal').textContent = `$${stats.debts.total.toFixed(2)}`;
+  
+  document.getElementById('paymentsCount').textContent = stats.payments.count;
+  document.getElementById('paymentsTotal').textContent = `$${stats.payments.total.toFixed(2)}`;
+  
+  // Actualizar movimientos según la fecha seleccionada
+  renderMovementsByDate(selectedDate);
+}
+
+// Función para obtener estadísticas filtradas
+function getFilteredStats() {
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  
+  if (startDate && endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return calculateStatsForPeriod(start, end, reportFilters.view);
+  }
+  
+  // Si no hay fechas específicas, usar las estadísticas actuales
+  switch (reportFilters.view) {
+    case 'daily':
+      return dailyStats;
+    case 'weekly':
+      return weeklyStats;
+    case 'monthly':
+      return monthlyStats;
+    case 'yearly':
+      return yearlyStats;
+    default:
+      return dailyStats;
+  }
+}
+
+// Función para inicializar el sistema de reportes
+function initializeReportsSystem() {
+  // Cargar estadísticas guardadas
+  loadStatsFromStorage();
+  
+  // Calcular estadísticas iniciales
+  calculateCompleteStats();
+  
+  // Configurar fechas por defecto
+  const today = new Date();
+  const startDateInput = document.getElementById('startDate');
+  const endDateInput = document.getElementById('endDate');
+  
+  if (startDateInput && endDateInput) {
+    startDateInput.value = today.toISOString().split('T')[0];
+    endDateInput.value = today.toISOString().split('T')[0];
+  }
+  
+  // Actualizar display de fecha
+  updateDateDisplay();
+  
+  // Actualizar UI
+  updateReportUI();
+  
+  // Configurar reset diario de estadísticas de pollos
+  resetDailyChickenStats();
+}
+
+// Función para mostrar vista de reportes
+function showReportsView() {
+  // Ocultar todas las vistas
+  document.querySelectorAll('.view-content').forEach(view => {
+    view.style.display = 'none';
+  });
+  
+  // Mostrar vista de reportes
+  const reportsView = document.getElementById('reportsView');
+  if (reportsView) {
+    reportsView.style.display = 'block';
+    
+    // Inicializar sistema si no se ha hecho
+    if (!reportsView.dataset.initialized) {
+      initializeReportsSystem();
+      reportsView.dataset.initialized = 'true';
+    }
+  }
+  
+  // Actualizar navegación
+  document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+    item.classList.remove('active');
+  });
+  document.getElementById('nav-reports').classList.add('active');
+}
+
+// Función para generar reporte PDF con filtros actuales
+function generateFilteredReportPDF() {
+  const reportType = document.getElementById('reportType').value;
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  
+  if (startDate && endDate) {
+    const customDate = new Date(startDate);
+    generateReportPDF(reportType, customDate);
+  } else {
+    generateReportPDF(reportType);
+  }
+}
+
+// Función para exportar datos en diferentes formatos
+function exportReportData(format = 'pdf') {
+  const stats = getFilteredStats();
+  
+  switch (format) {
+    case 'pdf':
+      generateFilteredReportPDF();
+      break;
+    case 'json':
+      exportAsJSON(stats);
+      break;
+    case 'csv':
+      exportAsCSV(stats);
+      break;
+    default:
+      generateFilteredReportPDF();
+  }
+}
+
+// Función para exportar como JSON
+function exportAsJSON(data) {
+  const dataStr = JSON.stringify(data, null, 2);
+  const dataBlob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(dataBlob);
+  
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `reporte_${new Date().toISOString().split('T')[0]}.json`;
+  link.click();
+  
+  URL.revokeObjectURL(url);
+}
+
+// Función para exportar como CSV
+function exportAsCSV(data) {
+  let csvContent = "data:text/csv;charset=utf-8,";
+  
+  // Encabezados
+  csvContent += "Categoría,Valor\n";
+  
+  // Datos
+  csvContent += `Ingresos Totales,${data.summary.revenue}\n`;
+  csvContent += `Costos Totales,${data.summary.cost}\n`;
+  csvContent += `Ganancia Total,${data.summary.profit}\n`;
+  csvContent += `Margen de Ganancia,${data.summary.profitMargin}\n`;
+  csvContent += `Ventas Regulares,${data.sales.count}\n`;
+  csvContent += `Total Ventas Regulares,${data.sales.total}\n`;
+  csvContent += `Ganancia Ventas Regulares,${data.sales.profit}\n`;
+  csvContent += `Ventas de Pollos,${data.chickens.count}\n`;
+  csvContent += `Pollos Vendidos,${data.chickens.quantity}\n`;
+  csvContent += `Peso Total Pollos,${data.chickens.weight}\n`;
+  csvContent += `Total Ventas Pollos,${data.chickens.total}\n`;
+  csvContent += `Ganancia Pollos,${data.chickens.profit}\n`;
+  csvContent += `Deudas,${data.debts.count}\n`;
+  csvContent += `Total Deudas,${data.debts.total}\n`;
+  csvContent += `Pagos Recibidos,${data.payments.count}\n`;
+  csvContent += `Total Pagos,${data.payments.total}\n`;
+  
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', `reporte_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// Función para mostrar comparación de períodos
+function showPeriodComparison() {
+  const currentStats = getFilteredStats();
+  
+  // Obtener estadísticas del período anterior para comparar
+  const startDate = new Date(document.getElementById('startDate').value);
+  const endDate = new Date(document.getElementById('endDate').value);
+  const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+  
+  const previousStartDate = new Date(startDate);
+  previousStartDate.setDate(startDate.getDate() - daysDiff);
+  const previousEndDate = new Date(endDate);
+  previousEndDate.setDate(endDate.getDate() - daysDiff);
+  
+  const previousStats = calculateStatsForPeriod(previousStartDate, previousEndDate, reportFilters.view);
+  
+  // Calcular cambios porcentuales
+  const revenueChange = previousStats.summary.revenue > 0 ? 
+    ((currentStats.summary.revenue - previousStats.summary.revenue) / previousStats.summary.revenue) * 100 : 0;
+  
+  const profitChange = previousStats.summary.profit > 0 ? 
+    ((currentStats.summary.profit - previousStats.summary.profit) / previousStats.summary.profit) * 100 : 0;
+  
+  // Mostrar comparación
+  Swal.fire({
+    title: 'Comparación de Períodos',
+    html: `
+      <div class="comparison-container">
+        <div class="comparison-item">
+          <h6>Ingresos</h6>
+          <div class="comparison-values">
+            <span class="current">$${currentStats.summary.revenue.toFixed(2)}</span>
+            <span class="change ${revenueChange >= 0 ? 'positive' : 'negative'}">
+              ${revenueChange >= 0 ? '+' : ''}${revenueChange.toFixed(1)}%
+            </span>
+          </div>
+        </div>
+        <div class="comparison-item">
+          <h6>Ganancia</h6>
+          <div class="comparison-values">
+            <span class="current">$${currentStats.summary.profit.toFixed(2)}</span>
+            <span class="change ${profitChange >= 0 ? 'positive' : 'negative'}">
+              ${profitChange >= 0 ? '+' : ''}${profitChange.toFixed(1)}%
+            </span>
+          </div>
+        </div>
+      </div>
+    `,
+    confirmButtonText: 'Cerrar',
+    width: '500px'
+  });
+}
+
+// Función para mostrar tendencias
+function showTrends() {
+  // Obtener datos de los últimos 7 días para mostrar tendencias
+  const trends = [];
+  const today = new Date();
+  
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - i);
+    const dayStats = calculateDailyStats(date);
+    trends.push({
+      date: date.toLocaleDateString('es-ES', { weekday: 'short' }),
+      revenue: dayStats.summary.revenue,
+      profit: dayStats.summary.profit
+    });
+  }
+  
+  // Mostrar gráfico de tendencias (simulado con texto)
+  let trendsHTML = '<div class="trends-container">';
+  trends.forEach(trend => {
+    trendsHTML += `
+      <div class="trend-item">
+        <div class="trend-date">${trend.date}</div>
+        <div class="trend-bar" style="width: ${(trend.revenue / Math.max(...trends.map(t => t.revenue))) * 100}%"></div>
+        <div class="trend-values">
+          <span>$${trend.revenue.toFixed(2)}</span>
+          <span class="profit">$${trend.profit.toFixed(2)}</span>
+        </div>
+      </div>
+    `;
+  });
+  trendsHTML += '</div>';
+  
+  Swal.fire({
+    title: 'Tendencias de la Semana',
+    html: trendsHTML,
+    confirmButtonText: 'Cerrar',
+    width: '600px'
+  });
+}
+
+// Función para configurar eventos de reportes
+function setupReportsEvents() {
+  // Evento para cambio de fecha en filtros
+  const startDateInput = document.getElementById('startDate');
+  const endDateInput = document.getElementById('endDate');
+  
+  if (startDateInput) {
+    startDateInput.addEventListener('change', () => {
+      calculateCompleteStats();
+      updateReportUI();
+    });
+  }
+  
+  if (endDateInput) {
+    endDateInput.addEventListener('change', () => {
+      calculateCompleteStats();
+      updateReportUI();
+    });
+  }
+  
+  // Evento para botón de comparación
+  const compareBtn = document.querySelector('[onclick="showPeriodComparison()"]');
+  if (compareBtn) {
+    compareBtn.addEventListener('click', showPeriodComparison);
+  }
+  
+  // Evento para botón de tendencias
+  const trendsBtn = document.querySelector('[onclick="showTrends()"]');
+  if (trendsBtn) {
+    trendsBtn.addEventListener('click', showTrends);
+  }
+}
+
+// Función para actualizar balance UI con nuevas estadísticas
+function updateBalanceUI() {
+  // Obtener estadísticas actuales
+  const stats = getFilteredStats();
+  
+  // Actualizar tarjetas de balance
+  const balanceCards = document.getElementById('balanceCards');
+  if (balanceCards) {
+    balanceCards.innerHTML = `
+      <div class="col-md-3 mb-3">
+        <div class="balance-card-treinta income">
+          <div class="balance-card-header">
+            <div class="balance-card-icon">
+              <i class="bi bi-cash-coin"></i>
+            </div>
+            <div class="balance-card-title">Ingresos</div>
+          </div>
+          <div class="balance-card-amount income">$${stats.summary.revenue.toFixed(2)}</div>
+        </div>
+      </div>
+      <div class="col-md-3 mb-3">
+        <div class="balance-card-treinta expenses">
+          <div class="balance-card-header">
+            <div class="balance-card-icon">
+              <i class="bi bi-cart-x"></i>
+            </div>
+            <div class="balance-card-title">Costos</div>
+          </div>
+          <div class="balance-card-amount expenses">$${stats.summary.cost.toFixed(2)}</div>
+        </div>
+      </div>
+      <div class="col-md-3 mb-3">
+        <div class="balance-card-treinta profit">
+          <div class="balance-card-header">
+            <div class="balance-card-icon">
+              <i class="bi bi-graph-up-arrow"></i>
+            </div>
+            <div class="balance-card-title">Ganancia</div>
+          </div>
+          <div class="balance-card-amount profit">$${stats.summary.profit.toFixed(2)}</div>
+        </div>
+      </div>
+      <div class="col-md-3 mb-3">
+        <div class="balance-card-treinta credits">
+          <div class="balance-card-header">
+            <div class="balance-card-icon">
+              <i class="bi bi-percent"></i>
+            </div>
+            <div class="balance-card-title">Margen</div>
+          </div>
+          <div class="balance-card-amount">${stats.summary.profitMargin.toFixed(1)}%</div>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Actualizar movimientos recientes
+  renderRecentMovements();
+}
+
+// Función para renderizar movimientos recientes
+function renderRecentMovements() {
+  const movements = getMovementsByDate(selectedDate);
+  const movementsList = document.getElementById('movementsList');
+  
+  if (!movementsList) return;
+  
+  if (movements.length === 0) {
+    movementsList.innerHTML = `
+      <div class="text-center py-4">
+        <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+        <p class="text-muted mt-2">Sin movimientos en esta fecha</p>
+      </div>
+    `;
+    return;
+  }
+  
+  // Limitar a los últimos 10 movimientos
+  const recentMovements = movements.slice(0, 10);
+  
+  movementsList.innerHTML = recentMovements.map((movement, idx) => `
+    <div class="movement-item-treinta" onclick="showMovementDetail(${idx}, '${selectedDate.toISOString().split('T')[0]}')">
+      <div class="movement-icon">
+        <i class="bi ${movement.icon}"></i>
+      </div>
+      <div class="movement-content">
+        <div class="movement-title">${movement.title}</div>
+        <div class="movement-subtitle">${movement.subtitle}</div>
+      </div>
+      <div class="movement-amount ${movement.amountClass}">
+        $${movement.amount.toFixed(2)}
+      </div>
+    </div>
+  `).join('');
+  
+  // Actualizar contador de movimientos
+  const movementsCount = document.getElementById('movementsCount');
+  if (movementsCount) {
+    movementsCount.textContent = `${movements.length} movimientos`;
+  }
+}
+
+// Función para actualizar gráficos (placeholder para futuras implementaciones)
+function updateCharts() {
+  // Aquí se pueden agregar gráficos con librerías como Chart.js
+  // Por ahora es un placeholder
+  console.log('Gráficos actualizados');
+}
+
+// Función para mostrar vista de reportes en la función showView existente
+function showView(viewName) {
+  // Ocultar todas las vistas
+  document.querySelectorAll('.view-content').forEach(view => {
+    view.style.display = 'none';
+  });
+  
+  // Mostrar la vista seleccionada
+  const selectedView = document.getElementById(`${viewName}View`);
+  if (selectedView) {
+    selectedView.style.display = 'block';
+    
+    // Si es la vista de reportes, inicializar
+    if (viewName === 'reports' && !selectedView.dataset.initialized) {
+      initializeReportsSystem();
+      selectedView.dataset.initialized = 'true';
+    }
+  }
+  
+  // Actualizar navegación
+  document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+    item.classList.remove('active');
+  });
+  
+  const navItem = document.getElementById(`nav-${viewName}`);
+  if (navItem) {
+    navItem.classList.add('active');
+  }
+  
+  // Actualizar balance UI si es necesario
+  if (viewName === 'balance' || viewName === 'reports') {
+    updateBalanceUI();
+  }
+}
