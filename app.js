@@ -1,18 +1,14 @@
-// === Arrays globales ===
+ // === Arrays globales ===
 let products = [];
 let clients = [];
 let sales = [];
 let debts = [];
 let cart = [];
-let chickenSales = [];
-let costPerPound = parseFloat(localStorage.getItem('costPerPound')) || 2.50;
 let currentClientId = null;
 let inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'grid'; // 'grid' o 'list'
 let clientsViewMode = localStorage.getItem('clientsViewMode') || 'grid'; // 'grid' o 'list'
 
-// === FUNCIONES DE GESTIÓN DE DATOS ===
-
-// Función para cargar datos desde localStorage
+// === FUNCIÓN DE CARGA DE DATOS ===
 function loadData() {
   try {
     // Cargar productos
@@ -39,12 +35,6 @@ function loadData() {
       debts = JSON.parse(savedDebts);
     }
     
-    // Cargar ventas de pollos
-    const savedChickenSales = localStorage.getItem('chickenSales');
-    if (savedChickenSales) {
-      chickenSales = JSON.parse(savedChickenSales);
-    }
-    
     // Cargar carrito
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
@@ -52,206 +42,21 @@ function loadData() {
     }
     
     // Cargar cliente seleccionado
-    const savedCurrentClientId = localStorage.getItem('currentClientId');
-    if (savedCurrentClientId) {
-      currentClientId = savedCurrentClientId;
+    const savedClientId = localStorage.getItem('currentClientId');
+    if (savedClientId) {
+      currentClientId = savedClientId;
     }
     
-    console.log('Datos cargados exitosamente');
+    console.log('Datos cargados correctamente');
   } catch (error) {
-    console.error('Error cargando datos:', error);
-    // Si hay error, inicializar con arrays vacíos
+    console.error('Error al cargar datos:', error);
+    // Si hay error, inicializar arrays vacíos
     products = [];
     clients = [];
     sales = [];
     debts = [];
-    chickenSales = [];
     cart = [];
     currentClientId = null;
-  }
-}
-
-// Función para guardar datos en localStorage
-function saveData() {
-  try {
-    localStorage.setItem('products', JSON.stringify(products));
-    localStorage.setItem('clients', JSON.stringify(clients));
-    localStorage.setItem('sales', JSON.stringify(sales));
-    localStorage.setItem('debts', JSON.stringify(debts));
-    localStorage.setItem('chickenSales', JSON.stringify(chickenSales));
-    localStorage.setItem('cart', JSON.stringify(cart));
-    localStorage.setItem('currentClientId', currentClientId);
-    
-    console.log('Datos guardados exitosamente');
-  } catch (error) {
-    console.error('Error guardando datos:', error);
-  }
-}
-
-// Función para configurar todos los event listeners
-function setupEventListeners() {
-  // Event listeners para el sidebar
-  const btnSidebar = document.getElementById('btnSidebar');
-  if (btnSidebar) {
-    btnSidebar.addEventListener('click', openSidebar);
-  }
-  
-  const sidebarOverlay = document.getElementById('sidebarOverlay');
-  if (sidebarOverlay) {
-    sidebarOverlay.addEventListener('click', closeSidebar);
-  }
-  
-  // Event listeners para formularios
-  const formProduct = document.getElementById('formProduct');
-  if (formProduct) {
-    formProduct.addEventListener('submit', addProduct);
-  }
-  
-  const formClient = document.getElementById('formClient');
-  if (formClient) {
-    formClient.addEventListener('submit', addClient);
-  }
-  
-  // Event listeners para botones de navegación
-  document.querySelectorAll('.sidebar-nav-item').forEach(item => {
-    item.addEventListener('click', function() {
-      const viewName = this.getAttribute('onclick').match(/showView\('([^']+)'\)/)[1];
-      showView(viewName);
-    });
-  });
-  
-  // Event listeners para filtros de período
-  document.querySelectorAll('input[name="periodFilter"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-      renderBalanceGrid();
-    });
-  });
-  
-  // Event listener para búsqueda de productos
-  const productSearch = document.getElementById('productSearch');
-  if (productSearch) {
-    productSearch.addEventListener('input', function() {
-      renderSalesProducts();
-    });
-  }
-  
-  // Event listeners para botones de tema
-  document.querySelectorAll('[onclick^="setTheme"]').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const theme = this.getAttribute('onclick').match(/setTheme\('([^']+)'\)/)[1];
-      setTheme(theme);
-    });
-  });
-  
-  // Event listeners para botones de actualización
-  const btnUpdate = document.getElementById('btn-update');
-  if (btnUpdate) {
-    btnUpdate.addEventListener('click', forceUpdate);
-  }
-  
-  // Event listeners para botones de instalación
-  const btnInstallPWA = document.getElementById('installPWA');
-  if (btnInstallPWA) {
-    btnInstallPWA.addEventListener('click', installPWA);
-  }
-  
-  // Event listeners para botones flotantes
-  const floatingActionBtn = document.getElementById('floatingActionBtn');
-  if (floatingActionBtn) {
-    floatingActionBtn.addEventListener('click', showQuickActions);
-  }
-  
-  // Event listeners para acciones rápidas
-  document.querySelectorAll('.quick-action-item').forEach(item => {
-    item.addEventListener('click', function() {
-      const action = this.getAttribute('onclick').match(/quickAction\('([^']+)'\)/)[1];
-      quickAction(action);
-    });
-  });
-  
-  // Event listeners para botones de pollos
-  const chickenForm = document.getElementById('chickenForm');
-  if (chickenForm) {
-    chickenForm.addEventListener('submit', handleChickenSale);
-  }
-  
-  // Event listeners para configuración de pollos
-  const costPerPoundInput = document.getElementById('costPerPound');
-  if (costPerPoundInput) {
-    costPerPoundInput.addEventListener('input', updateChickenConfig);
-  }
-  
-  // Event listeners para reportes
-  const reportTypeSelect = document.getElementById('reportType');
-  if (reportTypeSelect) {
-    reportTypeSelect.addEventListener('change', changeReportType);
-  }
-  
-  const reportFilterSelect = document.getElementById('reportFilter');
-  if (reportFilterSelect) {
-    reportFilterSelect.addEventListener('change', changeReportFilter);
-  }
-  
-  // Event listeners para filtros de fecha
-  const startDateInput = document.getElementById('startDate');
-  const endDateInput = document.getElementById('endDate');
-  
-  if (startDateInput) {
-    startDateInput.addEventListener('change', function() {
-      calculateCompleteStats();
-      updateReportUI();
-    });
-  }
-  
-  if (endDateInput) {
-    endDateInput.addEventListener('change', function() {
-      calculateCompleteStats();
-      updateReportUI();
-    });
-  }
-  
-  console.log('Event listeners configurados');
-}
-
-// Función para acciones rápidas
-function quickAction(action) {
-  switch (action) {
-    case 'addProduct':
-      const modalProduct = new bootstrap.Modal(document.getElementById('modalProduct'));
-      modalProduct.show();
-      break;
-    case 'addClient':
-      const modalClient = new bootstrap.Modal(document.getElementById('modalClient'));
-      modalClient.show();
-      break;
-    case 'newSale':
-      showView('sales');
-      break;
-    case 'chickenSale':
-      showView('chicken');
-      break;
-    default:
-      console.log('Acción no reconocida:', action);
-  }
-  
-  hideQuickActions();
-  hapticFeedback('medium');
-}
-
-// Función para mostrar acciones rápidas
-function showQuickActions() {
-  const menu = document.getElementById('quickActionsMenu');
-  if (menu) {
-    menu.style.display = 'block';
-    hapticFeedback('light');
-  }
-}
-
-// Función para ocultar acciones rápidas
-function hideQuickActions() {
-  const menu = document.getElementById('quickActionsMenu');
-  if (menu) {
-    menu.style.display = 'none';
   }
 }
 
@@ -1040,6 +845,18 @@ function hideQuickActions() {
   btn.style.transform = 'rotate(0deg)';
 }
 
+// Cerrar menú de acciones rápidas al hacer clic fuera
+document.addEventListener('click', function(event) {
+  const menu = document.getElementById('quickActionsMenu');
+  const btn = document.getElementById('floatingActionBtn');
+  
+  if (menu && menu.style.display !== 'none' && 
+      !menu.contains(event.target) && 
+      !btn.contains(event.target)) {
+    hideQuickActions();
+  }
+});
+
 // Función para manejar acciones rápidas
 window.quickAction = function(action) {
   hideQuickActions();
@@ -1049,14 +866,16 @@ window.quickAction = function(action) {
     case 'addProduct':
       showView('inventory');
       setTimeout(() => {
-        document.querySelector('[onclick="addProduct(event)"]').click();
+        const modal = new bootstrap.Modal(document.getElementById('modalProduct'));
+        modal.show();
       }, 300);
       break;
       
     case 'addClient':
       showView('clients');
       setTimeout(() => {
-        document.querySelector('[onclick="addClient(event)"]').click();
+        const modal = new bootstrap.Modal(document.getElementById('modalClient'));
+        modal.show();
       }, 300);
       break;
       
@@ -1076,7 +895,7 @@ window.quickAction = function(action) {
 // === GESTIÓN DE POLLOS ===
 
 // Variables globales para pollos
-// chickenSales ya está declarada globalmente en la línea 6
+let chickenSales = [];
 let pricePerPound = 2.50; // Precio por libra por defecto
 let costPerPound = 1.80; // Costo por libra por defecto
 
@@ -1835,7 +1654,7 @@ function closeSidebar() {
 }
 
 // === Configuración de tema (global) ===
-function setTheme(mode) {
+function setTheme(mode, showNotification = true) {
   // Remover clases activas de todos los botones
   document.querySelectorAll('.sidebar-action-btn').forEach(btn => {
     btn.classList.remove('active');
@@ -1856,20 +1675,22 @@ function setTheme(mode) {
   // Guardar preferencia
   localStorage.setItem('theme', mode);
   
-  // Mostrar notificación
-  const themeNames = {
-    light: 'Modo Claro',
-    dark: 'Modo Oscuro',
-    auto: 'Automático'
-  };
-  
-  Swal.fire({
-    icon: 'success',
-    title: 'Tema cambiado',
-    text: `Cambiado a ${themeNames[mode]}`,
-    timer: 1500,
-    showConfirmButton: false
-  });
+  // Mostrar notificación solo si se solicita
+  if (showNotification) {
+    const themeNames = {
+      light: 'Modo Claro',
+      dark: 'Modo Oscuro',
+      auto: 'Automático'
+    };
+    
+    Swal.fire({
+      icon: 'success',
+      title: 'Tema cambiado',
+      text: `Cambiado a ${themeNames[mode]}`,
+      timer: 1500,
+      showConfirmButton: false
+    });
+  }
 }
 
 // === Funciones de instalación PWA ===
@@ -2353,7 +2174,9 @@ function addProduct(e) {
           
           // Limpiar formulario y estado de edición
           document.getElementById('formProduct').reset();
-          document.getElementById('imagePreview').innerHTML = '';
+          if (document.getElementById('productImagePreview')) {
+            document.getElementById('productImagePreview').innerHTML = '';
+          }
           window.editingProductId = null;
           
           // Cerrar modal
@@ -2390,7 +2213,9 @@ function addProduct(e) {
         
         // Limpiar formulario
         document.getElementById('formProduct').reset();
-        document.getElementById('imagePreview').innerHTML = '';
+        if (document.getElementById('productImagePreview')) {
+          document.getElementById('productImagePreview').innerHTML = '';
+        }
         
         // Cerrar modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
@@ -2420,6 +2245,7 @@ const productPhotoInput = document.getElementById('productImageInput');
 if (productPhotoInput) {
   productPhotoInput.addEventListener('change', function(e) {
     const preview = document.getElementById('productImagePreview');
+    if (!preview) return;
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
@@ -2580,51 +2406,7 @@ function renderCart() {
   clearCartBtn.style.display = 'block';
   if (clientSelectorContainer) clientSelectorContainer.style.display = 'block';
 
-  // Agregar selector de cliente compacto al inicio del carrito
-  let clientSelectorHTML = '';
-  if (clients.length > 0) {
-    const selectedClient = clients.find(c => c.id === currentClientId);
-    const clientFirstName = selectedClient ? selectedClient.name.split(' ')[0] : '';
-    
-    clientSelectorHTML = `
-      <div class="client-selector-treinta mb-3">
-        ${selectedClient ? `
-          <div class="selected-client-display">
-            <div class="d-flex align-items-center">
-              <i class="bi bi-person-circle me-2"></i>
-              <span class="client-name-display">${clientFirstName}</span>
-              ${selectedClient.debt > 0 ? `<span class="badge bg-warning ms-2">Deuda: $${selectedClient.debt.toFixed(2)}</span>` : ''}
-            </div>
-            <button class="btn btn-sm btn-outline-danger remove-client-btn" onclick="removeSelectedClient()" title="Eliminar cliente">
-              <i class="bi bi-x"></i>
-            </button>
-          </div>
-        ` : `
-          <select id="cartClientSelector" class="form-select form-select-treinta" onchange="selectClientForCart(this.value)">
-            <option value="">Selecciona un cliente</option>
-            ${clients.map(client => `
-              <option value="${client.id}">
-                ${client.name.split(' ')[0]}${client.debt > 0 ? ` (Deuda: $${client.debt.toFixed(2)})` : ''}
-              </option>
-            `).join('')}
-          </select>
-        `}
-      </div>
-    `;
-  } else {
-    clientSelectorHTML = `
-      <div class="client-selector-treinta mb-3">
-        <div class="alert alert-info">
-          <i class="bi bi-info-circle"></i> No hay clientes registrados
-          <button class="btn btn-primary btn-sm ms-2" onclick="showAddClientModal()">
-            <i class="bi bi-person-plus"></i> Agregar Cliente
-          </button>
-        </div>
-      </div>
-    `;
-  }
-
-  container.innerHTML = clientSelectorHTML + cart.map(item => `
+  container.innerHTML = cart.map(item => `
     <div class="cart-item-treinta">
       <div class="cart-item-header-treinta">
         <div class="cart-item-qty-treinta">
@@ -3234,6 +3016,18 @@ function updateClientSelector() {
     opt.innerText = `${c.name}${c.debt > 0 ? ` (Deuda: $${c.debt.toFixed(2)})` : ''}`;
     selector.appendChild(opt);
   });
+  
+  // Actualizar también el selector de pollos si existe
+  const chickenSelector = document.getElementById('chickenClient');
+  if (chickenSelector) {
+    chickenSelector.innerHTML = `<option value="">Seleccionar cliente...</option>`;
+    clients.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.innerText = `${c.name}${c.debt > 0 ? ` (Deuda: $${c.debt.toFixed(2)})` : ''}`;
+      chickenSelector.appendChild(opt);
+    });
+  }
 }
 
 // === Mostrar deudas con diseño tipo Treinta.co ===
@@ -3383,8 +3177,25 @@ function detectDarkMode() {
 // Escuchar cambios en el sistema
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectDarkMode);
 
-// Ejecutar al iniciar
-detectDarkMode();
+// Ejecutar al iniciar - Tema claro por defecto
+document.documentElement.classList.remove('dark-mode');
+
+// Cargar tema guardado o usar claro por defecto
+function initializeTheme() {
+  const savedTheme = localStorage.getItem('theme');
+  
+  if (savedTheme === 'dark') {
+    setTheme('dark', false);
+  } else if (savedTheme === 'auto') {
+    setTheme('auto', false);
+  } else {
+    // Tema claro por defecto
+    setTheme('light', false);
+  }
+}
+
+// Inicializar tema al cargar la página
+document.addEventListener('DOMContentLoaded', initializeTheme);
 
 // === Registrar Service Worker ===
 if ('serviceWorker' in navigator) {
@@ -3892,42 +3703,13 @@ function getRecentMovements(period) {
 
 // Función para cambiar de vista
 function showView(viewName) {
-  // Remover foco de elementos en vistas ocultas antes de cambiar
-  removeFocusFromHiddenElements();
-  
   // Ocultar todas las vistas
-  const views = document.querySelectorAll('.app-view');
-  views.forEach(view => {
-    view.classList.add('d-none');
-    // Remover foco de elementos dentro de vistas ocultas
-    const focusableElements = view.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
-    focusableElements.forEach(element => {
-      element.setAttribute('tabindex', '-1');
-    });
-  });
+  document.querySelectorAll('.app-view').forEach(v => v.classList.add('d-none'));
   
   // Mostrar la vista seleccionada
   const targetView = document.getElementById(`view-${viewName}`);
   if (targetView) {
     targetView.classList.remove('d-none');
-    
-    // Restaurar tabindex de elementos focusables en la vista activa
-    const focusableElements = targetView.querySelectorAll('button, input, select, textarea, [tabindex="-1"]');
-    focusableElements.forEach(element => {
-      // Solo restaurar si no es un elemento que debe permanecer sin foco
-      if (!element.hasAttribute('data-no-focus')) {
-        element.removeAttribute('tabindex');
-      }
-    });
-    
-    // Enfocar el primer elemento focusable de la vista
-    const firstFocusable = targetView.querySelector('button:not([tabindex="-1"]), input:not([tabindex="-1"]), select:not([tabindex="-1"]), textarea:not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])');
-    if (firstFocusable && !firstFocusable.hasAttribute('data-no-focus')) {
-      // Usar setTimeout para asegurar que la vista esté visible antes de enfocar
-      setTimeout(() => {
-        safeFocus(firstFocusable);
-      }, 100);
-    }
   }
   
   // Actualizar botones activos en el sidebar
@@ -3944,9 +3726,6 @@ function showView(viewName) {
     activeBottomBtn.classList.add('active');
   }
   
-  // Actualizar título de la página
-  updatePageTitle(viewName);
-  
   // Ejecutar funciones específicas según la vista
   switch (viewName) {
     case 'balance':
@@ -3955,7 +3734,6 @@ function showView(viewName) {
       break;
     case 'sales':
       renderSalesProducts();
-      renderCart();
       break;
     case 'debt':
       renderDebts();
@@ -3985,140 +3763,12 @@ function showView(viewName) {
     case 'chickens':
       showChickenView();
       break;
-    case 'reports':
-      showReportsView();
-      break;
   }
   
   // Cerrar sidebar en móviles
   if (window.innerWidth <= 768) {
     closeSidebar();
   }
-  
-  // Feedback táctil
-  hapticFeedback('light');
-  
-  // Notificar cambio de vista para lectores de pantalla
-  announceViewChange(viewName);
-}
-
-// Función para actualizar el título de la página
-function updatePageTitle(viewName) {
-  const titles = {
-    'balance': 'Balance - TillUp',
-    'sales': 'Ventas - TillUp',
-    'clients': 'Clientes - TillUp',
-    'debt': 'Deudas - TillUp',
-    'inventory': 'Inventario - TillUp',
-    'chickens': 'Ventas de Pollos - TillUp',
-    'movements': 'Movimientos - TillUp',
-    'reports': 'Reportes - TillUp'
-  };
-  
-  document.title = titles[viewName] || 'TillUp';
-}
-
-// Función para anunciar cambios de vista para lectores de pantalla
-function announceViewChange(viewName) {
-  const announcements = {
-    'balance': 'Vista de balance activa',
-    'sales': 'Vista de ventas activa',
-    'clients': 'Vista de clientes activa',
-    'debt': 'Vista de deudas activa',
-    'inventory': 'Vista de inventario activa',
-    'chickens': 'Vista de ventas de pollos activa',
-    'movements': 'Vista de movimientos activa',
-    'reports': 'Vista de reportes activa'
-  };
-  
-  // Crear elemento para anuncio
-  const announcement = document.createElement('div');
-  announcement.setAttribute('aria-live', 'polite');
-  announcement.setAttribute('aria-atomic', 'true');
-  announcement.className = 'sr-only';
-  announcement.textContent = announcements[viewName] || 'Vista cambiada';
-  
-  document.body.appendChild(announcement);
-  
-  // Remover después de un momento
-  setTimeout(() => {
-    if (announcement.parentNode) {
-      announcement.parentNode.removeChild(announcement);
-    }
-  }, 1000);
-}
-
-// Función para manejar el foco de manera segura
-function safeFocus(element) {
-  if (element && element.offsetParent !== null) {
-    // Verificar que el elemento esté visible
-    const rect = element.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0) {
-      element.focus();
-      return true;
-    }
-  }
-  return false;
-}
-
-// Función para remover foco de elementos ocultos
-function removeFocusFromHiddenElements() {
-  const hiddenViews = document.querySelectorAll('.app-view.d-none');
-  hiddenViews.forEach(view => {
-    const focusedElement = view.querySelector(':focus');
-    if (focusedElement) {
-      focusedElement.blur();
-    }
-  });
-}
-
-// Función para configurar manejo de foco en modales
-function setupModalFocusManagement() {
-  const modals = document.querySelectorAll('.modal');
-  
-  modals.forEach(modal => {
-    modal.addEventListener('show.bs.modal', function() {
-      // Guardar elemento que tenía el foco antes del modal
-      this.previousActiveElement = document.activeElement;
-      
-      // Enfocar el primer elemento focusable del modal
-      const firstFocusable = this.querySelector('button:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])');
-      if (firstFocusable) {
-        setTimeout(() => firstFocusable.focus(), 100);
-      }
-    });
-    
-    modal.addEventListener('hidden.bs.modal', function() {
-      // Restaurar foco al elemento anterior
-      if (this.previousActiveElement && this.previousActiveElement.offsetParent !== null) {
-        this.previousActiveElement.focus();
-      }
-    });
-    
-    // Manejar foco dentro del modal (trap focus)
-    const focusableElements = modal.querySelectorAll('button:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])');
-    
-    if (focusableElements.length > 0) {
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-      
-      modal.addEventListener('keydown', function(e) {
-        if (e.key === 'Tab') {
-          if (e.shiftKey) {
-            if (document.activeElement === firstElement) {
-              e.preventDefault();
-              lastElement.focus();
-            }
-          } else {
-            if (document.activeElement === lastElement) {
-              e.preventDefault();
-              firstElement.focus();
-            }
-          }
-        }
-      });
-    }
-  });
 }
 
 // Mostrar detalles del cliente
@@ -5991,17 +5641,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Cargar datos guardados
   loadData();
   
-  // Configurar event listeners
-  setupEventListeners();
-  
   // Inicializar datos de pollos
   initializeChickenData();
-  
-  // Inicializar sistema de reportes
-  initializeReportsSystem();
-  
-  // Configurar eventos de reportes
-  setupReportsEvents();
   
   // Actualizar UI
   updateBalanceUI();
@@ -6028,9 +5669,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Inicializar mejoras para experiencia nativa
   initializeNativeEnhancements();
-  
-  // Configurar manejo de foco en modales
-  setupModalFocusManagement();
   
   // Mostrar botón de instalación si es necesario
   if ('serviceWorker' in navigator) {
@@ -6074,1141 +5712,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     localStorage.setItem('appInitialized', 'true');
   }
-  
-  // Calcular estadísticas iniciales
-  calculateCompleteStats();
 });
-
-// === SISTEMA DE CÁLCULOS AUTOMÁTICOS MEJORADO ===
-
-// Variables para el sistema de reportes
-let dailyStats = {};
-let weeklyStats = {};
-let monthlyStats = {};
-let yearlyStats = {};
-let selectedDate = new Date();
-let reportFilters = {
-  startDate: null,
-  endDate: null,
-  type: 'all', // 'all', 'sales', 'chickens', 'debts', 'payments'
-  view: 'daily' // 'daily', 'weekly', 'monthly', 'yearly'
-};
-
-// Función para calcular estadísticas completas
-function calculateCompleteStats() {
-  const today = new Date();
-  const currentDate = selectedDate || today;
-  
-  // Calcular estadísticas diarias
-  dailyStats = calculateDailyStats(currentDate);
-  
-  // Calcular estadísticas semanales
-  weeklyStats = calculateWeeklyStats(currentDate);
-  
-  // Calcular estadísticas mensuales
-  monthlyStats = calculateMonthlyStats(currentDate);
-  
-  // Calcular estadísticas anuales
-  yearlyStats = calculateYearlyStats(currentDate);
-  
-  // Actualizar UI con las nuevas estadísticas
-  updateBalanceUI();
-  updateChickenStats();
-  updateReportUI();
-  
-  // Guardar estadísticas en localStorage
-  saveStatsToStorage();
-}
-
-// Función para calcular estadísticas diarias
-function calculateDailyStats(date) {
-  const startOfDay = new Date(date);
-  startOfDay.setHours(0, 0, 0, 0);
-  
-  const endOfDay = new Date(date);
-  endOfDay.setHours(23, 59, 59, 999);
-  
-  // Filtrar ventas del día
-  const dailySales = sales.filter(sale => {
-    const saleDate = new Date(sale.date);
-    return saleDate >= startOfDay && saleDate <= endOfDay;
-  });
-  
-  // Filtrar ventas de pollos del día
-  const dailyChickenSales = chickenSales.filter(sale => {
-    const saleDate = new Date(sale.date);
-    return saleDate >= startOfDay && saleDate <= endOfDay;
-  });
-  
-  // Filtrar deudas del día
-  const dailyDebts = debts.filter(debt => {
-    const debtDate = new Date(debt.date);
-    return debtDate >= startOfDay && debtDate <= endOfDay;
-  });
-  
-  // Filtrar pagos del día
-  const dailyPayments = debts.flatMap(debt => 
-    (debt.payments || []).filter(payment => {
-      const paymentDate = new Date(payment.date);
-      return paymentDate >= startOfDay && paymentDate <= endOfDay;
-    }).map(payment => ({
-      ...payment,
-      debtId: debt.id,
-      clientName: debt.clientName,
-      originalAmount: debt.amount
-    }))
-  );
-  
-  // Calcular totales
-  const totalSales = dailySales.reduce((sum, sale) => sum + sale.total, 0);
-  const totalSalesCost = dailySales.reduce((sum, sale) => sum + sale.cost, 0);
-  const totalSalesProfit = totalSales - totalSalesCost;
-  
-  const totalChickenSales = dailyChickenSales.reduce((sum, sale) => sum + sale.total, 0);
-  const totalChickenCost = dailyChickenSales.reduce((sum, sale) => sum + (sale.weight * costPerPound), 0);
-  const totalChickenProfit = totalChickenSales - totalChickenCost;
-  
-  const totalDebts = dailyDebts.reduce((sum, debt) => sum + debt.amount, 0);
-  const totalPayments = dailyPayments.reduce((sum, payment) => sum + payment.amount, 0);
-  
-  const totalRevenue = totalSales + totalChickenSales + totalPayments;
-  const totalCost = totalSalesCost + totalChickenCost;
-  const totalProfit = totalRevenue - totalCost;
-  
-  return {
-    date: date,
-    sales: {
-      count: dailySales.length,
-      total: totalSales,
-      cost: totalSalesCost,
-      profit: totalSalesProfit,
-      items: dailySales
-    },
-    chickens: {
-      count: dailyChickenSales.length,
-      total: totalChickenSales,
-      cost: totalChickenCost,
-      profit: totalChickenProfit,
-      weight: dailyChickenSales.reduce((sum, sale) => sum + sale.weight, 0),
-      quantity: dailyChickenSales.reduce((sum, sale) => sum + sale.quantity, 0),
-      items: dailyChickenSales
-    },
-    debts: {
-      count: dailyDebts.length,
-      total: totalDebts,
-      items: dailyDebts
-    },
-    payments: {
-      count: dailyPayments.length,
-      total: totalPayments,
-      items: dailyPayments
-    },
-    summary: {
-      revenue: totalRevenue,
-      cost: totalCost,
-      profit: totalProfit,
-      profitMargin: totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0
-    }
-  };
-}
-
-// Función para calcular estadísticas semanales
-function calculateWeeklyStats(date) {
-  const startOfWeek = new Date(date);
-  startOfWeek.setDate(date.getDate() - date.getDay());
-  startOfWeek.setHours(0, 0, 0, 0);
-  
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6);
-  endOfWeek.setHours(23, 59, 59, 999);
-  
-  return calculateStatsForPeriod(startOfWeek, endOfWeek, 'weekly');
-}
-
-// Función para calcular estadísticas mensuales
-function calculateMonthlyStats(date) {
-  const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-  const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
-  
-  return calculateStatsForPeriod(startOfMonth, endOfMonth, 'monthly');
-}
-
-// Función para calcular estadísticas anuales
-function calculateYearlyStats(date) {
-  const startOfYear = new Date(date.getFullYear(), 0, 1);
-  const endOfYear = new Date(date.getFullYear(), 11, 31, 23, 59, 59, 999);
-  
-  return calculateStatsForPeriod(startOfYear, endOfYear, 'yearly');
-}
-
-// Función genérica para calcular estadísticas por período
-function calculateStatsForPeriod(startDate, endDate, periodType) {
-  // Filtrar datos por período
-  const periodSales = sales.filter(sale => {
-    const saleDate = new Date(sale.date);
-    return saleDate >= startDate && saleDate <= endDate;
-  });
-  
-  const periodChickenSales = chickenSales.filter(sale => {
-    const saleDate = new Date(sale.date);
-    return saleDate >= startDate && saleDate <= endDate;
-  });
-  
-  const periodDebts = debts.filter(debt => {
-    const debtDate = new Date(debt.date);
-    return debtDate >= startDate && debtDate <= endDate;
-  });
-  
-  const periodPayments = debts.flatMap(debt => 
-    (debt.payments || []).filter(payment => {
-      const paymentDate = new Date(payment.date);
-      return paymentDate >= startDate && paymentDate <= endDate;
-    }).map(payment => ({
-      ...payment,
-      debtId: debt.id,
-      clientName: debt.clientName,
-      originalAmount: debt.amount
-    }))
-  );
-  
-  // Calcular totales
-  const totalSales = periodSales.reduce((sum, sale) => sum + sale.total, 0);
-  const totalSalesCost = periodSales.reduce((sum, sale) => sum + sale.cost, 0);
-  const totalSalesProfit = totalSales - totalSalesCost;
-  
-  const totalChickenSales = periodChickenSales.reduce((sum, sale) => sum + sale.total, 0);
-  const totalChickenCost = periodChickenSales.reduce((sum, sale) => sum + (sale.weight * costPerPound), 0);
-  const totalChickenProfit = totalChickenSales - totalChickenCost;
-  
-  const totalDebts = periodDebts.reduce((sum, debt) => sum + debt.amount, 0);
-  const totalPayments = periodPayments.reduce((sum, payment) => sum + payment.amount, 0);
-  
-  const totalRevenue = totalSales + totalChickenSales + totalPayments;
-  const totalCost = totalSalesCost + totalChickenCost;
-  const totalProfit = totalRevenue - totalCost;
-  
-  // Calcular promedios diarios
-  const daysInPeriod = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-  const avgDailyRevenue = totalRevenue / daysInPeriod;
-  const avgDailyProfit = totalProfit / daysInPeriod;
-  
-  return {
-    period: periodType,
-    startDate: startDate,
-    endDate: endDate,
-    daysInPeriod: daysInPeriod,
-    sales: {
-      count: periodSales.length,
-      total: totalSales,
-      cost: totalSalesCost,
-      profit: totalSalesProfit,
-      avgDaily: totalSales / daysInPeriod,
-      items: periodSales
-    },
-    chickens: {
-      count: periodChickenSales.length,
-      total: totalChickenSales,
-      cost: totalChickenCost,
-      profit: totalChickenProfit,
-      weight: periodChickenSales.reduce((sum, sale) => sum + sale.weight, 0),
-      quantity: periodChickenSales.reduce((sum, sale) => sum + sale.quantity, 0),
-      avgDaily: totalChickenSales / daysInPeriod,
-      items: periodChickenSales
-    },
-    debts: {
-      count: periodDebts.length,
-      total: totalDebts,
-      avgDaily: totalDebts / daysInPeriod,
-      items: periodDebts
-    },
-    payments: {
-      count: periodPayments.length,
-      total: totalPayments,
-      avgDaily: totalPayments / daysInPeriod,
-      items: periodPayments
-    },
-    summary: {
-      revenue: totalRevenue,
-      cost: totalCost,
-      profit: totalProfit,
-      profitMargin: totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0,
-      avgDailyRevenue: avgDailyRevenue,
-      avgDailyProfit: avgDailyProfit
-    }
-  };
-}
-
-// Función para actualizar estadísticas de pollos
-function updateChickenStats() {
-  const today = new Date();
-  const todayStats = dailyStats.chickens || { count: 0, total: 0, profit: 0, weight: 0, quantity: 0 };
-  
-  // Actualizar elementos en la UI
-  const totalChickensSold = document.getElementById('totalChickensSold');
-  const totalWeightSold = document.getElementById('totalWeightSold');
-  const totalRevenue = document.getElementById('totalRevenue');
-  const totalProfit = document.getElementById('totalProfit');
-  const avgWeight = document.getElementById('avgWeight');
-  
-  if (totalChickensSold) totalChickensSold.textContent = todayStats.quantity;
-  if (totalWeightSold) totalWeightSold.textContent = todayStats.weight.toFixed(1);
-  if (totalRevenue) totalRevenue.textContent = `$${todayStats.total.toFixed(2)}`;
-  if (totalProfit) totalProfit.textContent = `$${todayStats.profit.toFixed(2)}`;
-  if (avgWeight) {
-    const avg = todayStats.quantity > 0 ? todayStats.weight / todayStats.quantity : 0;
-    avgWeight.textContent = avg.toFixed(1);
-  }
-  
-  // Actualizar lista de ventas de pollos
-  updateChickenSalesList();
-}
-
-// Función para actualizar UI de reportes
-function updateReportUI() {
-  // Actualizar tarjetas de balance
-  renderBalanceGrid();
-  
-  // Actualizar movimientos recientes
-  renderRecentMovements();
-  
-  // Actualizar gráficos si existen
-  updateCharts();
-}
-
-// Función para guardar estadísticas en localStorage
-function saveStatsToStorage() {
-  const statsData = {
-    dailyStats,
-    weeklyStats,
-    monthlyStats,
-    yearlyStats,
-    lastCalculated: new Date().toISOString()
-  };
-  
-  localStorage.setItem('appStats', JSON.stringify(statsData));
-}
-
-// Función para cargar estadísticas desde localStorage
-function loadStatsFromStorage() {
-  const statsData = localStorage.getItem('appStats');
-  if (statsData) {
-    try {
-      const parsed = JSON.parse(statsData);
-      dailyStats = parsed.dailyStats || {};
-      weeklyStats = parsed.weeklyStats || {};
-      monthlyStats = parsed.monthlyStats || {};
-      yearlyStats = parsed.yearlyStats || {};
-    } catch (error) {
-      console.error('Error cargando estadísticas:', error);
-    }
-  }
-}
-
-// Función para cambiar fecha seleccionada
-function changeSelectedDate(newDate) {
-  selectedDate = new Date(newDate);
-  calculateCompleteStats();
-  updateDateDisplay();
-}
-
-// Función para actualizar display de fecha
-function updateDateDisplay() {
-  const dateDisplay = document.getElementById('selectedDateDisplay');
-  if (dateDisplay) {
-    dateDisplay.textContent = selectedDate.toLocaleDateString('es-ES', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  }
-}
-
-// Función para generar reporte PDF
-function generateReportPDF(type = 'daily', customDate = null) {
-  const reportDate = customDate || selectedDate || new Date();
-  let reportData;
-  
-  switch (type) {
-    case 'daily':
-      reportData = calculateDailyStats(reportDate);
-      break;
-    case 'weekly':
-      reportData = calculateWeeklyStats(reportDate);
-      break;
-    case 'monthly':
-      reportData = calculateMonthlyStats(reportDate);
-      break;
-    case 'yearly':
-      reportData = calculateYearlyStats(reportDate);
-      break;
-    default:
-      reportData = calculateDailyStats(reportDate);
-  }
-  
-  generateDetailedReportPDF(reportData, type);
-}
-
-// Función para generar reporte PDF detallado
-function generateDetailedReportPDF(data, type) {
-  if (typeof window.jspdf === 'undefined') {
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'La librería PDF no está disponible.',
-      confirmButtonText: 'Aceptar'
-    });
-    return;
-  }
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  
-  // Configurar fuente
-  doc.setFont('helvetica');
-  
-  // Título del reporte
-  doc.setFontSize(18);
-  doc.text(`REPORTE ${type.toUpperCase()} - TILLUP`, 105, 20, { align: 'center' });
-  
-  // Fecha del reporte
-  doc.setFontSize(12);
-  const dateText = type === 'daily' ? 
-    data.date.toLocaleDateString('es-ES') :
-    `${data.startDate.toLocaleDateString('es-ES')} - ${data.endDate.toLocaleDateString('es-ES')}`;
-  doc.text(`Período: ${dateText}`, 14, 35);
-  
-  let yPos = 50;
-  
-  // Resumen general
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('RESUMEN GENERAL', 14, yPos);
-  yPos += 10;
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Ingresos totales: $${data.summary.revenue.toFixed(2)}`, 20, yPos);
-  yPos += 7;
-  doc.text(`Costos totales: $${data.summary.cost.toFixed(2)}`, 20, yPos);
-  yPos += 7;
-  doc.text(`Ganancia total: $${data.summary.profit.toFixed(2)}`, 20, yPos);
-  yPos += 7;
-  doc.text(`Margen de ganancia: ${data.summary.profitMargin.toFixed(1)}%`, 20, yPos);
-  yPos += 15;
-  
-  // Ventas regulares
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('VENTAS REGULARES', 14, yPos);
-  yPos += 10;
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Cantidad de ventas: ${data.sales.count}`, 20, yPos);
-  yPos += 7;
-  doc.text(`Total ventas: $${data.sales.total.toFixed(2)}`, 20, yPos);
-  yPos += 7;
-  doc.text(`Ganancia ventas: $${data.sales.profit.toFixed(2)}`, 20, yPos);
-  yPos += 15;
-  
-  // Ventas de pollos
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('VENTAS DE POLLOS', 14, yPos);
-  yPos += 10;
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Cantidad de ventas: ${data.chickens.count}`, 20, yPos);
-  yPos += 7;
-  doc.text(`Pollos vendidos: ${data.chickens.quantity}`, 20, yPos);
-  yPos += 7;
-  doc.text(`Peso total: ${data.chickens.weight.toFixed(1)} lbs`, 20, yPos);
-  yPos += 7;
-  doc.text(`Total ventas: $${data.chickens.total.toFixed(2)}`, 20, yPos);
-  yPos += 7;
-  doc.text(`Ganancia pollos: $${data.chickens.profit.toFixed(2)}`, 20, yPos);
-  yPos += 15;
-  
-  // Deudas y pagos
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('DEUDAS Y PAGOS', 14, yPos);
-  yPos += 10;
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Nuevas deudas: ${data.debts.count}`, 20, yPos);
-  yPos += 7;
-  doc.text(`Total deudas: $${data.debts.total.toFixed(2)}`, 20, yPos);
-  yPos += 7;
-  doc.text(`Pagos recibidos: ${data.payments.count}`, 20, yPos);
-  yPos += 7;
-  doc.text(`Total pagos: $${data.payments.total.toFixed(2)}`, 20, yPos);
-  
-  // Pie de página
-  doc.setFontSize(8);
-  doc.setTextColor(128, 128, 128);
-  doc.text('Generado por TillUp POS', 105, 280, { align: 'center' });
-  
-  // Descargar PDF
-  const fileName = `reporte_${type}_${new Date().toISOString().split('T')[0]}.pdf`;
-  doc.save(fileName);
-}
-
-// Función para mostrar selector de fecha
-function showDateSelector() {
-  const today = new Date();
-  const maxDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  
-  Swal.fire({
-    title: 'Seleccionar Fecha',
-    html: `
-      <input type="date" id="dateSelector" class="form-control" 
-             max="${maxDate.toISOString().split('T')[0]}" 
-             value="${selectedDate.toISOString().split('T')[0]}">
-    `,
-    showCancelButton: true,
-    confirmButtonText: 'Aplicar',
-    cancelButtonText: 'Cancelar',
-    preConfirm: () => {
-      const dateInput = document.getElementById('dateSelector');
-      if (dateInput.value) {
-        return dateInput.value;
-      }
-      Swal.showValidationMessage('Por favor selecciona una fecha');
-      return false;
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      changeSelectedDate(result.value);
-      hapticFeedback('success');
-    }
-  });
-}
-
-// Función para resetear estadísticas diarias de pollos
-function resetDailyChickenStats() {
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-  const lastReset = localStorage.getItem('lastChickenReset');
-  
-  if (lastReset !== todayStr) {
-    // Resetear contadores diarios
-    localStorage.setItem('lastChickenReset', todayStr);
-    
-    // Recalcular estadísticas
-    calculateCompleteStats();
-    
-    console.log('Estadísticas diarias de pollos reseteadas');
-  }
-}
-
-// Función para obtener movimientos por fecha
-function getMovementsByDate(date) {
-  const startOfDay = new Date(date);
-  startOfDay.setHours(0, 0, 0, 0);
-  
-  const endOfDay = new Date(date);
-  endOfDay.setHours(23, 59, 59, 999);
-  
-  const movements = [];
-  
-  // Agregar ventas regulares
-  sales.filter(sale => {
-    const saleDate = new Date(sale.date);
-    return saleDate >= startOfDay && saleDate <= endOfDay;
-  }).forEach(sale => {
-    movements.push({
-      type: 'sale',
-      date: sale.date,
-      title: `Venta #${sale.id}`,
-      subtitle: sale.clientName,
-      amount: sale.total,
-      amountClass: 'positive',
-      icon: 'bi-cart-check',
-      data: sale
-    });
-  });
-  
-  // Agregar ventas de pollos
-  chickenSales.filter(sale => {
-    const saleDate = new Date(sale.date);
-    return saleDate >= startOfDay && saleDate <= endOfDay;
-  }).forEach(sale => {
-    movements.push({
-      type: 'chicken',
-      date: sale.date,
-      title: `Venta Pollo #${sale.id}`,
-      subtitle: sale.clientName,
-      amount: sale.total,
-      amountClass: 'positive',
-      icon: 'bi-egg-fried',
-      data: sale
-    });
-  });
-  
-  // Agregar deudas
-  debts.filter(debt => {
-    const debtDate = new Date(debt.date);
-    return debtDate >= startOfDay && debtDate <= endOfDay;
-  }).forEach(debt => {
-    movements.push({
-      type: 'debt',
-      date: debt.date,
-      title: `Deuda #${debt.id}`,
-      subtitle: debt.clientName,
-      amount: debt.amount,
-      amountClass: 'negative',
-      icon: 'bi-cash-stack',
-      data: debt
-    });
-  });
-  
-  // Agregar pagos
-  debts.forEach(debt => {
-    (debt.payments || []).filter(payment => {
-      const paymentDate = new Date(payment.date);
-      return paymentDate >= startOfDay && paymentDate <= endOfDay;
-    }).forEach(payment => {
-      movements.push({
-        type: 'payment',
-        date: payment.date,
-        title: `Pago Deuda #${debt.id}`,
-        subtitle: debt.clientName,
-        amount: payment.amount,
-        amountClass: 'positive',
-        icon: 'bi-cash-coin',
-        data: { debt, payment }
-      });
-    });
-  });
-  
-  // Ordenar por fecha
-  return movements.sort((a, b) => new Date(b.date) - new Date(a.date));
-}
-
-// Función para renderizar movimientos por fecha
-function renderMovementsByDate(date) {
-  const movements = getMovementsByDate(date);
-  const container = document.getElementById('movementsList');
-  
-  if (!container) return;
-  
-  if (movements.length === 0) {
-    container.innerHTML = `
-      <div class="text-center py-4">
-        <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
-        <p class="text-muted mt-2">Sin movimientos en esta fecha</p>
-      </div>
-    `;
-    return;
-  }
-  
-  container.innerHTML = movements.map((movement, idx) => `
-    <div class="movement-item-treinta" onclick="showMovementDetail(${idx}, '${date.toISOString().split('T')[0]}')" style="cursor:pointer;">
-      <div class="movement-icon">
-        <i class="bi ${movement.icon}"></i>
-      </div>
-      <div class="movement-content">
-        <div class="movement-title">${movement.title}</div>
-        <div class="movement-subtitle">${movement.subtitle}</div>
-      </div>
-      <div class="movement-amount ${movement.amountClass}">
-        $${movement.amount.toFixed(2)}
-      </div>
-    </div>
-  `).join('');
-}
-
-// Función para mostrar detalle de movimiento por fecha
-function showMovementDetail(index, dateStr) {
-  const date = new Date(dateStr);
-  const movements = getMovementsByDate(date);
-  const movement = movements[index];
-  
-  if (!movement) return;
-  
-  switch (movement.type) {
-    case 'sale':
-      showReceipt(movement.data);
-      break;
-    case 'chicken':
-      showChickenReceipt(movement.data);
-      break;
-    case 'debt':
-      showDebtDetailModal(movement.data.id);
-      break;
-    case 'payment':
-      const { debt, payment } = movement.data;
-      Swal.fire({
-        icon: 'info',
-        title: 'Pago de deuda',
-        html: `
-          <div class="payment-detail">
-            <div><strong>Cliente:</strong> ${debt.clientName}</div>
-            <div><strong>Monto:</strong> $${payment.amount.toFixed(2)}</div>
-            <div><strong>Fecha:</strong> ${new Date(payment.date).toLocaleString()}</div>
-            <div><strong>Deuda:</strong> #${debt.id}</div>
-          </div>
-        `,
-        confirmButtonText: 'Cerrar'
-      });
-      break;
-  }
-}
-
-// Función para cambiar tipo de reporte
-function changeReportType() {
-  const reportType = document.getElementById('reportType').value;
-  reportFilters.view = reportType;
-  
-  // Actualizar filtros de fecha según el tipo
-  const today = new Date();
-  const startDateInput = document.getElementById('startDate');
-  const endDateInput = document.getElementById('endDate');
-  
-  switch (reportType) {
-    case 'daily':
-      startDateInput.value = today.toISOString().split('T')[0];
-      endDateInput.value = today.toISOString().split('T')[0];
-      break;
-    case 'weekly':
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay());
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
-      
-      startDateInput.value = startOfWeek.toISOString().split('T')[0];
-      endDateInput.value = endOfWeek.toISOString().split('T')[0];
-      break;
-    case 'monthly':
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      
-      startDateInput.value = startOfMonth.toISOString().split('T')[0];
-      endDateInput.value = endOfMonth.toISOString().split('T')[0];
-      break;
-    case 'yearly':
-      const startOfYear = new Date(today.getFullYear(), 0, 1);
-      const endOfYear = new Date(today.getFullYear(), 11, 31);
-      
-      startDateInput.value = startOfYear.toISOString().split('T')[0];
-      endDateInput.value = endOfYear.toISOString().split('T')[0];
-      break;
-  }
-  
-  // Recalcular estadísticas
-  calculateCompleteStats();
-  updateReportUI();
-}
-
-// Función para cambiar filtro de reporte
-function changeReportFilter() {
-  const reportFilter = document.getElementById('reportFilter').value;
-  reportFilters.type = reportFilter;
-  
-  // Actualizar UI según el filtro
-  updateReportUI();
-}
-
-
-
-// Función para obtener estadísticas filtradas
-function getFilteredStats() {
-  const startDate = document.getElementById('startDate').value;
-  const endDate = document.getElementById('endDate').value;
-  
-  if (startDate && endDate) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    return calculateStatsForPeriod(start, end, reportFilters.view);
-  }
-  
-  // Si no hay fechas específicas, usar las estadísticas actuales
-  switch (reportFilters.view) {
-    case 'daily':
-      return dailyStats;
-    case 'weekly':
-      return weeklyStats;
-    case 'monthly':
-      return monthlyStats;
-    case 'yearly':
-      return yearlyStats;
-    default:
-      return dailyStats;
-  }
-}
-
-// Función para inicializar el sistema de reportes
-function initializeReportsSystem() {
-  // Cargar estadísticas guardadas
-  loadStatsFromStorage();
-  
-  // Calcular estadísticas iniciales
-  calculateCompleteStats();
-  
-  // Configurar fechas por defecto
-  const today = new Date();
-  const startDateInput = document.getElementById('startDate');
-  const endDateInput = document.getElementById('endDate');
-  
-  if (startDateInput && endDateInput) {
-    startDateInput.value = today.toISOString().split('T')[0];
-    endDateInput.value = today.toISOString().split('T')[0];
-  }
-  
-  // Actualizar display de fecha
-  updateDateDisplay();
-  
-  // Actualizar UI
-  updateReportUI();
-  
-  // Configurar reset diario de estadísticas de pollos
-  resetDailyChickenStats();
-}
-
-// Función para mostrar vista de reportes
-function showReportsView() {
-  // Ocultar todas las vistas
-  document.querySelectorAll('.view-content').forEach(view => {
-    view.style.display = 'none';
-  });
-  
-  // Mostrar vista de reportes
-  const reportsView = document.getElementById('reportsView');
-  if (reportsView) {
-    reportsView.style.display = 'block';
-    
-    // Inicializar sistema si no se ha hecho
-    if (!reportsView.dataset.initialized) {
-      initializeReportsSystem();
-      reportsView.dataset.initialized = 'true';
-    }
-  }
-  
-  // Actualizar navegación
-  document.querySelectorAll('.sidebar-nav-item').forEach(item => {
-    item.classList.remove('active');
-  });
-  document.getElementById('nav-reports').classList.add('active');
-}
-
-// Función para generar reporte PDF con filtros actuales
-function generateFilteredReportPDF() {
-  const reportType = document.getElementById('reportType').value;
-  const startDate = document.getElementById('startDate').value;
-  const endDate = document.getElementById('endDate').value;
-  
-  if (startDate && endDate) {
-    const customDate = new Date(startDate);
-    generateReportPDF(reportType, customDate);
-  } else {
-    generateReportPDF(reportType);
-  }
-}
-
-// Función para exportar datos en diferentes formatos
-function exportReportData(format = 'pdf') {
-  const stats = getFilteredStats();
-  
-  switch (format) {
-    case 'pdf':
-      generateFilteredReportPDF();
-      break;
-    case 'json':
-      exportAsJSON(stats);
-      break;
-    case 'csv':
-      exportAsCSV(stats);
-      break;
-    default:
-      generateFilteredReportPDF();
-  }
-}
-
-// Función para exportar como JSON
-function exportAsJSON(data) {
-  const dataStr = JSON.stringify(data, null, 2);
-  const dataBlob = new Blob([dataStr], { type: 'application/json' });
-  const url = URL.createObjectURL(dataBlob);
-  
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `reporte_${new Date().toISOString().split('T')[0]}.json`;
-  link.click();
-  
-  URL.revokeObjectURL(url);
-}
-
-// Función para exportar como CSV
-function exportAsCSV(data) {
-  let csvContent = "data:text/csv;charset=utf-8,";
-  
-  // Encabezados
-  csvContent += "Categoría,Valor\n";
-  
-  // Datos
-  csvContent += `Ingresos Totales,${data.summary.revenue}\n`;
-  csvContent += `Costos Totales,${data.summary.cost}\n`;
-  csvContent += `Ganancia Total,${data.summary.profit}\n`;
-  csvContent += `Margen de Ganancia,${data.summary.profitMargin}\n`;
-  csvContent += `Ventas Regulares,${data.sales.count}\n`;
-  csvContent += `Total Ventas Regulares,${data.sales.total}\n`;
-  csvContent += `Ganancia Ventas Regulares,${data.sales.profit}\n`;
-  csvContent += `Ventas de Pollos,${data.chickens.count}\n`;
-  csvContent += `Pollos Vendidos,${data.chickens.quantity}\n`;
-  csvContent += `Peso Total Pollos,${data.chickens.weight}\n`;
-  csvContent += `Total Ventas Pollos,${data.chickens.total}\n`;
-  csvContent += `Ganancia Pollos,${data.chickens.profit}\n`;
-  csvContent += `Deudas,${data.debts.count}\n`;
-  csvContent += `Total Deudas,${data.debts.total}\n`;
-  csvContent += `Pagos Recibidos,${data.payments.count}\n`;
-  csvContent += `Total Pagos,${data.payments.total}\n`;
-  
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement('a');
-  link.setAttribute('href', encodedUri);
-  link.setAttribute('download', `reporte_${new Date().toISOString().split('T')[0]}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-// Función para mostrar comparación de períodos
-function showPeriodComparison() {
-  const currentStats = getFilteredStats();
-  
-  // Obtener estadísticas del período anterior para comparar
-  const startDate = new Date(document.getElementById('startDate').value);
-  const endDate = new Date(document.getElementById('endDate').value);
-  const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-  
-  const previousStartDate = new Date(startDate);
-  previousStartDate.setDate(startDate.getDate() - daysDiff);
-  const previousEndDate = new Date(endDate);
-  previousEndDate.setDate(endDate.getDate() - daysDiff);
-  
-  const previousStats = calculateStatsForPeriod(previousStartDate, previousEndDate, reportFilters.view);
-  
-  // Calcular cambios porcentuales
-  const revenueChange = previousStats.summary.revenue > 0 ? 
-    ((currentStats.summary.revenue - previousStats.summary.revenue) / previousStats.summary.revenue) * 100 : 0;
-  
-  const profitChange = previousStats.summary.profit > 0 ? 
-    ((currentStats.summary.profit - previousStats.summary.profit) / previousStats.summary.profit) * 100 : 0;
-  
-  // Mostrar comparación
-  Swal.fire({
-    title: 'Comparación de Períodos',
-    html: `
-      <div class="comparison-container">
-        <div class="comparison-item">
-          <h6>Ingresos</h6>
-          <div class="comparison-values">
-            <span class="current">$${currentStats.summary.revenue.toFixed(2)}</span>
-            <span class="change ${revenueChange >= 0 ? 'positive' : 'negative'}">
-              ${revenueChange >= 0 ? '+' : ''}${revenueChange.toFixed(1)}%
-            </span>
-          </div>
-        </div>
-        <div class="comparison-item">
-          <h6>Ganancia</h6>
-          <div class="comparison-values">
-            <span class="current">$${currentStats.summary.profit.toFixed(2)}</span>
-            <span class="change ${profitChange >= 0 ? 'positive' : 'negative'}">
-              ${profitChange >= 0 ? '+' : ''}${profitChange.toFixed(1)}%
-            </span>
-          </div>
-        </div>
-      </div>
-    `,
-    confirmButtonText: 'Cerrar',
-    width: '500px'
-  });
-}
-
-// Función para mostrar tendencias
-function showTrends() {
-  // Obtener datos de los últimos 7 días para mostrar tendencias
-  const trends = [];
-  const today = new Date();
-  
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(today.getDate() - i);
-    const dayStats = calculateDailyStats(date);
-    trends.push({
-      date: date.toLocaleDateString('es-ES', { weekday: 'short' }),
-      revenue: dayStats.summary.revenue,
-      profit: dayStats.summary.profit
-    });
-  }
-  
-  // Mostrar gráfico de tendencias (simulado con texto)
-  let trendsHTML = '<div class="trends-container">';
-  trends.forEach(trend => {
-    trendsHTML += `
-      <div class="trend-item">
-        <div class="trend-date">${trend.date}</div>
-        <div class="trend-bar" style="width: ${(trend.revenue / Math.max(...trends.map(t => t.revenue))) * 100}%"></div>
-        <div class="trend-values">
-          <span>$${trend.revenue.toFixed(2)}</span>
-          <span class="profit">$${trend.profit.toFixed(2)}</span>
-        </div>
-      </div>
-    `;
-  });
-  trendsHTML += '</div>';
-  
-  Swal.fire({
-    title: 'Tendencias de la Semana',
-    html: trendsHTML,
-    confirmButtonText: 'Cerrar',
-    width: '600px'
-  });
-}
-
-// Función para configurar eventos de reportes
-function setupReportsEvents() {
-  // Evento para cambio de fecha en filtros
-  const startDateInput = document.getElementById('startDate');
-  const endDateInput = document.getElementById('endDate');
-  
-  if (startDateInput) {
-    startDateInput.addEventListener('change', () => {
-      calculateCompleteStats();
-      updateReportUI();
-    });
-  }
-  
-  if (endDateInput) {
-    endDateInput.addEventListener('change', () => {
-      calculateCompleteStats();
-      updateReportUI();
-    });
-  }
-  
-  // Evento para botón de comparación
-  const compareBtn = document.querySelector('[onclick="showPeriodComparison()"]');
-  if (compareBtn) {
-    compareBtn.addEventListener('click', showPeriodComparison);
-  }
-  
-  // Evento para botón de tendencias
-  const trendsBtn = document.querySelector('[onclick="showTrends()"]');
-  if (trendsBtn) {
-    trendsBtn.addEventListener('click', showTrends);
-  }
-}
-
-// Función para actualizar balance UI con nuevas estadísticas
-function updateBalanceUI() {
-  // Obtener estadísticas actuales
-  const stats = getFilteredStats();
-  
-  // Actualizar tarjetas de balance
-  const balanceCards = document.getElementById('balanceCards');
-  if (balanceCards) {
-    balanceCards.innerHTML = `
-      <div class="col-md-3 mb-3">
-        <div class="balance-card-treinta income">
-          <div class="balance-card-header">
-            <div class="balance-card-icon">
-              <i class="bi bi-cash-coin"></i>
-            </div>
-            <div class="balance-card-title">Ingresos</div>
-          </div>
-          <div class="balance-card-amount income">$${stats.summary.revenue.toFixed(2)}</div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-3">
-        <div class="balance-card-treinta expenses">
-          <div class="balance-card-header">
-            <div class="balance-card-icon">
-              <i class="bi bi-cart-x"></i>
-            </div>
-            <div class="balance-card-title">Costos</div>
-          </div>
-          <div class="balance-card-amount expenses">$${stats.summary.cost.toFixed(2)}</div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-3">
-        <div class="balance-card-treinta profit">
-          <div class="balance-card-header">
-            <div class="balance-card-icon">
-              <i class="bi bi-graph-up-arrow"></i>
-            </div>
-            <div class="balance-card-title">Ganancia</div>
-          </div>
-          <div class="balance-card-amount profit">$${stats.summary.profit.toFixed(2)}</div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-3">
-        <div class="balance-card-treinta credits">
-          <div class="balance-card-header">
-            <div class="balance-card-icon">
-              <i class="bi bi-percent"></i>
-            </div>
-            <div class="balance-card-title">Margen</div>
-          </div>
-          <div class="balance-card-amount">${stats.summary.profitMargin.toFixed(1)}%</div>
-        </div>
-      </div>
-    `;
-  }
-  
-  // Actualizar movimientos recientes
-  renderRecentMovements();
-}
-
-// Función para renderizar movimientos recientes
-function renderRecentMovements() {
-  const movements = getMovementsByDate(selectedDate);
-  const movementsList = document.getElementById('movementsList');
-  
-  if (!movementsList) return;
-  
-  if (movements.length === 0) {
-    movementsList.innerHTML = `
-      <div class="text-center py-4">
-        <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
-        <p class="text-muted mt-2">Sin movimientos en esta fecha</p>
-      </div>
-    `;
-    return;
-  }
-  
-  // Limitar a los últimos 10 movimientos
-  const recentMovements = movements.slice(0, 10);
-  
-  movementsList.innerHTML = recentMovements.map((movement, idx) => `
-    <div class="movement-item-treinta" onclick="showMovementDetail(${idx}, '${selectedDate.toISOString().split('T')[0]}')">
-      <div class="movement-icon">
-        <i class="bi ${movement.icon}"></i>
-      </div>
-      <div class="movement-content">
-        <div class="movement-title">${movement.title}</div>
-        <div class="movement-subtitle">${movement.subtitle}</div>
-      </div>
-      <div class="movement-amount ${movement.amountClass}">
-        $${movement.amount.toFixed(2)}
-      </div>
-    </div>
-  `).join('');
-  
-  // Actualizar contador de movimientos
-  const movementsCount = document.getElementById('movementsCount');
-  if (movementsCount) {
-    movementsCount.textContent = `${movements.length} movimientos`;
-  }
-}
-
-// Función para actualizar gráficos (placeholder para futuras implementaciones)
-function updateCharts() {
-  // Aquí se pueden agregar gráficos con librerías como Chart.js
-  // Por ahora es un placeholder
-  console.log('Gráficos actualizados');
-}
-

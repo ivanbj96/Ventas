@@ -94,10 +94,6 @@
             <i class="bi bi-cash-stack"></i>
             <span>Deudas</span>
           </button>
-          <button class="sidebar-nav-item" onclick="showView('reports')" id="nav-reports">
-            <i class="bi bi-graph-up"></i>
-            <span>Reportes</span>
-          </button>
           <button class="sidebar-nav-item" onclick="showView('clients')" id="nav-clients">
             <i class="bi bi-people"></i>
             <span>Clientes</span>
@@ -262,7 +258,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
-            <form id="formProduct" class="form-treinta">
+            <form id="formProduct" class="form-treinta" onsubmit="addProduct(event)">
               <div class="form-group mb-3">
                 <label for="productName" class="form-label">
                   <i class="bi bi-tag"></i> Nombre del producto
@@ -463,7 +459,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
-        <form id="formClient" class="form-treinta">
+        <form id="formClient" class="form-treinta" onsubmit="addClient(event)">
           <div class="form-group mb-3">
             <label for="clientName" class="form-label">
               <i class="bi bi-person"></i> Nombre completo
@@ -836,215 +832,6 @@
     </div>
   </div>
 </section>
-
-        <!-- Vista de Reportes y Estadísticas -->
-        <div id="reportsView" class="view-content" style="display: none;">
-          <div class="view-header">
-            <h2><i class="bi bi-graph-up"></i> Reportes y Estadísticas</h2>
-            <div class="header-actions">
-              <button class="btn btn-outline-primary btn-sm" onclick="showDateSelector()">
-                <i class="bi bi-calendar3"></i>
-                <span id="selectedDateDisplay">Hoy</span>
-              </button>
-              <button class="btn btn-primary btn-sm" onclick="generateReportPDF('daily')">
-                <i class="bi bi-download"></i> Descargar
-              </button>
-            </div>
-          </div>
-
-          <!-- Filtros de Reporte -->
-          <div class="report-filters mb-4">
-            <div class="row g-3">
-              <div class="col-md-3">
-                <label class="form-label">Tipo de Reporte</label>
-                <select class="form-select" id="reportType" onchange="changeReportType()">
-                  <option value="daily">Diario</option>
-                  <option value="weekly">Semanal</option>
-                  <option value="monthly">Mensual</option>
-                  <option value="yearly">Anual</option>
-                </select>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label">Filtro</label>
-                <select class="form-select" id="reportFilter" onchange="changeReportFilter()">
-                  <option value="all">Todos</option>
-                  <option value="sales">Solo Ventas</option>
-                  <option value="chickens">Solo Pollos</option>
-                  <option value="debts">Solo Deudas</option>
-                  <option value="payments">Solo Pagos</option>
-                </select>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label">Desde</label>
-                <input type="date" class="form-control" id="startDate" onchange="onDateRangeChange()">
-              </div>
-              <div class="col-md-3">
-                <label class="form-label">Hasta</label>
-                <input type="date" class="form-control" id="endDate" onchange="onDateRangeChange()">
-              </div>
-            </div>
-          </div>
-
-          <!-- Tarjetas de Resumen -->
-          <div class="stats-summary mb-4">
-            <div class="row g-3">
-              <div class="col-md-3">
-                <div class="stat-card">
-                  <div class="stat-icon positive">
-                    <i class="bi bi-cash-coin"></i>
-                  </div>
-                  <div class="stat-content">
-                    <div class="stat-value" id="totalRevenue">$0.00</div>
-                    <div class="stat-label">Ingresos Totales</div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="stat-card">
-                  <div class="stat-icon negative">
-                    <i class="bi bi-cart-x"></i>
-                  </div>
-                  <div class="stat-content">
-                    <div class="stat-value" id="totalCost">$0.00</div>
-                    <div class="stat-label">Costos Totales</div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="stat-card">
-                  <div class="stat-icon positive">
-                    <i class="bi bi-graph-up-arrow"></i>
-                  </div>
-                  <div class="stat-content">
-                    <div class="stat-value" id="totalProfit">$0.00</div>
-                    <div class="stat-label">Ganancia Total</div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="stat-card">
-                  <div class="stat-icon info">
-                    <i class="bi bi-percent"></i>
-                  </div>
-                  <div class="stat-content">
-                    <div class="stat-value" id="profitMargin">0%</div>
-                    <div class="stat-label">Margen de Ganancia</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Detalles por Categoría -->
-          <div class="stats-details mb-4">
-            <div class="row g-3">
-              <!-- Ventas Regulares -->
-              <div class="col-md-6">
-                <div class="detail-card">
-                  <div class="detail-header">
-                    <h5><i class="bi bi-cart-check"></i> Ventas Regulares</h5>
-                  </div>
-                  <div class="detail-content">
-                    <div class="detail-row">
-                      <span>Cantidad:</span>
-                      <span id="salesCount">0</span>
-                    </div>
-                    <div class="detail-row">
-                      <span>Total:</span>
-                      <span id="salesTotal">$0.00</span>
-                    </div>
-                    <div class="detail-row">
-                      <span>Ganancia:</span>
-                      <span id="salesProfit">$0.00</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Ventas de Pollos -->
-              <div class="col-md-6">
-                <div class="detail-card">
-                  <div class="detail-header">
-                    <h5><i class="bi bi-egg-fried"></i> Ventas de Pollos</h5>
-                  </div>
-                  <div class="detail-content">
-                    <div class="detail-row">
-                      <span>Cantidad:</span>
-                      <span id="chickenSalesCount">0</span>
-                    </div>
-                    <div class="detail-row">
-                      <span>Pollos:</span>
-                      <span id="chickenQuantity">0</span>
-                    </div>
-                    <div class="detail-row">
-                      <span>Peso Total:</span>
-                      <span id="chickenWeight">0.0 lbs</span>
-                    </div>
-                    <div class="detail-row">
-                      <span>Total:</span>
-                      <span id="chickenTotal">$0.00</span>
-                    </div>
-                    <div class="detail-row">
-                      <span>Ganancia:</span>
-                      <span id="chickenProfit">$0.00</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Deudas -->
-              <div class="col-md-6">
-                <div class="detail-card">
-                  <div class="detail-header">
-                    <h5><i class="bi bi-cash-stack"></i> Deudas</h5>
-                  </div>
-                  <div class="detail-content">
-                    <div class="detail-row">
-                      <span>Cantidad:</span>
-                      <span id="debtsCount">0</span>
-                    </div>
-                    <div class="detail-row">
-                      <span>Total:</span>
-                      <span id="debtsTotal">$0.00</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Pagos -->
-              <div class="col-md-6">
-                <div class="detail-card">
-                  <div class="detail-header">
-                    <h5><i class="bi bi-cash-coin"></i> Pagos Recibidos</h5>
-                  </div>
-                  <div class="detail-content">
-                    <div class="detail-row">
-                      <span>Cantidad:</span>
-                      <span id="paymentsCount">0</span>
-                    </div>
-                    <div class="detail-row">
-                      <span>Total:</span>
-                      <span id="paymentsTotal">$0.00</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Movimientos del Día -->
-          <div class="movements-section">
-            <div class="section-header">
-              <h5><i class="bi bi-clock-history"></i> Movimientos del Día</h5>
-              <button class="btn btn-outline-secondary btn-sm" onclick="generateReportPDF('daily')">
-                <i class="bi bi-download"></i> Descargar
-              </button>
-            </div>
-            <div id="movementsList" class="movements-list-treinta">
-              <!-- Los movimientos se cargarán dinámicamente -->
-            </div>
-          </div>
-        </div>
 
   </main>
 
