@@ -6813,36 +6813,7 @@ function changeReportFilter() {
   updateReportUI();
 }
 
-// Función para actualizar UI de reportes con datos filtrados
-function updateReportUI() {
-  const stats = getFilteredStats();
-  
-  // Actualizar tarjetas de resumen
-  document.getElementById('totalRevenue').textContent = `$${stats.summary.revenue.toFixed(2)}`;
-  document.getElementById('totalCost').textContent = `$${stats.summary.cost.toFixed(2)}`;
-  document.getElementById('totalProfit').textContent = `$${stats.summary.profit.toFixed(2)}`;
-  document.getElementById('profitMargin').textContent = `${stats.summary.profitMargin.toFixed(1)}%`;
-  
-  // Actualizar detalles por categoría
-  document.getElementById('salesCount').textContent = stats.sales.count;
-  document.getElementById('salesTotal').textContent = `$${stats.sales.total.toFixed(2)}`;
-  document.getElementById('salesProfit').textContent = `$${stats.sales.profit.toFixed(2)}`;
-  
-  document.getElementById('chickenSalesCount').textContent = stats.chickens.count;
-  document.getElementById('chickenQuantity').textContent = stats.chickens.quantity;
-  document.getElementById('chickenWeight').textContent = `${stats.chickens.weight.toFixed(1)} lbs`;
-  document.getElementById('chickenTotal').textContent = `$${stats.chickens.total.toFixed(2)}`;
-  document.getElementById('chickenProfit').textContent = `$${stats.chickens.profit.toFixed(2)}`;
-  
-  document.getElementById('debtsCount').textContent = stats.debts.count;
-  document.getElementById('debtsTotal').textContent = `$${stats.debts.total.toFixed(2)}`;
-  
-  document.getElementById('paymentsCount').textContent = stats.payments.count;
-  document.getElementById('paymentsTotal').textContent = `$${stats.payments.total.toFixed(2)}`;
-  
-  // Actualizar movimientos según la fecha seleccionada
-  renderMovementsByDate(selectedDate);
-}
+
 
 // Función para obtener estadísticas filtradas
 function getFilteredStats() {
@@ -7241,37 +7212,3 @@ function updateCharts() {
   console.log('Gráficos actualizados');
 }
 
-// Función para mostrar vista de reportes en la función showView existente
-function showView(viewName) {
-  // Ocultar todas las vistas
-  document.querySelectorAll('.view-content').forEach(view => {
-    view.style.display = 'none';
-  });
-  
-  // Mostrar la vista seleccionada
-  const selectedView = document.getElementById(`${viewName}View`);
-  if (selectedView) {
-    selectedView.style.display = 'block';
-    
-    // Si es la vista de reportes, inicializar
-    if (viewName === 'reports' && !selectedView.dataset.initialized) {
-      initializeReportsSystem();
-      selectedView.dataset.initialized = 'true';
-    }
-  }
-  
-  // Actualizar navegación
-  document.querySelectorAll('.sidebar-nav-item').forEach(item => {
-    item.classList.remove('active');
-  });
-  
-  const navItem = document.getElementById(`nav-${viewName}`);
-  if (navItem) {
-    navItem.classList.add('active');
-  }
-  
-  // Actualizar balance UI si es necesario
-  if (viewName === 'balance' || viewName === 'reports') {
-    updateBalanceUI();
-  }
-}
