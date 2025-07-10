@@ -8,6 +8,824 @@ let currentClientId = null;
 let inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'grid'; // 'grid' o 'list'
 let clientsViewMode = localStorage.getItem('clientsViewMode') || 'grid'; // 'grid' o 'list'
 
+// === MEJORAS PARA EXPERIENCIA NATIVA ===
+
+// Configuración de gestos táctiles
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
+
+// Función para detectar gestos de swipe
+function detectSwipe(element, onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown) {
+  element.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+  });
+
+  element.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
+    handleSwipe();
+  });
+
+  function handleSwipe() {
+    const swipeThreshold = 50;
+    const diffX = touchStartX - touchEndX;
+    const diffY = touchStartY - touchEndY;
+
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+      if (diffX > swipeThreshold && onSwipeLeft) {
+        onSwipeLeft();
+      } else if (diffX < -swipeThreshold && onSwipeRight) {
+        onSwipeRight();
+      }
+    } else {
+      if (diffY > swipeThreshold && onSwipeUp) {
+        onSwipeUp();
+      } else if (diffY < -swipeThreshold && onSwipeDown) {
+        onSwipeDown();
+      }
+    }
+  }
+}
+
+// Función para feedback táctil (vibración)
+function hapticFeedback(type = 'light') {
+  if ('vibrate' in navigator) {
+    switch (type) {
+      case 'light':
+        navigator.vibrate(10);
+        break;
+      case 'medium':
+        navigator.vibrate(50);
+        break;
+      case 'heavy':
+        navigator.vibrate(100);
+        break;
+      case 'success':
+        navigator.vibrate([50, 50, 50]);
+        break;
+      case 'error':
+        navigator.vibrate([100, 50, 100]);
+        break;
+    }
+  }
+}
+
+// Función para mostrar notificaciones nativas
+function showNativeNotification(title, options = {}) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, {
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
+      ...options
+    });
+  }
+}
+
+// Función para solicitar permisos de notificación
+async function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      showNativeNotification('TillUp', {
+        body: 'Notificaciones activadas',
+        tag: 'permission-granted'
+      });
+    }
+  }
+}
+
+// Función para pull-to-refresh
+function setupPullToRefresh(container, onRefresh) {
+  let startY = 0;
+  let currentY = 0;
+  let pullDistance = 0;
+  const threshold = 80;
+  let isPulling = false;
+
+  container.addEventListener('touchstart', (e) => {
+    if (container.scrollTop === 0) {
+      startY = e.touches[0].clientY;
+      isPulling = true;
+    }
+  });
+
+  container.addEventListener('touchmove', (e) => {
+    if (!isPulling) return;
+    
+    currentY = e.touches[0].clientY;
+    pullDistance = currentY - startY;
+    
+    if (pullDistance > 0 && container.scrollTop === 0) {
+      e.preventDefault();
+      container.style.transform = `translateY(${Math.min(pullDistance * 0.5, threshold)}px)`;
+    }
+  });
+
+  container.addEventListener('touchend', () => {
+    if (isPulling && pullDistance > threshold) {
+      onRefresh();
+      hapticFeedback('success');
+    }
+    
+    container.style.transform = '';
+    isPulling = false;
+    pullDistance = 0;
+  });
+}
+
+// Función para mejorar la experiencia de scroll
+function setupSmoothScroll() {
+  const scrollElements = document.querySelectorAll('.movements-list-treinta, .products-grid-treinta, .clients-grid');
+  
+  scrollElements.forEach(element => {
+    element.style.scrollBehavior = 'smooth';
+    element.style.webkitOverflowScrolling = 'touch';
+  });
+}
+
+// Función para mejorar la experiencia de modales
+function setupModalGestures() {
+  const modals = document.querySelectorAll('.modal');
+  
+  modals.forEach(modal => {
+    const modalContent = modal.querySelector('.modal-content');
+    
+    detectSwipe(modalContent, 
+      () => closeModal(modal), // Swipe izquierda para cerrar
+      null, // Swipe derecha
+      null, // Swipe arriba
+      null  // Swipe abajo
+    );
+  });
+}
+
+// Función para cerrar modal con animación
+function closeModal(modal) {
+  modal.querySelector('.modal-content').style.transform = 'translateX(-100%)';
+  setTimeout(() => {
+    const modalInstance = bootstrap.Modal.getInstance(modal);
+    if (modalInstance) {
+      modalInstance.hide();
+    }
+  }, 300);
+}
+
+// Función para mejorar la experiencia de botones
+function setupButtonFeedback() {
+  const buttons = document.querySelectorAll('.btn');
+  
+  buttons.forEach(button => {
+    button.addEventListener('touchstart', () => {
+      hapticFeedback('light');
+    });
+    
+    button.addEventListener('click', () => {
+      hapticFeedback('medium');
+    });
+  });
+}
+
+// Función para mejorar la experiencia de inputs
+function setupInputEnhancements() {
+  const inputs = document.querySelectorAll('input, select, textarea');
+  
+  inputs.forEach(input => {
+    // Prevenir zoom en iOS
+    input.addEventListener('focus', () => {
+      if (window.innerWidth <= 768) {
+        setTimeout(() => {
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+      }
+    });
+    
+    // Mejorar experiencia de números
+    if (input.type === 'number') {
+      input.addEventListener('input', () => {
+        hapticFeedback('light');
+      });
+    }
+  });
+}
+
+// Función para mejorar la experiencia de cards
+function setupCardInteractions() {
+  const cards = document.querySelectorAll('.product-card, .client-card, .debt-card');
+  
+  cards.forEach(card => {
+    card.addEventListener('touchstart', () => {
+      hapticFeedback('light');
+    });
+    
+    // Efecto de presión
+    card.addEventListener('touchstart', () => {
+      card.style.transform = 'scale(0.98)';
+    });
+    
+    card.addEventListener('touchend', () => {
+      card.style.transform = '';
+    });
+  });
+}
+
+// Función para mejorar la experiencia de listas
+function setupListInteractions() {
+  const listItems = document.querySelectorAll('.movement-item-treinta, .cart-item-treinta');
+  
+  listItems.forEach(item => {
+    detectSwipe(item, 
+      () => {
+        // Swipe izquierda - mostrar acciones
+        showItemActions(item);
+      },
+      null, // Swipe derecha
+      null, // Swipe arriba
+      null  // Swipe abajo
+    );
+  });
+}
+
+// Función para mostrar acciones de elementos
+function showItemActions(item) {
+  const actions = document.createElement('div');
+  actions.className = 'item-actions';
+  actions.innerHTML = `
+    <button class="btn btn-sm btn-outline-primary" onclick="editItem('${item.dataset.id}')">
+      <i class="bi bi-pencil"></i>
+    </button>
+    <button class="btn btn-sm btn-outline-danger" onclick="deleteItem('${item.dataset.id}')">
+      <i class="bi bi-trash"></i>
+    </button>
+  `;
+  
+  item.appendChild(actions);
+  hapticFeedback('medium');
+}
+
+// Función para mejorar la experiencia de navegación
+function setupNavigationEnhancements() {
+  const navButtons = document.querySelectorAll('.sidebar-nav-item, .navbar-treinta .btn');
+  
+  navButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      hapticFeedback('medium');
+    });
+  });
+}
+
+// Función para mejorar la experiencia de búsqueda
+function setupSearchEnhancements() {
+  const searchInputs = document.querySelectorAll('input[type="search"], .search-input');
+  
+  searchInputs.forEach(input => {
+    let searchTimeout;
+    
+    input.addEventListener('input', (e) => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        hapticFeedback('light');
+        // Aquí iría la lógica de búsqueda
+      }, 300);
+    });
+  });
+}
+
+// Función para mejorar la experiencia de formularios
+function setupFormEnhancements() {
+  const forms = document.querySelectorAll('form');
+  
+  forms.forEach(form => {
+    form.addEventListener('submit', (e) => {
+      hapticFeedback('success');
+    });
+    
+    // Validación en tiempo real
+    const inputs = form.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+      input.addEventListener('blur', () => {
+        validateField(input);
+      });
+    });
+  });
+}
+
+// Función para validar campos
+function validateField(field) {
+  const value = field.value.trim();
+  const fieldType = field.type;
+  const fieldName = field.name;
+  
+  let isValid = true;
+  let errorMessage = '';
+  
+  // Validaciones específicas
+  if (field.hasAttribute('required') && !value) {
+    isValid = false;
+    errorMessage = 'Este campo es requerido';
+  } else if (fieldType === 'email' && value && !isValidEmail(value)) {
+    isValid = false;
+    errorMessage = 'Email inválido';
+  } else if (fieldType === 'number' && value && isNaN(value)) {
+    isValid = false;
+    errorMessage = 'Número inválido';
+  }
+  
+  // Mostrar/ocultar error
+  const errorElement = field.parentNode.querySelector('.error-message');
+  if (!isValid) {
+    if (!errorElement) {
+      const error = document.createElement('div');
+      error.className = 'error-message text-danger small mt-1';
+      error.textContent = errorMessage;
+      field.parentNode.appendChild(error);
+    } else {
+      errorElement.textContent = errorMessage;
+    }
+    hapticFeedback('error');
+  } else if (errorElement) {
+    errorElement.remove();
+  }
+}
+
+// Función para validar email
+function isValidEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+// Función para mejorar la experiencia de carga
+function setupLoadingEnhancements() {
+  // Mostrar spinner de carga
+  function showLoading(element) {
+    const spinner = document.createElement('div');
+    spinner.className = 'loading-spinner';
+    element.appendChild(spinner);
+  }
+  
+  // Ocultar spinner de carga
+  function hideLoading(element) {
+    const spinner = element.querySelector('.loading-spinner');
+    if (spinner) {
+      spinner.remove();
+    }
+  }
+  
+  // Exponer funciones globalmente
+  window.showLoading = showLoading;
+  window.hideLoading = hideLoading;
+}
+
+// Función para mejorar la experiencia de errores
+function setupErrorHandling() {
+  window.addEventListener('error', (e) => {
+    console.error('Error:', e.error);
+    hapticFeedback('error');
+    
+    // Mostrar notificación de error
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Ha ocurrido un error inesperado',
+      confirmButtonText: 'Aceptar'
+    });
+  });
+}
+
+// Función para mejorar la experiencia offline
+function setupOfflineEnhancements() {
+  window.addEventListener('online', () => {
+    hapticFeedback('success');
+    showNativeNotification('TillUp', {
+      body: 'Conexión restaurada',
+      tag: 'connection-restored'
+    });
+    
+    // Verificar actualizaciones cuando se restaura la conexión
+    checkForAppUpdates();
+  });
+  
+  window.addEventListener('offline', () => {
+    hapticFeedback('error');
+    showNativeNotification('TillUp', {
+      body: 'Sin conexión - Modo offline',
+      tag: 'connection-lost'
+    });
+  });
+}
+
+// === SISTEMA DE ACTUALIZACIÓN AUTOMÁTICA ===
+
+// Variables para el sistema de actualización
+let updateAvailable = false;
+let updateData = null;
+let updateCheckInterval = null;
+
+// Función para configurar el sistema de actualización
+function setupUpdateSystem() {
+  // Escuchar mensajes del Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', handleSWMessage);
+  }
+  
+  // Verificar actualizaciones periódicamente
+  startPeriodicUpdateCheck();
+  
+  // Verificar actualizaciones al cargar la app
+  checkForAppUpdates();
+}
+
+// Función para manejar mensajes del Service Worker
+function handleSWMessage(event) {
+  const { type, data, updates, timestamp } = event.data;
+  
+  switch (type) {
+    case 'SW_INSTALLED':
+      console.log('Nueva versión instalada:', data);
+      showUpdateNotification('Nueva versión instalada', 'success');
+      break;
+      
+    case 'SW_UPDATED':
+      console.log('Service Worker actualizado:', data);
+      if (data.requiresReload) {
+        showUpdateNotification('Actualización disponible', 'info');
+        showUpdateIndicator();
+      }
+      break;
+      
+    case 'UPDATE_AVAILABLE':
+      console.log('Actualización detectada:', data);
+      updateAvailable = true;
+      updateData = data;
+      showUpdateNotification('Actualización disponible', 'info');
+      showUpdateIndicator();
+      break;
+      
+    case 'UPDATES_FOUND':
+      console.log('Actualizaciones encontradas:', updates);
+      if (updates && updates.length > 0) {
+        updateAvailable = true;
+        updateData = { updates, timestamp };
+        showUpdateNotification(`${updates.length} actualización(es) disponible(s)`, 'info');
+        showUpdateIndicator();
+      }
+      break;
+      
+    case 'UPDATE_APPLIED':
+      console.log('Actualización aplicada:', data);
+      updateAvailable = false;
+      updateData = null;
+      hideUpdateIndicator();
+      showUpdateNotification('Actualización aplicada exitosamente', 'success');
+      // Recargar la página después de un breve delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+      break;
+      
+    case 'SYNC_COMPLETED':
+      console.log('Sincronización completada');
+      break;
+      
+    case 'SYNC_ERROR':
+      console.error('Error en sincronización:', data);
+      break;
+  }
+}
+
+// Función para mostrar indicador de actualización
+function showUpdateIndicator() {
+  const updateBtn = document.getElementById('updateIndicator');
+  const installBtn = document.getElementById('installPWA');
+  
+  if (updateBtn) {
+    updateBtn.style.display = 'block';
+  }
+  
+  if (installBtn) {
+    installBtn.style.display = 'none';
+  }
+  
+  hapticFeedback('medium');
+}
+
+// Función para ocultar indicador de actualización
+function hideUpdateIndicator() {
+  const updateBtn = document.getElementById('updateIndicator');
+  
+  if (updateBtn) {
+    updateBtn.style.display = 'none';
+  }
+}
+
+// Función para verificar actualizaciones de la app
+async function checkForAppUpdates() {
+  if (!navigator.onLine) return;
+  
+  try {
+    console.log('Verificando actualizaciones de la app...');
+    
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'CHECK_FOR_UPDATES'
+      });
+    }
+    
+    // También verificar manualmente archivos críticos
+    const criticalFiles = [
+      './app.js',
+      './style.css',
+      './utils.js'
+    ];
+    
+    const updatePromises = criticalFiles.map(async (file) => {
+      try {
+        const response = await fetch(file, { 
+          cache: 'no-cache',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        
+        if (response.ok) {
+          const newContent = await response.text();
+          const cachedContent = localStorage.getItem(`cached_${file}`);
+          
+          if (cachedContent && cachedContent !== newContent) {
+            console.log('Actualización detectada en:', file);
+            return { file, hasUpdate: true };
+          } else {
+            localStorage.setItem(`cached_${file}`, newContent);
+          }
+        }
+        
+        return { file, hasUpdate: false };
+      } catch (error) {
+        console.error('Error verificando:', file, error);
+        return { file, hasUpdate: false, error: true };
+      }
+    });
+    
+    const results = await Promise.all(updatePromises);
+    const updates = results.filter(r => r.hasUpdate);
+    
+    if (updates.length > 0) {
+      updateAvailable = true;
+      updateData = { updates, timestamp: Date.now() };
+      showUpdateNotification(`${updates.length} actualización(es) disponible(s)`, 'info');
+    }
+    
+  } catch (error) {
+    console.error('Error verificando actualizaciones:', error);
+  }
+}
+
+// Función para iniciar verificación periódica de actualizaciones
+function startPeriodicUpdateCheck() {
+  // Verificar cada 30 minutos
+  const checkInterval = 30 * 60 * 1000;
+  
+  updateCheckInterval = setInterval(() => {
+    if (navigator.onLine) {
+      checkForAppUpdates();
+    }
+  }, checkInterval);
+  
+  // También verificar cuando la app vuelve a estar activa
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && navigator.onLine) {
+      checkForAppUpdates();
+    }
+  });
+}
+
+// Función para mostrar notificación de actualización
+function showUpdateNotification(message, type = 'info') {
+  // Mostrar notificación nativa si está disponible
+  if ('Notification' in window && Notification.permission === 'granted') {
+    const notification = new Notification('TillUp - Actualización', {
+      body: message,
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
+      tag: 'update-notification',
+      requireInteraction: type === 'info',
+      actions: type === 'info' ? [
+        {
+          action: 'apply_update',
+          title: 'Aplicar'
+        },
+        {
+          action: 'dismiss',
+          title: 'Más tarde'
+        }
+      ] : []
+    });
+    
+    notification.onclick = () => {
+      if (type === 'info' && updateAvailable) {
+        applyUpdate();
+      }
+      notification.close();
+    };
+  }
+  
+  // Mostrar notificación en la UI
+  showUpdateToast(message, type);
+}
+
+// Función para mostrar toast de actualización
+function showUpdateToast(message, type) {
+  const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+  
+  const toast = document.createElement('div');
+  toast.className = `toast show bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'primary'} text-white`;
+  toast.innerHTML = `
+    <div class="toast-header">
+      <i class="bi bi-arrow-clockwise me-2"></i>
+      <strong class="me-auto">Actualización</strong>
+      <button type="button" class="btn-close btn-close-white" onclick="this.parentElement.parentElement.remove()"></button>
+    </div>
+    <div class="toast-body">
+      ${message}
+      ${type === 'info' && updateAvailable ? `
+        <div class="mt-2">
+          <button class="btn btn-sm btn-light" onclick="applyUpdate()">Aplicar</button>
+          <button class="btn btn-sm btn-outline-light ms-2" onclick="this.parentElement.parentElement.parentElement.remove()">Más tarde</button>
+        </div>
+      ` : ''}
+    </div>
+  `;
+  
+  toastContainer.appendChild(toast);
+  
+  // Auto-remover después de 10 segundos
+  setTimeout(() => {
+    if (toast.parentElement) {
+      toast.remove();
+    }
+  }, 10000);
+}
+
+// Función para crear contenedor de toasts
+function createToastContainer() {
+  const container = document.createElement('div');
+  container.id = 'toastContainer';
+  container.className = 'toast-container position-fixed top-0 end-0 p-3';
+  container.style.zIndex = '9999';
+  document.body.appendChild(container);
+  return container;
+}
+
+// Función para aplicar actualización
+async function applyUpdate() {
+  try {
+    console.log('Aplicando actualización...');
+    
+    // Mostrar indicador de carga
+    showUpdateToast('Aplicando actualización...', 'info');
+    
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'APPLY_UPDATE'
+      });
+    }
+    
+    // Limpiar caché del navegador
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames.map(name => caches.delete(name))
+      );
+    }
+    
+    // Limpiar localStorage de archivos cacheados
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith('cached_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    hapticFeedback('success');
+    
+    // Recargar la página después de un breve delay
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
+    
+  } catch (error) {
+    console.error('Error aplicando actualización:', error);
+    showUpdateToast('Error al aplicar actualización', 'error');
+  }
+}
+
+// Función para forzar verificación de actualizaciones
+window.forceUpdateCheck = function() {
+  checkForAppUpdates();
+  hapticFeedback('medium');
+  showUpdateToast('Verificando actualizaciones...', 'info');
+};
+
+// Función para inicializar todas las mejoras nativas
+function initializeNativeEnhancements() {
+  setupSmoothScroll();
+  setupModalGestures();
+  setupButtonFeedback();
+  setupInputEnhancements();
+  setupCardInteractions();
+  setupListInteractions();
+  setupNavigationEnhancements();
+  setupSearchEnhancements();
+  setupFormEnhancements();
+  setupLoadingEnhancements();
+  setupErrorHandling();
+  setupOfflineEnhancements();
+  setupQuickActions();
+  setupUpdateSystem();
+  
+  // Configurar pull-to-refresh en contenedores principales
+  const mainContainer = document.getElementById('mainContent');
+  if (mainContainer) {
+    setupPullToRefresh(mainContainer, () => {
+      location.reload();
+    });
+  }
+  
+  // Solicitar permisos de notificación
+  requestNotificationPermission();
+}
+
+// Función para configurar acciones rápidas
+function setupQuickActions() {
+  // Cerrar menú al hacer clic fuera
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('quickActionsMenu');
+    const btn = document.getElementById('floatingActionBtn');
+    
+    if (menu && !menu.contains(e.target) && !btn.contains(e.target)) {
+      hideQuickActions();
+    }
+  });
+}
+
+// Función para mostrar menú de acciones rápidas
+window.showQuickActions = function() {
+  const menu = document.getElementById('quickActionsMenu');
+  const btn = document.getElementById('floatingActionBtn');
+  
+  if (menu.style.display === 'none') {
+    menu.style.display = 'block';
+    btn.innerHTML = '<i class="bi bi-x-lg"></i>';
+    btn.style.transform = 'rotate(45deg)';
+    hapticFeedback('medium');
+  } else {
+    hideQuickActions();
+  }
+}
+
+// Función para ocultar menú de acciones rápidas
+function hideQuickActions() {
+  const menu = document.getElementById('quickActionsMenu');
+  const btn = document.getElementById('floatingActionBtn');
+  
+  menu.style.display = 'none';
+  btn.innerHTML = '<i class="bi bi-plus-lg"></i>';
+  btn.style.transform = 'rotate(0deg)';
+}
+
+// Función para manejar acciones rápidas
+window.quickAction = function(action) {
+  hideQuickActions();
+  hapticFeedback('success');
+  
+  switch (action) {
+    case 'addProduct':
+      showView('inventory');
+      setTimeout(() => {
+        document.querySelector('[onclick="addProduct(event)"]').click();
+      }, 300);
+      break;
+      
+    case 'addClient':
+      showView('clients');
+      setTimeout(() => {
+        document.querySelector('[onclick="addClient(event)"]').click();
+      }, 300);
+      break;
+      
+    case 'newSale':
+      showView('sales');
+      break;
+      
+    case 'chickenSale':
+      showView('chickens');
+      break;
+      
+    default:
+      console.log('Acción no reconocida:', action);
+  }
+}
+
 // === GESTIÓN DE POLLOS ===
 
 // Variables globales para pollos
@@ -190,7 +1008,7 @@ function handleChickenSale(e) {
   const quantity = parseInt(document.getElementById('chickenQuantity').value);
   const weight = parseFloat(document.getElementById('chickenWeight').value);
   const paymentType = document.querySelector('input[name="chickenPayment"]:checked').value;
-  const abono = parseFloat(document.getElementById('chickenAbono').value) || 0;
+  const abono = parseFloat(document.getElementById('chickenAbonoInput').value) || 0;
   
   // Validaciones
   if (!clientId) {
@@ -282,9 +1100,7 @@ function handleChickenSale(e) {
   }
   
   // Limpiar formulario
-  document.getElementById('chickenSaleForm').reset();
-  document.getElementById('chickenQuantity').value = '1';
-  document.getElementById('chickenAbonoSection').style.display = 'none';
+  resetChickenForm();
   
   // Actualizar vistas
   updateChickenStats();
@@ -295,6 +1111,15 @@ function handleChickenSale(e) {
   
   // Mostrar comprobante
   showChickenReceipt(chickenSale);
+}
+
+// Limpiar formulario de pollos
+function resetChickenForm() {
+  document.getElementById('chickenSaleForm').reset();
+  document.getElementById('chickenQuantity').value = '1';
+  document.getElementById('chickenAbonoSection').style.display = 'none';
+  const abonoInput = document.getElementById('chickenAbonoInput');
+  if (abonoInput) abonoInput.value = '';
 }
 
 // Mostrar comprobante de venta de pollos
@@ -1220,7 +2045,7 @@ function addProduct(e) {
   const price = parseFloat(document.getElementById('productPrice').value);
   const category = document.getElementById('productCategory').value.trim();
   const stock = parseInt(document.getElementById('productStock').value) || 0;
-  const imageInput = document.getElementById('productImage');
+  const imageInput = document.getElementById('productImageInput');
 
   if (!name || isNaN(cost) || isNaN(price)) {
     Swal.fire({
@@ -1344,23 +2169,25 @@ function addProduct(e) {
 }
 
 // Vista previa de imagen para productos
-document.getElementById('productImage').addEventListener('change', function(e) {
-  const preview = document.getElementById('imagePreview');
-  const file = e.target.files[0];
-  
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa">`;
-    };
-    reader.readAsDataURL(file);
-  } else {
-    preview.innerHTML = '';
-  }
-});
+const productPhotoInput = document.getElementById('productImageInput');
+if (productPhotoInput) {
+  productPhotoInput.addEventListener('change', function(e) {
+    const preview = document.getElementById('productImagePreview');
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa">`;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      preview.innerHTML = '';
+    }
+  });
+}
 
 // Vista previa de imagen para clientes
-const clientPhotoInput = document.getElementById('clientPhoto');
+const clientPhotoInput = document.getElementById('clientPhotoInput');
 if (clientPhotoInput) {
   clientPhotoInput.addEventListener('change', function(e) {
     const preview = document.getElementById('clientImagePreview');
@@ -1976,7 +2803,7 @@ function addClient(e) {
   const nameInput = document.getElementById('clientName');
   const phoneInput = document.getElementById('clientPhone');
   const addressInput = document.getElementById('clientAddress');
-  const photoInput = document.getElementById('clientPhoto');
+  const photoInput = document.getElementById('clientPhotoInput');
   const locationInput = document.getElementById('clientLocation');
   const locationStatus = document.getElementById('locationStatus');
   if (!nameInput || !phoneInput || !addressInput) {
@@ -2376,7 +3203,6 @@ function editProduct(productId) {
   const priceInput = document.getElementById('productPrice');
   const categoryInput = document.getElementById('productCategory');
   const stockInput = document.getElementById('productStock');
-  const descriptionInput = document.getElementById('productDescription');
   const preview = document.getElementById('productImagePreview');
   
   if (nameInput) nameInput.value = product.name;
@@ -2384,7 +3210,6 @@ function editProduct(productId) {
   if (priceInput) priceInput.value = product.price;
   if (categoryInput) categoryInput.value = product.category || '';
   if (stockInput) stockInput.value = product.stock || 0;
-  if (descriptionInput) descriptionInput.value = product.description || '';
   if (preview) {
     if (product.image) {
       preview.innerHTML = `<img src="${product.image}" alt="Imagen actual">`;
@@ -2415,7 +3240,6 @@ function renderSalesProducts() {
   const searchTerm = document.getElementById('productSearch')?.value?.toLowerCase() || '';
   const filteredProducts = products.filter(product => 
     product.name.toLowerCase().includes(searchTerm) ||
-    product.description?.toLowerCase().includes(searchTerm) ||
     product.category?.toLowerCase().includes(searchTerm)
   );
   
@@ -2465,7 +3289,6 @@ function filterProductsInSales(searchTerm) {
   
   const filteredProducts = products.filter(product => 
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.category?.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
@@ -4301,7 +5124,9 @@ window.showFilteredMovementDetail = function(idx) {
   if (!movement) return;
 
   if (movement.type === 'sale') {
-    showReceipt(movement.data);
+    showReceipt(movement.data); // Modal de venta normal
+  } else if (movement.type === 'chicken') {
+    showChickenReceipt(movement.data); // Modal de venta de pollos
   } else if (movement.type === 'debt') {
     showDebtDetailModal(movement.data.id);
   } else if (movement.type === 'payment') {
@@ -4678,3 +5503,155 @@ function generatePaymentPDF(data) {
   // Descargar PDF
   doc.save(`pago_deuda_${debt.id}_${new Date(payment.date).getTime()}.pdf`);
 }
+
+// Nueva función para actualizar estadísticas de pollos por rango de fechas
+function updateChickenStatsByRange(startDate, endDate) {
+  // Filtrar ventas de pollos por rango
+  const rangeSales = chickenSales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    return saleDate >= startDate && saleDate <= endDate;
+  });
+
+  const totalChickens = rangeSales.reduce((sum, sale) => sum + sale.quantity, 0);
+  const totalWeight = rangeSales.reduce((sum, sale) => sum + sale.weight, 0);
+  const totalRevenue = rangeSales.reduce((sum, sale) => sum + sale.total, 0);
+  const totalProfit = rangeSales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+  const avgWeight = totalChickens > 0 ? totalWeight / totalChickens : 0;
+
+  const totalChickensElement = document.getElementById('totalChickensSold');
+  const totalWeightElement = document.getElementById('totalWeightSold');
+  const totalRevenueElement = document.getElementById('totalRevenue');
+  const totalProfitElement = document.getElementById('totalProfit');
+  const avgWeightElement = document.getElementById('avgWeight');
+
+  if (totalChickensElement) totalChickensElement.textContent = totalChickens;
+  if (totalWeightElement) totalWeightElement.textContent = totalWeight.toFixed(1);
+  if (totalRevenueElement) totalRevenueElement.textContent = `$${totalRevenue.toFixed(2)}`;
+  if (totalProfitElement) totalProfitElement.textContent = `$${totalProfit.toFixed(2)}`;
+  if (avgWeightElement) avgWeightElement.textContent = avgWeight.toFixed(1);
+}
+
+// Hook para actualizar estadísticas de pollos al filtrar por fecha
+function onDateRangeChange() {
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  if (startDate && endDate) {
+    updateChickenStatsByRange(new Date(startDate), new Date(endDate));
+  }
+}
+
+// Agregar evento a los inputs de fecha si existen
+window.addEventListener('DOMContentLoaded', () => {
+  const startDateInput = document.getElementById('startDate');
+  const endDateInput = document.getElementById('endDate');
+  if (startDateInput && endDateInput) {
+    startDateInput.addEventListener('change', onDateRangeChange);
+    endDateInput.addEventListener('change', onDateRangeChange);
+  }
+});
+
+// Migrar fechas de ventas de pollos a formato ISO
+function migrateChickenSalesDates() {
+  let needsMigration = false;
+  chickenSales.forEach(sale => {
+    if (typeof sale.date === 'string' && !sale.date.includes('T')) {
+      // Es una fecha en formato local, convertir a ISO
+      const dateParts = sale.date.split('/');
+      if (dateParts.length === 3) {
+        const [month, day, year] = dateParts;
+        const isoDate = new Date(year, month - 1, day).toISOString();
+        sale.date = isoDate;
+        needsMigration = true;
+      }
+    }
+  });
+  if (needsMigration) {
+    saveToStorage('chickenSales', chickenSales);
+    console.log('Migración de fechas de pollos completada');
+  }
+}
+
+// Ejecutar migración de fechas de pollos al cargar la app
+if (typeof migrateChickenSalesDates === 'function') {
+  migrateChickenSalesDates();
+}
+
+// === INICIALIZACIÓN DE LA APLICACIÓN ===
+
+// Inicializar la aplicación
+document.addEventListener('DOMContentLoaded', function() {
+  // Cargar datos guardados
+  loadData();
+  
+  // Inicializar datos de pollos
+  initializeChickenData();
+  
+  // Actualizar UI
+  updateBalanceUI();
+  renderInventory();
+  renderClients();
+  renderDebts();
+  renderSalesProducts();
+  
+  // Configurar búsqueda global
+  setupGlobalSearch();
+  
+  // Configurar carga lazy
+  setupLazyLoading();
+  
+  // Configurar backup automático
+  setupAutoBackup();
+  
+  // Actualizar fecha y hora
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+  
+  // Detectar modo oscuro
+  detectDarkMode();
+  
+  // Inicializar mejoras para experiencia nativa
+  initializeNativeEnhancements();
+  
+  // Mostrar botón de instalación si es necesario
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+      .then(registration => {
+        console.log('SW registrado:', registration);
+        
+        // Escuchar actualizaciones del SW
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              showInstallButton();
+            }
+          });
+        });
+      })
+      .catch(error => {
+        console.error('Error registrando SW:', error);
+      });
+  }
+  
+  // Verificar si la app está instalada
+  if (isAppInstalled()) {
+    document.getElementById('installPWA').style.display = 'none';
+  }
+  
+  // Mostrar mensaje de bienvenida si es la primera vez
+  if (!localStorage.getItem('appInitialized')) {
+    Swal.fire({
+      icon: 'success',
+      title: '¡Bienvenido a TillUp!',
+      text: 'Tu PWA de gestión de ventas está lista para usar.',
+      confirmButtonText: '¡Empezar!',
+      showClass: {
+        popup: 'animate__animated animate__fadeInDown'
+      },
+      hideClass: {
+        popup: 'animate__animated animate__fadeOutUp'
+      }
+    });
+    localStorage.setItem('appInitialized', 'true');
+  }
+});
