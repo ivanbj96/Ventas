@@ -1076,7 +1076,7 @@ window.quickAction = function(action) {
 // === GESTIÓN DE POLLOS ===
 
 // Variables globales para pollos
-let chickenSales = [];
+// chickenSales ya está declarada globalmente en la línea 6
 let pricePerPound = 2.50; // Precio por libra por defecto
 let costPerPound = 1.80; // Costo por libra por defecto
 
