@@ -429,13 +429,102 @@ function printChickenReceipt(sale) {
 
 // Descargar PDF de comprobante de pollos
 function downloadChickenReceiptPDF(sale) {
-  // Implementar generación de PDF similar a otros comprobantes
-  Swal.fire({
-    icon: 'info',
-    title: 'PDF en desarrollo',
-    text: 'La funcionalidad de descarga PDF estará disponible próximamente.',
-    confirmButtonText: 'Aceptar'
+  // Verificar si jsPDF está disponible
+  if (typeof window.jspdf === 'undefined') {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'La librería PDF no está disponible. Verifica tu conexión a internet.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const fecha = new Date().toLocaleString();
+  
+  // Configuración de colores
+  const primaryColor = [31, 45, 61]; // #1F2D3D
+  const secondaryColor = [42, 63, 90]; // #2a3f5a
+  
+  // Header
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, 210, 25, 'F');
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text("TillUp POS", 14, 12);
+  
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text("COMPROBANTE DE POLLOS", 14, 20);
+  
+  // Información de la venta
+  doc.setTextColor(...primaryColor);
+  doc.setFontSize(10);
+  doc.text(`Venta #${sale.id}`, 14, 35);
+  doc.text(`Fecha: ${fecha}`, 14, 40);
+  doc.text(`Cliente: ${sale.clientName}`, 14, 45);
+  
+  // Detalle del producto
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text("Detalle de Producto", 14, 60);
+  
+  const items = [
+    ['Producto', 'Cantidad', 'Peso', 'Precio/lb', 'Subtotal'],
+    ['Pollo Entero', sale.quantity.toString(), `${sale.weight} lbs`, `$${sale.pricePerPound.toFixed(2)}`, `$${sale.total.toFixed(2)}`]
+  ];
+  
+  doc.autoTable({
+    startY: 65,
+    head: [items[0]],
+    body: [items[1]],
+    theme: 'grid',
+    styles: { 
+      fontSize: 9,
+      cellPadding: 3
+    },
+    headStyles: {
+      fillColor: primaryColor,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold'
+    }
   });
+  
+  // Totales
+  const finalY = doc.lastAutoTable.finalY + 10;
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text("Resumen", 14, finalY);
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Peso total: ${sale.weight} lbs`, 14, finalY + 10);
+  doc.text(`Precio por libra: $${sale.pricePerPound.toFixed(2)}`, 14, finalY + 15);
+  
+  if (sale.paymentType === 'credit' && sale.abono > 0) {
+    doc.text(`Abono: -$${sale.abono.toFixed(2)}`, 14, finalY + 20);
+    doc.text(`Pendiente: $${sale.remainingAmount.toFixed(2)}`, 14, finalY + 25);
+  }
+  
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`TOTAL: $${sale.total.toFixed(2)}`, 14, finalY + 35);
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Método de pago: ${getPaymentText(sale.paymentType)}`, 14, finalY + 45);
+  
+  // Footer
+  doc.setFontSize(8);
+  doc.setTextColor(128, 128, 128);
+  doc.text("¡Gracias por su compra!", 14, finalY + 60);
+  doc.text("Generado por TillUp POS - Especializado en venta de pollos", 14, finalY + 65);
+  
+  doc.save(`Comprobante_Pollos_${sale.id}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 // Actualizar estadísticas de pollos
