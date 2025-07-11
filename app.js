@@ -1,4 +1,4 @@
- // === Arrays globales ===
+// === Arrays globales ===
 let products = [];
 let clients = [];
 let sales = [];
@@ -1664,7 +1664,6 @@ function setTheme(mode, showNotification = true) {
   document.getElementById(`theme-${mode}`).classList.add('active');
   
   if (mode === 'auto') {
-    // Detectar automáticamente
     detectDarkMode();
   } else if (mode === 'dark') {
     document.documentElement.classList.add('dark-mode');
@@ -1674,23 +1673,7 @@ function setTheme(mode, showNotification = true) {
   
   // Guardar preferencia
   localStorage.setItem('theme', mode);
-  
-  // Mostrar notificación solo si se solicita
-  if (showNotification) {
-    const themeNames = {
-      light: 'Modo Claro',
-      dark: 'Modo Oscuro',
-      auto: 'Automático'
-    };
-    
-    Swal.fire({
-      icon: 'success',
-      title: 'Tema cambiado',
-      text: `Cambiado a ${themeNames[mode]}`,
-      timer: 1500,
-      showConfirmButton: false
-    });
-  }
+  // No mostrar notificación de tema cambiado
 }
 
 // === Funciones de instalación PWA ===
@@ -3174,27 +3157,26 @@ function detectDarkMode() {
   }
 }
 
-// Escuchar cambios en el sistema
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectDarkMode);
+// Escuchar cambios en el sistema SOLO si el usuario elige 'auto'
+// window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectDarkMode);
 
-// Ejecutar al iniciar - Tema claro por defecto
-document.documentElement.classList.remove('dark-mode');
-
-// Cargar tema guardado o usar claro por defecto
+// === Inicialización de tema ===
 function initializeTheme() {
-  const savedTheme = localStorage.getItem('theme');
-  
+  let savedTheme = localStorage.getItem('theme');
+  if (!savedTheme) {
+    savedTheme = 'light';
+    localStorage.setItem('theme', 'light');
+  }
   if (savedTheme === 'dark') {
     setTheme('dark', false);
   } else if (savedTheme === 'auto') {
     setTheme('auto', false);
+    // Solo aquí escuchar cambios del sistema
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectDarkMode);
   } else {
-    // Tema claro por defecto
     setTheme('light', false);
   }
 }
-
-// Inicializar tema al cargar la página
 document.addEventListener('DOMContentLoaded', initializeTheme);
 
 // === Registrar Service Worker ===
@@ -5713,3 +5695,35 @@ document.addEventListener('DOMContentLoaded', function() {
     localStorage.setItem('appInitialized', 'true');
   }
 });
+
+// === Prevenir pull-to-refresh en móviles ===
+let maybePrevent = false;
+let lastY = 0;
+document.addEventListener('touchstart', function(e) {
+  if (window.scrollY === 0) {
+    maybePrevent = true;
+    lastY = e.touches[0].clientY;
+  } else {
+    maybePrevent = false;
+  }
+}, {passive: false});
+document.addEventListener('touchmove', function(e) {
+  if (maybePrevent) {
+    let currentY = e.touches[0].clientY;
+    if (currentY > lastY) {
+      e.preventDefault();
+    }
+  }
+}, {passive: false});
+
+// Envolver todas las llamadas a Swal.fire en try/catch y verificar document.visibilityState
+const originalSwalFire = Swal.fire;
+Swal.fire = function(...args) {
+  if (document.visibilityState !== 'visible') return;
+  try {
+    return originalSwalFire.apply(this, args);
+  } catch (e) {
+    // Silenciar error
+    return;
+  }
+};
