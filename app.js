@@ -8,58 +8,6 @@ let currentClientId = null;
 let inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'grid'; // 'grid' o 'list'
 let clientsViewMode = localStorage.getItem('clientsViewMode') || 'grid'; // 'grid' o 'list'
 
-// === FUNCIÓN DE CARGA DE DATOS ===
-function loadData() {
-  try {
-    // Cargar productos
-    const savedProducts = localStorage.getItem('products');
-    if (savedProducts) {
-      products = JSON.parse(savedProducts);
-    }
-    
-    // Cargar clientes
-    const savedClients = localStorage.getItem('clients');
-    if (savedClients) {
-      clients = JSON.parse(savedClients);
-    }
-    
-    // Cargar ventas
-    const savedSales = localStorage.getItem('sales');
-    if (savedSales) {
-      sales = JSON.parse(savedSales);
-    }
-    
-    // Cargar deudas
-    const savedDebts = localStorage.getItem('debts');
-    if (savedDebts) {
-      debts = JSON.parse(savedDebts);
-    }
-    
-    // Cargar carrito
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      cart = JSON.parse(savedCart);
-    }
-    
-    // Cargar cliente seleccionado
-    const savedClientId = localStorage.getItem('currentClientId');
-    if (savedClientId) {
-      currentClientId = savedClientId;
-    }
-    
-    console.log('Datos cargados correctamente');
-  } catch (error) {
-    console.error('Error al cargar datos:', error);
-    // Si hay error, inicializar arrays vacíos
-    products = [];
-    clients = [];
-    sales = [];
-    debts = [];
-    cart = [];
-    currentClientId = null;
-  }
-}
-
 // === MEJORAS PARA EXPERIENCIA NATIVA ===
 
 // Configuración de gestos táctiles
@@ -154,35 +102,42 @@ function setupPullToRefresh(container, onRefresh) {
   let startY = 0;
   let currentY = 0;
   let pullDistance = 0;
-  const threshold = 80;
+  const threshold = 150; // Aumentado el umbral para hacer más difícil activar el refresh
   let isPulling = false;
+  let isScrolled = false;
 
   container.addEventListener('touchstart', (e) => {
-    if (container.scrollTop === 0) {
-      startY = e.touches[0].clientY;
-      isPulling = true;
-    }
+    startY = e.touches[0].clientY;
+    isScrolled = container.scrollTop > 0;
+    isPulling = !isScrolled; // Solo permitir pull si estamos en la parte superior
   });
 
   container.addEventListener('touchmove', (e) => {
-    if (!isPulling) return;
+    if (!isPulling || isScrolled) return;
     
     currentY = e.touches[0].clientY;
     pullDistance = currentY - startY;
     
     if (pullDistance > 0 && container.scrollTop === 0) {
-      e.preventDefault();
-      container.style.transform = `translateY(${Math.min(pullDistance * 0.5, threshold)}px)`;
+      if (pullDistance < threshold) {
+        e.preventDefault();
+        container.style.transform = `translateY(${Math.min(pullDistance * 0.3, threshold)}px)`;
+      }
     }
   });
 
   container.addEventListener('touchend', () => {
-    if (isPulling && pullDistance > threshold) {
+    if (isPulling && pullDistance > threshold && !isScrolled) {
       onRefresh();
       hapticFeedback('success');
     }
     
     container.style.transform = '';
+    container.style.transition = 'transform 0.3s ease-out';
+    setTimeout(() => {
+      container.style.transition = '';
+    }, 300);
+    
     isPulling = false;
     pullDistance = 0;
   });
@@ -845,18 +800,6 @@ function hideQuickActions() {
   btn.style.transform = 'rotate(0deg)';
 }
 
-// Cerrar menú de acciones rápidas al hacer clic fuera
-document.addEventListener('click', function(event) {
-  const menu = document.getElementById('quickActionsMenu');
-  const btn = document.getElementById('floatingActionBtn');
-  
-  if (menu && menu.style.display !== 'none' && 
-      !menu.contains(event.target) && 
-      !btn.contains(event.target)) {
-    hideQuickActions();
-  }
-});
-
 // Función para manejar acciones rápidas
 window.quickAction = function(action) {
   hideQuickActions();
@@ -866,16 +809,14 @@ window.quickAction = function(action) {
     case 'addProduct':
       showView('inventory');
       setTimeout(() => {
-        const modal = new bootstrap.Modal(document.getElementById('modalProduct'));
-        modal.show();
+        document.querySelector('[onclick="addProduct(event)"]').click();
       }, 300);
       break;
       
     case 'addClient':
       showView('clients');
       setTimeout(() => {
-        const modal = new bootstrap.Modal(document.getElementById('modalClient'));
-        modal.show();
+        document.querySelector('[onclick="addClient(event)"]').click();
       }, 300);
       break;
       
@@ -1654,7 +1595,7 @@ function closeSidebar() {
 }
 
 // === Configuración de tema (global) ===
-function setTheme(mode, showNotification = true) {
+function setTheme(mode) {
   // Remover clases activas de todos los botones
   document.querySelectorAll('.sidebar-action-btn').forEach(btn => {
     btn.classList.remove('active');
@@ -1664,6 +1605,7 @@ function setTheme(mode, showNotification = true) {
   document.getElementById(`theme-${mode}`).classList.add('active');
   
   if (mode === 'auto') {
+    // Detectar automáticamente
     detectDarkMode();
   } else if (mode === 'dark') {
     document.documentElement.classList.add('dark-mode');
@@ -1673,7 +1615,21 @@ function setTheme(mode, showNotification = true) {
   
   // Guardar preferencia
   localStorage.setItem('theme', mode);
-  // No mostrar notificación de tema cambiado
+  
+  // Mostrar notificación
+  const themeNames = {
+    light: 'Modo Claro',
+    dark: 'Modo Oscuro',
+    auto: 'Automático'
+  };
+  
+  Swal.fire({
+    icon: 'success',
+    title: 'Tema cambiado',
+    text: `Cambiado a ${themeNames[mode]}`,
+    timer: 1500,
+    showConfirmButton: false
+  });
 }
 
 // === Funciones de instalación PWA ===
@@ -2157,9 +2113,7 @@ function addProduct(e) {
           
           // Limpiar formulario y estado de edición
           document.getElementById('formProduct').reset();
-          if (document.getElementById('productImagePreview')) {
-            document.getElementById('productImagePreview').innerHTML = '';
-          }
+          document.getElementById('imagePreview').innerHTML = '';
           window.editingProductId = null;
           
           // Cerrar modal
@@ -2196,9 +2150,7 @@ function addProduct(e) {
         
         // Limpiar formulario
         document.getElementById('formProduct').reset();
-        if (document.getElementById('productImagePreview')) {
-          document.getElementById('productImagePreview').innerHTML = '';
-        }
+        document.getElementById('imagePreview').innerHTML = '';
         
         // Cerrar modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
@@ -2228,7 +2180,6 @@ const productPhotoInput = document.getElementById('productImageInput');
 if (productPhotoInput) {
   productPhotoInput.addEventListener('change', function(e) {
     const preview = document.getElementById('productImagePreview');
-    if (!preview) return;
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
@@ -2389,7 +2340,51 @@ function renderCart() {
   clearCartBtn.style.display = 'block';
   if (clientSelectorContainer) clientSelectorContainer.style.display = 'block';
 
-  container.innerHTML = cart.map(item => `
+  // Agregar selector de cliente compacto al inicio del carrito
+  let clientSelectorHTML = '';
+  if (clients.length > 0) {
+    const selectedClient = clients.find(c => c.id === currentClientId);
+    const clientFirstName = selectedClient ? selectedClient.name.split(' ')[0] : '';
+    
+    clientSelectorHTML = `
+      <div class="client-selector-treinta mb-3">
+        ${selectedClient ? `
+          <div class="selected-client-display">
+            <div class="d-flex align-items-center">
+              <i class="bi bi-person-circle me-2"></i>
+              <span class="client-name-display">${clientFirstName}</span>
+              ${selectedClient.debt > 0 ? `<span class="badge bg-warning ms-2">Deuda: $${selectedClient.debt.toFixed(2)}</span>` : ''}
+            </div>
+            <button class="btn btn-sm btn-outline-danger remove-client-btn" onclick="removeSelectedClient()" title="Eliminar cliente">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        ` : `
+          <select id="cartClientSelector" class="form-select form-select-treinta" onchange="selectClientForCart(this.value)">
+            <option value="">Selecciona un cliente</option>
+            ${clients.map(client => `
+              <option value="${client.id}">
+                ${client.name.split(' ')[0]}${client.debt > 0 ? ` (Deuda: $${client.debt.toFixed(2)})` : ''}
+              </option>
+            `).join('')}
+          </select>
+        `}
+      </div>
+    `;
+  } else {
+    clientSelectorHTML = `
+      <div class="client-selector-treinta mb-3">
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i> No hay clientes registrados
+          <button class="btn btn-primary btn-sm ms-2" onclick="showAddClientModal()">
+            <i class="bi bi-person-plus"></i> Agregar Cliente
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = clientSelectorHTML + cart.map(item => `
     <div class="cart-item-treinta">
       <div class="cart-item-header-treinta">
         <div class="cart-item-qty-treinta">
@@ -2999,18 +2994,6 @@ function updateClientSelector() {
     opt.innerText = `${c.name}${c.debt > 0 ? ` (Deuda: $${c.debt.toFixed(2)})` : ''}`;
     selector.appendChild(opt);
   });
-  
-  // Actualizar también el selector de pollos si existe
-  const chickenSelector = document.getElementById('chickenClient');
-  if (chickenSelector) {
-    chickenSelector.innerHTML = `<option value="">Seleccionar cliente...</option>`;
-    clients.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.id;
-      opt.innerText = `${c.name}${c.debt > 0 ? ` (Deuda: $${c.debt.toFixed(2)})` : ''}`;
-      chickenSelector.appendChild(opt);
-    });
-  }
 }
 
 // === Mostrar deudas con diseño tipo Treinta.co ===
@@ -3157,27 +3140,11 @@ function detectDarkMode() {
   }
 }
 
-// Escuchar cambios en el sistema SOLO si el usuario elige 'auto'
-// window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectDarkMode);
+// Escuchar cambios en el sistema
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectDarkMode);
 
-// === Inicialización de tema ===
-function initializeTheme() {
-  let savedTheme = localStorage.getItem('theme');
-  if (!savedTheme) {
-    savedTheme = 'light';
-    localStorage.setItem('theme', 'light');
-  }
-  if (savedTheme === 'dark') {
-    setTheme('dark', false);
-  } else if (savedTheme === 'auto') {
-    setTheme('auto', false);
-    // Solo aquí escuchar cambios del sistema
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectDarkMode);
-  } else {
-    setTheme('light', false);
-  }
-}
-document.addEventListener('DOMContentLoaded', initializeTheme);
+// Ejecutar al iniciar
+detectDarkMode();
 
 // === Registrar Service Worker ===
 if ('serviceWorker' in navigator) {
@@ -5695,35 +5662,3 @@ document.addEventListener('DOMContentLoaded', function() {
     localStorage.setItem('appInitialized', 'true');
   }
 });
-
-// === Prevenir pull-to-refresh en móviles ===
-let maybePrevent = false;
-let lastY = 0;
-document.addEventListener('touchstart', function(e) {
-  if (window.scrollY === 0) {
-    maybePrevent = true;
-    lastY = e.touches[0].clientY;
-  } else {
-    maybePrevent = false;
-  }
-}, {passive: false});
-document.addEventListener('touchmove', function(e) {
-  if (maybePrevent) {
-    let currentY = e.touches[0].clientY;
-    if (currentY > lastY) {
-      e.preventDefault();
-    }
-  }
-}, {passive: false});
-
-// Envolver todas las llamadas a Swal.fire en try/catch y verificar document.visibilityState
-const originalSwalFire = Swal.fire;
-Swal.fire = function(...args) {
-  if (document.visibilityState !== 'visible') return;
-  try {
-    return originalSwalFire.apply(this, args);
-  } catch (e) {
-    // Silenciar error
-    return;
-  }
-};
