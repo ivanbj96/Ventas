@@ -2045,7 +2045,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // === Agregar producto con vista previa de imagen ===
-function addProduct(e) {
+async function addProduct(e) {
   e.preventDefault();
   const name = document.getElementById('productName').value.trim();
   const cost = parseFloat(document.getElementById('productCost').value);
@@ -2075,78 +2075,82 @@ function addProduct(e) {
   }
 
   if (price < cost) {
-    Swal.fire({
+    const result = await Swal.fire({
       icon: 'warning',
       title: 'Precio bajo',
       text: 'El precio de venta es menor al costo. ¿Estás seguro?',
       showCancelButton: true,
       confirmButtonText: 'Sí, continuar',
       cancelButtonText: 'Revisar'
-    }).then((result) => {
-      if (!result.isConfirmed) return;
-      saveProduct();
     });
-    return;
+    if (!result.isConfirmed) {
+      return;
+    }
   }
 
-  saveProduct();
-
-  function saveProduct() {
-    const saveProductImage = (imageData) => {
-      if (window.editingProductId) {
-        // Editar producto existente
-        const productIndex = products.findIndex(p => p.id === window.editingProductId);
-        if (productIndex !== -1) {
-          products[productIndex] = {
-            ...products[productIndex],
-            name,
-            cost,
-            price,
-            category,
-            stock,
-            image: imageData || products[productIndex].image
-          };
-          
-          saveToStorage('products', products);
-          renderInventory();
-          renderSalesProducts();
-          
-          // Limpiar formulario y estado de edición
-          document.getElementById('formProduct').reset();
-          document.getElementById('imagePreview').innerHTML = '';
-          window.editingProductId = null;
-          
-          // Cerrar modal
-          const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
-          modal.hide();
-          
-          // Restaurar texto del botón
-          const submitBtn = document.querySelector('#modalProduct .btn-primary');
-          submitBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar Producto';
-          
-          Swal.fire({
-            icon: 'success',
-            title: 'Producto actualizado',
-            text: 'Producto actualizado correctamente.',
-            confirmButtonText: 'Aceptar'
-          });
-        }
-      } else {
-        // Agregar nuevo producto
-        const newProduct = {
-          id: generateId('product'),
+  const save = (imageData) => {
+    if (window.editingProductId) {
+      // Editar producto existente
+      const productIndex = products.findIndex(p => p.id === window.editingProductId);
+      if (productIndex !== -1) {
+        products[productIndex] = {
+          ...products[productIndex],
           name,
           cost,
           price,
           category,
           stock,
-          image: imageData
+          image: imageData || products[productIndex].image
         };
         
-        products.push(newProduct);
         saveToStorage('products', products);
         renderInventory();
         renderSalesProducts();
+        
+        document.getElementById('formProduct').reset();
+        document.getElementById('imagePreview').innerHTML = '';
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
+        modal.hide();
+        
+        const submitBtn = document.querySelector('#modalProduct .btn-primary');
+        submitBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar Producto';
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Producto actualizado',
+          text: 'Producto actualizado correctamente.',
+          confirmButtonText: 'Aceptar'
+        }).then(() => {
+            window.editingProductId = null;
+        });
+      }
+    } else {
+      // Agregar nuevo producto
+      const newProduct = {
+        id: generateId('product'),
+        name,
+        cost,
+        price,
+        category,
+        stock,
+        image: imageData
+      };
+      
+      products.push(newProduct);
+      saveToStorage('products', products);
+      renderInventory();
+      renderSalesProducts();
+      document.getElementById('formProduct').reset();
+      document.getElementById('imagePreview').innerHTML = '';
+      // Get modal instance without redeclaring variable
+      bootstrap.Modal.getInstance(document.getElementById('modalProduct')).hide();
+      modal.hide();
+      Swal.fire({
+        icon: 'success',
+        title: 'Producto agregado',
+        text: 'Producto agregado correctamente.',
+        confirmButtonText: 'Aceptar'
+      });
         
         // Limpiar formulario
         document.getElementById('formProduct').reset();
@@ -2172,6 +2176,36 @@ function addProduct(e) {
     } else {
       saveProductImage('');
     }
+  }
+// Function to get payment icon
+function getPaymentIcon(paymentType) {
+  switch(paymentType) {
+    case 'cash':
+      return 'cash-coin';
+    case 'card':
+      return 'credit-card';
+    case 'transfer':
+      return 'bank';
+    case 'credit':
+      return 'clock-history';
+    default:
+      return 'question-circle';
+  }
+}
+
+// Function to get payment text
+function getPaymentText(paymentType) {
+  switch(paymentType) {
+    case 'cash':
+      return 'Pago en efectivo';
+    case 'card':
+      return 'Pago con tarjeta';
+    case 'transfer':
+      return 'Transferencia bancaria';
+    case 'credit':
+      return 'Venta a crédito';
+    default:
+      return 'Otro método de pago';
   }
 }
 
@@ -2805,7 +2839,7 @@ function getPaymentText(paymentType) {
 }
 
 // === Agregar/Editar cliente con validación mejorada ===
-function addClient(e) {
+async function addClient(e) {
   e.preventDefault();
   const nameInput = document.getElementById('clientName');
   const phoneInput = document.getElementById('clientPhone');
@@ -2813,20 +2847,16 @@ function addClient(e) {
   const photoInput = document.getElementById('clientPhotoInput');
   const locationInput = document.getElementById('clientLocation');
   const locationStatus = document.getElementById('locationStatus');
+
   if (!nameInput || !phoneInput || !addressInput) {
     Swal.fire({ icon: 'error', title: 'Error de formulario', text: 'Faltan campos obligatorios en el formulario.', confirmButtonText: 'Aceptar' });
     return;
   }
+
   const name = nameInput.value.trim();
   const phone = phoneInput.value.trim();
   const address = addressInput.value.trim();
-  const photo = photoInput.files && photoInput.files[0] ? photoInput.files[0] : null;
   const location = locationInput.value.trim();
-  if (location) {
-    locationStatus.textContent = 'Ubicación válida';
-  } else {
-    locationStatus.textContent = 'Ubicación no válida';
-  }
 
   if (!name) {
     Swal.fire({
@@ -2838,7 +2868,6 @@ function addClient(e) {
     return;
   }
 
-  // Validar formato de teléfono si se proporciona
   if (phone && !/^[0-9]{7,15}$/.test(phone)) {
     Swal.fire({
       icon: 'error',
@@ -2849,69 +2878,55 @@ function addClient(e) {
     return;
   }
 
-  const saveClient = (photo) => {
-    if (window.editingClientId) {
-      // Editar cliente existente
-      const clientIndex = clients.findIndex(c => c.id === window.editingClientId);
-      if (clientIndex !== -1) {
-        clients[clientIndex] = {
-          ...clients[clientIndex],
-          name,
-          phone,
-          address,
-          photo: photo || clients[clientIndex].photo
-        };
-      }
-      delete window.editingClientId;
-    } else {
-      // Agregar nuevo cliente
-      clients.push({
-        id: generateId('client'),
+  const save = (photo) => {
+    const clientData = {
         name,
         phone,
         address,
-        photo,
-        debt: 0
-      });
-    }
+        location,
+        photo: photo || (window.editingClientId ? clients.find(c => c.id === window.editingClientId).photo : '')
+    };
 
-    // Calcular deuda total por cliente
-    clients.forEach(client => {
-      const clientDebts = debts.filter(d => d.clientId === client.id);
-      client.debt = clientDebts.reduce((sum, d) => sum + d.amount, 0);
-    });
+    if (window.editingClientId) {
+      const clientIndex = clients.findIndex(c => c.id === window.editingClientId);
+      if (clientIndex !== -1) {
+        clients[clientIndex] = { ...clients[clientIndex], ...clientData };
+      }
+    } else {
+      clients.push({ id: generateId('client'), ...clientData, debt: 0 });
+    }
 
     saveToStorage('clients', clients);
     renderClients();
     updateClientSelector();
-    
-    // Limpiar formulario
+
     if (document.getElementById('formClient')) document.getElementById('formClient').reset();
     if (document.getElementById('clientImagePreview')) document.getElementById('clientImagePreview').innerHTML = '';
     if (locationStatus) locationStatus.textContent = '';
-    
-    // Restaurar texto del botón
-    const submitBtn = document.querySelector('#modalClient .btn-primary');
-    submitBtn.innerHTML = '<i class="bi bi-person-plus"></i> Agregar Cliente';
-    
-    // Cerrar modal
+
     const modal = bootstrap.Modal.getInstance(document.getElementById('modalClient'));
     modal.hide();
-    
-    Swal.fire({ 
-      icon: 'success', 
-      title: window.editingClientId ? 'Cliente actualizado' : 'Cliente agregado', 
-      text: window.editingClientId ? 'Cliente actualizado correctamente.' : 'Cliente agregado correctamente.',
+
+    Swal.fire({
+      icon: 'success',
+      title: window.editingClientId ? 'Cliente actualizado' : 'Cliente agregado',
+      text: `El cliente "${name}" se ha guardado correctamente.`,
       confirmButtonText: 'Aceptar'
+    }).then(() => {
+        if (window.editingClientId) {
+            delete window.editingClientId;
+            const submitBtn = document.querySelector('#modalClient .btn-primary');
+            submitBtn.innerHTML = '<i class="bi bi-person-plus"></i> Agregar Cliente';
+        }
     });
   };
 
   if (photoInput && photoInput.files && photoInput.files[0]) {
     const reader = new FileReader();
-    reader.onload = () => saveClient(reader.result);
+    reader.onload = () => save(reader.result);
     reader.readAsDataURL(photoInput.files[0]);
   } else {
-    saveClient('');
+    save('');
   }
 }
 
