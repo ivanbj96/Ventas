@@ -2047,23 +2047,22 @@ document.addEventListener('DOMContentLoaded', () => {
 // === Agregar producto con vista previa de imagen ===
 function addProduct(e) {
   e.preventDefault();
-  try {
-    const name = document.getElementById('productName').value.trim();
-    const cost = parseFloat(document.getElementById('productCost').value);
-    const price = parseFloat(document.getElementById('productPrice').value);
-    const category = document.getElementById('productCategory').value.trim();
-    const stock = parseInt(document.getElementById('productStock').value) || 0;
-    const imageInput = document.getElementById('productImageInput');
+  const name = document.getElementById('productName').value.trim();
+  const cost = parseFloat(document.getElementById('productCost').value);
+  const price = parseFloat(document.getElementById('productPrice').value);
+  const category = document.getElementById('productCategory').value.trim();
+  const stock = parseInt(document.getElementById('productStock').value) || 0;
+  const imageInput = document.getElementById('productImageInput');
 
-    if (!name || isNaN(cost) || isNaN(price)) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Datos incompletos',
-        text: 'Por favor completa todos los campos obligatorios.',
-        confirmButtonText: 'Aceptar'
-      });
-      return;
-    }
+  if (!name || isNaN(cost) || isNaN(price)) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Datos incompletos',
+      text: 'Por favor completa todos los campos obligatorios.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
 
   if (cost < 0 || price < 0) {
     Swal.fire({
@@ -2071,8 +2070,6 @@ function addProduct(e) {
       title: 'Valores inválidos',
       text: 'El costo y precio deben ser valores positivos.',
       confirmButtonText: 'Aceptar'
-    }).then(() => {
-      // No hacer nada, mantener el formulario abierto para corregir
     });
     return;
   }
@@ -2096,83 +2093,73 @@ function addProduct(e) {
 
   function saveProduct() {
     const saveProductImage = (imageData) => {
-      try {
-        if (window.editingProductId) {
-          // Editar producto existente
-          const productIndex = products.findIndex(p => p.id === window.editingProductId);
-          if (productIndex !== -1) {
-            products[productIndex] = {
-              ...products[productIndex],
-              name,
-              cost,
-              price,
-              category,
-              stock,
-              image: imageData || products[productIndex].image
-            };
-            
-            saveToStorage('products', products);
-            renderInventory();
-            renderSalesProducts();
-            
-            // Limpiar formulario y estado de edición
-            document.getElementById('formProduct').reset();
-            document.getElementById('imagePreview').innerHTML = '';
-            window.editingProductId = null;
-            
-            // Cerrar modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
-            modal.hide();
-            
-            // Restaurar texto del botón
-            const submitBtn = document.querySelector('#modalProduct .btn-primary');
-            submitBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar Producto';
-            
-            Swal.fire({
-              icon: 'success',
-              title: 'Producto actualizado',
-              text: 'Producto actualizado correctamente.',
-              confirmButtonText: 'Aceptar'
-            });
-          }
-        } else {
-          // Agregar nuevo producto
-          const newProduct = {
-            id: generateId('product'),
+      if (window.editingProductId) {
+        // Editar producto existente
+        const productIndex = products.findIndex(p => p.id === window.editingProductId);
+        if (productIndex !== -1) {
+          products[productIndex] = {
+            ...products[productIndex],
             name,
             cost,
             price,
             category,
             stock,
-            image: imageData
+            image: imageData || products[productIndex].image
           };
           
-          products.push(newProduct);
           saveToStorage('products', products);
           renderInventory();
           renderSalesProducts();
           
-          // Limpiar formulario
+          // Limpiar formulario y estado de edición
           document.getElementById('formProduct').reset();
           document.getElementById('imagePreview').innerHTML = '';
+          window.editingProductId = null;
           
           // Cerrar modal
           const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
           modal.hide();
           
+          // Restaurar texto del botón
+          const submitBtn = document.querySelector('#modalProduct .btn-primary');
+          submitBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar Producto';
+          
           Swal.fire({
             icon: 'success',
-            title: 'Producto agregado',
-            text: 'Producto agregado correctamente.',
+            title: 'Producto actualizado',
+            text: 'Producto actualizado correctamente.',
             confirmButtonText: 'Aceptar'
           });
         }
-      } catch (error) {
-        console.error('Error al guardar producto:', error);
+      } else {
+        // Agregar nuevo producto
+        const newProduct = {
+          id: generateId('product'),
+          name,
+          cost,
+          price,
+          category,
+          stock,
+          image: imageData
+        };
+        
+        products.push(newProduct);
+        saveToStorage('products', products);
+        renderInventory();
+        renderSalesProducts();
+        
+        // Limpiar formulario
+        document.getElementById('formProduct').reset();
+        document.getElementById('imagePreview').innerHTML = '';
+        
+        // Cerrar modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
+        modal.hide();
+        
         Swal.fire({
-          icon: 'error',
-          title: 'Error al guardar',
-          text: 'Ocurrió un error al guardar el producto. Por favor intente nuevamente.',
+          icon: 'success',
+          title: 'Producto agregado',
+          text: 'Producto agregado correctamente.',
           confirmButtonText: 'Aceptar'
         });
       }
@@ -2180,40 +2167,12 @@ function addProduct(e) {
 
     if (imageInput && imageInput.files && imageInput.files[0]) {
       const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          saveProductImage(reader.result);
-        } catch (error) {
-          console.error('Error al procesar imagen:', error);
-          Swal.fire({
-            icon: 'error',
-            title: 'Error al procesar imagen',
-            text: 'No se pudo procesar la imagen seleccionada. Por favor intente con otra imagen.',
-            confirmButtonText: 'Aceptar'
-          });
-        }
-      };
-      reader.onerror = () => {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error al procesar imagen',
-          text: 'No se pudo procesar la imagen seleccionada. Por favor intente con otra imagen.',
-          confirmButtonText: 'Aceptar'
-        });
-      };
+      reader.onload = () => saveProductImage(reader.result);
       reader.readAsDataURL(imageInput.files[0]);
     } else {
       saveProductImage('');
     }
   }
-} catch (error) {
-  console.error('Error en addProduct:', error);
-  Swal.fire({
-    icon: 'error',
-    title: 'Error inesperado',
-    text: 'Ocurrió un error inesperado al agregar el producto.',
-    confirmButtonText: 'Aceptar'
-  });
 }
 
 // Vista previa de imagen para productos
@@ -2846,7 +2805,7 @@ function getPaymentText(paymentType) {
 }
 
 // === Agregar/Editar cliente con validación mejorada ===
-  async function addClient(e) {
+function addClient(e) {
   e.preventDefault();
   const nameInput = document.getElementById('clientName');
   const phoneInput = document.getElementById('clientPhone');
@@ -2858,7 +2817,6 @@ function getPaymentText(paymentType) {
     Swal.fire({ icon: 'error', title: 'Error de formulario', text: 'Faltan campos obligatorios en el formulario.', confirmButtonText: 'Aceptar' });
     return;
   }
-  try {
   const name = nameInput.value.trim();
   const phone = phoneInput.value.trim();
   const address = addressInput.value.trim();
@@ -2891,108 +2849,70 @@ function getPaymentText(paymentType) {
     return;
   }
 
-  const saveClient = async (photo) => {
-    try {
-      if (window.editingClientId) {
-        // Editar cliente existente
-        const clientIndex = clients.findIndex(c => c.id === window.editingClientId);
-        if (clientIndex !== -1) {
-          clients[clientIndex] = {
-            ...clients[clientIndex],
-            name,
-            phone,
-            address,
-            photo: photo || clients[clientIndex].photo
-          };
-        }
-        delete window.editingClientId;
-      } else {
-        // Agregar nuevo cliente
-        clients.push({
-          id: generateId('client'),
+  const saveClient = (photo) => {
+    if (window.editingClientId) {
+      // Editar cliente existente
+      const clientIndex = clients.findIndex(c => c.id === window.editingClientId);
+      if (clientIndex !== -1) {
+        clients[clientIndex] = {
+          ...clients[clientIndex],
           name,
           phone,
           address,
-          photo,
-          debt: 0
-        });
+          photo: photo || clients[clientIndex].photo
+        };
       }
-
-      // Calcular deuda total por cliente
-      clients.forEach(client => {
-        const clientDebts = debts.filter(d => d.clientId === client.id);
-        client.debt = clientDebts.reduce((sum, d) => sum + d.amount, 0);
+      delete window.editingClientId;
+    } else {
+      // Agregar nuevo cliente
+      clients.push({
+        id: generateId('client'),
+        name,
+        phone,
+        address,
+        photo,
+        debt: 0
       });
-
-      saveToStorage('clients', clients);
-      renderClients();
-      updateClientSelector();
-      
-      // Limpiar formulario
-      if (document.getElementById('formClient')) document.getElementById('formClient').reset();
-      if (document.getElementById('clientImagePreview')) document.getElementById('clientImagePreview').innerHTML = '';
-      if (locationStatus) locationStatus.textContent = '';
-      
-      // Restaurar texto del botón
-      const submitBtn = document.querySelector('#modalClient .btn-primary');
-      submitBtn.innerHTML = '<i class="bi bi-person-plus"></i> Agregar Cliente';
-      
-      // Cerrar modal
-      const modal = bootstrap.Modal.getInstance(document.getElementById('modalClient'));
-      modal.hide();
-      
-      Swal.fire({ 
-        icon: 'success', 
-        title: window.editingClientId ? 'Cliente actualizado' : 'Cliente agregado', 
-        text: window.editingClientId ? 'Cliente actualizado correctamente.' : 'Cliente agregado correctamente.',
-        confirmButtonText: 'Aceptar'
-      });
-    } catch (error) {
-      console.error('Error al guardar cliente:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error al guardar',
-        text: 'Ocurrió un error al guardar el cliente. Por favor intente nuevamente.',
-        confirmButtonText: 'Aceptar'
-      });
-      throw error; // Re-lanzar el error para que sea capturado por el catch exterior
     }
+
+    // Calcular deuda total por cliente
+    clients.forEach(client => {
+      const clientDebts = debts.filter(d => d.clientId === client.id);
+      client.debt = clientDebts.reduce((sum, d) => sum + d.amount, 0);
+    });
+
+    saveToStorage('clients', clients);
+    renderClients();
+    updateClientSelector();
+    
+    // Limpiar formulario
+    if (document.getElementById('formClient')) document.getElementById('formClient').reset();
+    if (document.getElementById('clientImagePreview')) document.getElementById('clientImagePreview').innerHTML = '';
+    if (locationStatus) locationStatus.textContent = '';
+    
+    // Restaurar texto del botón
+    const submitBtn = document.querySelector('#modalClient .btn-primary');
+    submitBtn.innerHTML = '<i class="bi bi-person-plus"></i> Agregar Cliente';
+    
+    // Cerrar modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalClient'));
+    modal.hide();
+    
+    Swal.fire({ 
+      icon: 'success', 
+      title: window.editingClientId ? 'Cliente actualizado' : 'Cliente agregado', 
+      text: window.editingClientId ? 'Cliente actualizado correctamente.' : 'Cliente agregado correctamente.',
+      confirmButtonText: 'Aceptar'
+    });
   };
 
   if (photoInput && photoInput.files && photoInput.files[0]) {
     const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        await saveClient(reader.result);
-      } catch (error) {
-        // El error ya fue manejado en saveClient
-      }
-    };
-    reader.onerror = () => {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error al procesar imagen',
-        text: 'No se pudo procesar la imagen seleccionada. Por favor intente con otra imagen.',
-        confirmButtonText: 'Aceptar'
-      });
-    };
+    reader.onload = () => saveClient(reader.result);
     reader.readAsDataURL(photoInput.files[0]);
   } else {
-    try {
-      await saveClient('');
-    } catch (error) {
-      // El error ya fue manejado en saveClient
-    }
+    saveClient('');
   }
-} catch (error) {
-  console.error('Error en addClient:', error);
-  Swal.fire({
-    icon: 'error',
-    title: 'Error',
-    text: 'Ocurrió un error al procesar el formulario. Por favor intente nuevamente.',
-    confirmButtonText: 'Aceptar'
-  });
-}
 }
 
 // Renderizar clientes con diseño tipo Treinta.co
@@ -5741,4 +5661,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     localStorage.setItem('appInitialized', 'true');
   }
-});}
+});
