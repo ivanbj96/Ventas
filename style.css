@@ -5,518 +5,6 @@
   --gray-dark: #212529;
   --radius: 0.5rem;
   --transition: all 0.2s ease-in-out;
-  --card-bg: #fff;
-  --border-color: #e0e0e0;
-  --text-color: #333;
-  --text-muted: #666;
-  --primary-color: #0d6efd;
-  --touch-feedback: #e3f2fd;
-  --ripple-color: rgba(13, 110, 253, 0.1);
-  --swipe-threshold: 50px;
-}
-
-/* === Mejoras para experiencia nativa === */
-
-/* Prevenir zoom en inputs en iOS */
-input[type="text"],
-input[type="number"],
-input[type="email"],
-input[type="tel"],
-select,
-textarea {
-  font-size: 16px !important;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-}
-
-/* Mejorar scroll en móviles */
-* {
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
-}
-
-/* Feedback táctil mejorado */
-.btn, .product-card-treinta, .client-card-treinta, .debt-card-treinta {
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-}
-
-/* Efecto ripple para botones */
-.btn {
-  position: relative;
-  overflow: hidden;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.btn::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  background: var(--ripple-color);
-  transform: translate(-50%, -50%);
-  transition: width 0.3s, height 0.3s;
-  pointer-events: none;
-}
-
-.btn:active::before {
-  width: 200px;
-  height: 200px;
-}
-
-/* Animaciones de entrada mejoradas */
-@keyframes slideInFromBottom {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideInFromRight {
-  from {
-    opacity: 0;
-    transform: translateX(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Aplicar animaciones a elementos */
-.app-view:not(.d-none) {
-  animation: slideInFromBottom 0.3s ease-out;
-}
-
-.product-card-treinta, .client-card-treinta, .debt-card-treinta {
-  animation: scaleIn 0.2s ease-out;
-}
-
-/* Mejorar feedback visual en hover/touch */
-.product-card-treinta:hover,
-.client-card-treinta:hover,
-.debt-card-treinta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.12);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Efecto de presión en botones */
-.btn:active {
-  transform: scale(0.96);
-  transition: transform 0.1s ease;
-}
-
-/* Mejorar scrollbars nativos */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.2);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0,0,0,0.3);
-}
-
-/* Mejorar modales para móviles */
-.modal-dialog {
-  margin: 1rem;
-  max-width: calc(100vw - 2rem);
-}
-
-@media (max-width: 576px) {
-  .modal-dialog {
-    margin: 0.5rem;
-    max-width: calc(100vw - 1rem);
-  }
-}
-
-/* Mejorar inputs para móviles */
-.form-control:focus {
-  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-  border-color: var(--primary);
-}
-
-/* Mejorar navegación táctil */
-.navbar-treinta .btn {
-  min-height: 44px;
-  min-width: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Mejorar cards para touch */
-.product-card-treinta, .client-card-treinta, .debt-card-treinta {
-  min-height: 120px;
-  cursor: pointer;
-}
-
-/* Efecto de carga mejorado */
-.loading-spinner {
-  border: 3px solid rgba(13, 110, 253, 0.1);
-  border-top: 3px solid var(--primary);
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  animation: spin 1s linear infinite;
-}
-
-/* Mejorar notificaciones */
-.toast {
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-  border: none;
-}
-
-/* Mejorar sidebar para móviles */
-.sidebar-treinta {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.sidebar-treinta.open {
-  transform: translateX(0);
-}
-
-/* Mejorar header fijo */
-.header-treinta {
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  background-color: rgba(255, 255, 255, 0.95);
-  border-bottom: 1px solid rgba(0,0,0,0.1);
-}
-
-.dark-mode .header-treinta {
-  background-color: rgba(18, 18, 18, 0.95);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-
-/* Mejorar carrito para móviles */
-.cart-panel-treinta {
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 -8px 32px rgba(0,0,0,0.12);
-}
-
-/* Efecto de swipe para cerrar modales */
-.modal-content {
-  border-radius: 16px;
-  border: none;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-}
-
-/* Mejorar botones de acción flotantes */
-.btn-floating {
-  position: fixed;
-  bottom: 80px;
-  right: 20px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-  z-index: 9999;
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background-color: var(--primary);
-  color: white;
-  border: none;
-}
-
-.btn-floating:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 25px rgba(0,0,0,0.2);
-}
-
-.dark-mode .btn-floating {
-  background-color: #4ea8ff;
-  box-shadow: 0 4px 20px rgba(78, 168, 255, 0.3);
-}
-
-.dark-mode .btn-floating:hover {
-  background-color: #339af0;
-  box-shadow: 0 6px 25px rgba(78, 168, 255, 0.4);
-}
-
-/* Menú de acciones rápidas */
-.quick-actions-menu {
-  position: fixed;
-  bottom: 150px;
-  right: 20px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-  padding: 0.5rem;
-  z-index: 999;
-  min-width: 200px;
-  animation: slideInUp 0.3s ease-out;
-}
-
-.dark-mode .quick-actions-menu {
-  background: #1e1e1e;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-}
-
-.quick-action-item {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--text-color);
-}
-
-.quick-action-item:hover {
-  background: var(--touch-feedback);
-  transform: translateX(-5px);
-}
-
-.dark-mode .quick-action-item:hover {
-  background: #2a2a2a;
-}
-
-.quick-action-item i {
-  margin-right: 0.75rem;
-  font-size: 1.2rem;
-  color: var(--primary);
-}
-
-.quick-action-item span {
-  font-weight: 500;
-}
-
-@media (max-width: 576px) {
-  .quick-actions-menu {
-    bottom: 140px;
-    right: 10px;
-    left: 10px;
-    min-width: auto;
-  }
-  
-  .quick-action-item {
-    padding: 1rem;
-  }
-}
-
-/* Mejorar listas para swipe */
-.movement-item-treinta,
-.cart-item-treinta {
-  position: relative;
-  overflow: hidden;
-}
-
-/* Efecto de pull-to-refresh */
-.pull-to-refresh {
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  font-size: 14px;
-}
-
-/* Mejorar inputs numéricos */
-input[type="number"] {
-  -moz-appearance: textfield;
-}
-
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-/* Mejorar selectores */
-.form-select {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 16px 12px;
-}
-
-/* Mejorar checkboxes y radios */
-.form-check-input {
-  width: 20px;
-  height: 20px;
-  margin-top: 0.125rem;
-}
-
-.form-check-input:checked {
-  background-color: var(--primary);
-  border-color: var(--primary);
-}
-
-/* Mejorar tooltips */
-.tooltip {
-  font-size: 12px;
-  opacity: 0.9;
-}
-
-/* Mejorar badges */
-.badge {
-  font-size: 0.75em;
-  padding: 0.35em 0.65em;
-  border-radius: 0.375rem;
-}
-
-/* Mejorar alertas */
-.alert {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-/* Mejorar tabs */
-.nav-tabs .nav-link {
-  border-radius: 8px 8px 0 0;
-  border: none;
-  color: var(--text-muted);
-  transition: all 0.2s ease;
-}
-
-.nav-tabs .nav-link.active {
-  color: var(--primary);
-  background-color: transparent;
-  border-bottom: 2px solid var(--primary);
-}
-
-/* Mejorar paginación */
-.pagination .page-link {
-  border-radius: 8px;
-  margin: 0 2px;
-  border: none;
-  color: var(--text-color);
-}
-
-.pagination .page-item.active .page-link {
-  background-color: var(--primary);
-  border-color: var(--primary);
-}
-
-/* Mejorar breadcrumbs */
-.breadcrumb {
-  background-color: transparent;
-  padding: 0;
-  margin: 0;
-}
-
-.breadcrumb-item + .breadcrumb-item::before {
-  content: "›";
-  color: var(--text-muted);
-}
-
-/* Mejorar progress bars */
-.progress {
-  height: 8px;
-  border-radius: 4px;
-  background-color: rgba(0,0,0,0.1);
-}
-
-.progress-bar {
-  border-radius: 4px;
-  transition: width 0.6s ease;
-}
-
-/* Mejorar spinners */
-.spinner-border {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
-/* Mejorar placeholders */
-::placeholder {
-  color: var(--text-muted);
-  opacity: 0.7;
-}
-
-/* Mejorar focus visible */
-:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-
-/* Mejorar selección de texto */
-::selection {
-  background-color: var(--primary);
-  color: white;
-}
-
-/* Mejorar scroll suave */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Mejorar contraste en modo oscuro */
-.dark-mode {
-  color-scheme: dark;
-}
-
-.dark-mode .form-control {
-  background-color: #2a2a2a;
-  border-color: #444;
-  color: #f1f1f1;
-}
-
-.dark-mode .form-control:focus {
-  background-color: #2a2a2a;
-  border-color: var(--primary);
-  color: #f1f1f1;
-}
-
-/* Mejorar accesibilidad */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* Mejorar contraste para accesibilidad */
-@media (prefers-contrast: high) {
-  :root {
-    --border-color: #000;
-    --text-muted: #000;
-  }
-  
-  .dark-mode {
-    --border-color: #fff;
-    --text-muted: #fff;
-  }
 }
 
 body {
@@ -548,7 +36,25 @@ body {
 }
 
 /* === Tarjetas de producto, cliente, deuda === */
-/* Clase card-custom eliminada - usar card-treinta en su lugar */
+.card-custom {
+  border: 1px solid #ddd;
+  border-radius: var(--radius);
+  padding: 1rem;
+  background-color: white;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  transition: var(--transition);
+}
+
+.card-custom:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* Dark mode cards */
+.dark-mode .card-custom {
+  background-color: #1e1e1e;
+  border-color: #333;
+}
 
 /* === Inputs y formularios === */
 input[type="text"],
@@ -568,10 +74,42 @@ button:active {
 }
 
 /* === Inventario y productos === */
-/* Clase product-card eliminada - usar product-card-treinta en su lugar */
+.product-card {
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+  padding: 1rem;
+  background-color: #fff;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  text-align: center;
+}
+
+.product-card img {
+  width: 100%;
+  height: auto;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+}
+
+.product-card button {
+  margin-top: 0.5rem;
+  width: 100%;
+}
 
 /* === Carrito de ventas === */
-/* Clase cart-item eliminada - usar cart-item-treinta en su lugar */
+.cart-item {
+  border: 1px dashed #999;
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background-color: #fafafa;
+}
+
+.cart-item strong {
+  font-size: 1.05rem;
+}
 
 /* Dark mode productos */
 .dark-mode .product-card {
@@ -597,38 +135,506 @@ button:active {
 }
 
 /* === Barra de navegación inferior tipo app === */
-/* Clases navbar antiguas eliminadas - usar navbar-treinta en su lugar */
+.navbar.fixed-bottom {
+  height: 64px;
+  border-top: 1px solid #ccc;
+  background-color: #fff;
+}
+
+.navbar .btn {
+  font-size: 0.8rem;
+  padding: 0.25rem 0;
+  color: #555;
+}
+
+.navbar .btn:hover {
+  color: var(--primary);
+}
+
+.navbar .btn i {
+  display: block;
+  font-size: 1.25rem;
+}
+
+/* Dark mode navbar */
+.dark-mode .navbar {
+  background-color: #181818;
+  border-color: #333;
+}
+
+.dark-mode .navbar .btn {
+  color: #aaa;
+}
 
 /* === Clientes === */
-/* Clase client-card eliminada - usar client-card-treinta en su lugar */
+.client-card {
+  padding: 0.75rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+  background-color: #fff;
+  margin-bottom: 0.5rem;
+  transition: var(--transition);
+}
+
+.client-card:hover {
+  background-color: #f1f1f1;
+}
+
+.dark-mode .client-card {
+  background-color: #1e1e1e;
+  border-color: #333;
+}
+
+.dark-mode .client-card:hover {
+  background-color: #2a2a2a;
+}
 
 /* === Lista de deudas === */
-/* Clase debt-item eliminada - usar debt-card-treinta en su lugar */
+.debt-item {
+  background-color: #fff9f0;
+  border: 1px solid #f4d3b2;
+  padding: 1rem;
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
 
-/* Clases list-group-item antiguas eliminadas - usar Bootstrap list-group */
+.dark-mode .debt-item {
+  background-color: #3b2b1a;
+  border-color: #c9a36b;
+  color: #f0e2d0;
+}
 
-/* Clases botones PDF antiguas eliminadas - usar btn-treinta */
+/* === Balance general === */
+.list-group-item {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.list-group-item strong {
+  font-weight: 600;
+}
+
+.dark-mode .list-group-item {
+  background-color: #23272b;
+  color: #f1f1f1;
+  border-color: #444;
+}
+
+/* === Botones PDF === */
+.btn-outline-dark.btn-sm {
+  font-size: 0.8rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius);
+}
 
 /* === Notificaciones / mensajes (opcional) */
-/* Clase alert-custom eliminada - usar alert-treinta en su lugar */
+.alert-custom {
+  padding: 0.75rem;
+  background-color: #e7f1ff;
+  color: #084298;
+  border-left: 4px solid #0d6efd;
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
 
-/* Clases de inventario antiguas eliminadas - usar product-card-treinta con modificadores */
+.dark-mode .alert-custom {
+  background-color: #132a44;
+  color: #b6d4fe;
+  border-left-color: #339af0;
+}
 
-/* Clases de modales y formularios antiguas eliminadas - usar modal-treinta y form-treinta */
+.dark-mode .alert,
+.dark-mode .alert-secondary {
+  background-color: #23272b;
+  color: #f1f1f1;
+  border-color: #444;
+}
 
-/* Clases SweetAlert2 antiguas eliminadas - usar swal2-treinta */
+.inventory-list-view .product-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #fff;
+}
+.inventory-list-view .product-card img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.inventory-grid-view .product-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #fff;
+  text-align: center;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.inventory-grid-view .product-card img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+.product-card.selected {
+  border: 2px solid #0d6efd;
+  box-shadow: 0 0 0 2px #0d6efd33;
+}
 
-/* Clases de títulos y productos dark mode antiguas eliminadas - usar product-card-treinta */
+.dark-mode .modal-content {
+  background-color: #23272b;
+  color: #f1f1f1;
+  border-color: #444;
+}
 
-/* Clases de tickets SweetAlert2 antiguas eliminadas - usar swal2-receipt-treinta */
+.dark-mode .modal-header,
+.dark-mode .modal-footer {
+  border-color: #333;
+}
 
-/* Clases debt-card antiguas eliminadas - usar debt-card-treinta */
+.dark-mode .form-control,
+.dark-mode .form-select {
+  background-color: #181a1b;
+  color: #f1f1f1;
+  border-color: #444;
+}
 
-/* Clases balance-card antiguas eliminadas - usar balance-card-treinta */
+.dark-mode .form-control:focus,
+.dark-mode .form-select:focus {
+  background-color: #23272b;
+  color: #fff;
+  border-color: #0d6efd;
+}
 
-/* Clases sidebar antiguas eliminadas - usar sidebar-treinta */
+.dark-mode .btn-primary {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+  color: #fff;
+}
 
-/* Clases grid-responsive antiguas eliminadas - usar grid system de Bootstrap */
+.dark-mode .btn-outline-primary {
+  color: #0d6efd;
+  border-color: #0d6efd;
+  background-color: transparent;
+}
+
+.dark-mode .btn-outline-primary:hover {
+  background-color: #0d6efd;
+  color: #fff;
+}
+
+.dark-mode .btn-outline-secondary {
+  color: #aaa;
+  border-color: #555;
+  background-color: transparent;
+}
+
+.dark-mode .btn-outline-secondary:hover {
+  background-color: #444;
+  color: #fff;
+}
+
+.dark-mode .swal2-popup {
+  background: #23272b !important;
+  color: #f1f1f1 !important;
+}
+
+.dark-mode .swal2-title,
+.dark-mode .swal2-html-container {
+  color: #f1f1f1 !important;
+}
+
+.dark-mode .swal2-confirm,
+.dark-mode .swal2-cancel,
+.dark-mode .swal2-close {
+  color: #fff !important;
+}
+
+.dark-mode h1,
+.dark-mode h2,
+.dark-mode h3,
+.dark-mode h4,
+.dark-mode h5,
+.dark-mode h6 {
+  color: #4ea8ff;
+  text-shadow: 0 1px 2px #111a;
+}
+
+.dark-mode .product-card,
+.dark-mode .product-card * {
+  color: #eaf6ff !important;
+}
+
+.dark-mode .product-card p,
+.dark-mode .product-card .mb-1,
+.dark-mode .product-card .mb-2,
+.dark-mode .product-card span {
+  color: #b0b8c1 !important;
+}
+
+.swal2-pos-ticket {
+  background: #fff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 16px #0002 !important;
+  padding: 0 !important;
+  max-width: 370px;
+}
+
+.dark-mode .swal2-pos-ticket {
+  background: #23272b !important;
+  color: #eaf6ff !important;
+  box-shadow: 0 2px 16px #0008 !important;
+}
+
+.swal2-pos-ticket table {
+  font-family: monospace;
+}
+
+.swal2-pos-ticket hr {
+  border-top: 1.5px dashed #bbb;
+}
+
+.dark-mode .swal2-pos-ticket hr {
+  border-top: 1.5px dashed #444;
+}
+
+.debt-deck {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  justify-content: flex-start;
+}
+
+.debt-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px #0001;
+  border: 1.5px solid #e0e0e0;
+  padding: 1.1rem 1.2rem 1rem 1.2rem;
+  min-width: 260px;
+  max-width: 320px;
+  flex: 1 1 260px;
+  cursor: pointer;
+  transition: box-shadow 0.18s, border-color 0.18s;
+  position: relative;
+}
+.debt-card:hover {
+  box-shadow: 0 4px 18px #0002;
+  border-color: #0d6efd;
+}
+.debt-card .debt-client {
+  font-weight: bold;
+  font-size: 1.08rem;
+  color: #0d6efd;
+}
+.debt-card .debt-date {
+  font-size: 0.93rem;
+  color: #888;
+}
+.debt-card .debt-amount {
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: #e67e22;
+}
+.debt-card .debt-abono {
+  font-size: 0.98rem;
+  color: #27ae60;
+}
+.debt-card .debt-saldo {
+  font-size: 1.08rem;
+  font-weight: bold;
+  color: #c0392b;
+}
+.debt-card .debt-status {
+  position: absolute;
+  top: 1rem;
+  right: 1.2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.18em 0.7em;
+  border-radius: 1em;
+  background: #f1f1f1;
+  color: #888;
+}
+.debt-card.paid .debt-status {
+  background: #d1f7d6;
+  color: #27ae60;
+}
+.debt-card.partial .debt-status {
+  background: #fff3cd;
+  color: #e67e22;
+}
+.debt-card.unpaid .debt-status {
+  background: #f8d7da;
+  color: #c0392b;
+}
+
+.dark-mode .debt-card {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+  box-shadow: 0 2px 10px #0005;
+}
+.dark-mode .debt-card .debt-client {
+  color: #4ea8ff;
+}
+.dark-mode .debt-card .debt-date {
+  color: #b0b8c1;
+}
+.dark-mode .debt-card .debt-amount {
+  color: #ffb366;
+}
+.dark-mode .debt-card .debt-abono {
+  color: #7fffd4;
+}
+.dark-mode .debt-card .debt-saldo {
+  color: #ff7675;
+}
+.dark-mode .debt-card .debt-status {
+  background: #2a2a2a;
+  color: #b0b8c1;
+}
+.dark-mode .debt-card.paid .debt-status {
+  background: #2ecc40;
+  color: #fff;
+}
+.dark-mode .debt-card.partial .debt-status {
+  background: #ffecb3;
+  color: #e67e22;
+}
+.dark-mode .debt-card.unpaid .debt-status {
+  background: #ffb3b3;
+  color: #c0392b;
+}
+
+.balance-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px #0001;
+  border: 1.5px solid #e0e0e0;
+  padding: 1.2rem 1.3rem 1.1rem 1.3rem;
+  min-width: 220px;
+  max-width: 320px;
+  flex: 1 1 220px;
+  text-align: center;
+  transition: box-shadow 0.18s, border-color 0.18s;
+  position: relative;
+}
+.balance-card .balance-title {
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: #0d6efd;
+  margin-bottom: 0.5rem;
+}
+.balance-card .balance-period {
+  font-size: 0.93rem;
+  color: #888;
+  margin-bottom: 0.7rem;
+}
+.balance-card .balance-amount {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #27ae60;
+}
+.balance-card .balance-credit {
+  font-size: 1.08rem;
+  color: #e67e22;
+}
+.balance-card .balance-profit {
+  font-size: 1.08rem;
+  color: #2980b9;
+}
+.balance-card .balance-label {
+  font-size: 0.92rem;
+  color: #888;
+}
+.balance-card .balance-divider {
+  border-top: 1px dashed #bbb;
+  margin: 0.7rem 0;
+}
+.balance-card:hover {
+  box-shadow: 0 4px 18px #0002;
+  border-color: #0d6efd;
+}
+
+.dark-mode .balance-card {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+  box-shadow: 0 2px 10px #0005;
+}
+.dark-mode .balance-card .balance-title {
+  color: #4ea8ff;
+}
+.dark-mode .balance-card .balance-period {
+  color: #b0b8c1;
+}
+.dark-mode .balance-card .balance-amount {
+  color: #7fffd4;
+}
+.dark-mode .balance-card .balance-credit {
+  color: #ffb366;
+}
+.dark-mode .balance-card .balance-profit {
+  color: #81c7f5;
+}
+.dark-mode .balance-card .balance-label {
+  color: #b0b8c1;
+}
+.dark-mode .balance-card .balance-divider {
+  border-top: 1px dashed #444;
+}
+
+#sidebarMenu {
+  box-shadow: 0 0 24px #0002;
+}
+#sidebarMenu .form-check-label {
+  font-weight: 500;
+}
+#sidebarOverlay {
+  transition: background 0.2s;
+}
+
+.dark-mode #sidebarMenu {
+  background: #23272b !important;
+  color: #eaf6ff;
+  box-shadow: 0 0 24px #0008;
+}
+.dark-mode #sidebarMenu .form-check-label {
+  color: #eaf6ff;
+}
+.dark-mode #sidebarMenu .btn-outline-secondary {
+  border-color: #444;
+  color: #eaf6ff;
+}
+
+/* Cuadrícula responsiva para inventario y clientes */
+.grid-responsive > .col-grid {
+  width: 100%;
+  max-width: 100%;
+}
+@media (min-width: 480px) {
+  .grid-responsive > .col-grid {
+    width: 50%;
+    max-width: 50%;
+    display: inline-block;
+  }
+}
+@media (min-width: 768px) {
+  .grid-responsive > .col-grid {
+    width: 33.3333%;
+    max-width: 33.3333%;
+  }
+}
 
 /* Barra superior tipo Treinta.co */
 .header-treinta {
@@ -703,7 +709,24 @@ button:active {
   border-bottom: 2.5px solid #4ea8ff;
 }
 
-/* Clases period-filters antiguas eliminadas - usar period-filters-treinta */
+/* Filtros de periodo tipo Treinta.co */
+.period-filters .btn-group {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px #0001;
+}
+.period-filters .btn {
+  border: none;
+  padding: 0.6rem 1rem;
+  font-weight: 500;
+  color: #666;
+  background: #f8f9fa;
+}
+.period-filters .btn-check:checked + .btn {
+  background: #1F2D3D;
+  color: #fff;
+  font-weight: 600;
+}
 
 /* Tarjetas de balance tipo Treinta.co */
 .balance-card-treinta {
@@ -761,9 +784,99 @@ button:active {
   color: #3498db;
 }
 
-/* Clases movements-list antiguas eliminadas - usar movements-list-treinta */
+/* Listado de movimientos */
+.movements-list {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #0001;
+  overflow: hidden;
+}
+.movement-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.2s;
+}
+.movement-item:last-child {
+  border-bottom: none;
+}
+.movement-item:hover {
+  background: #f8f9fa;
+}
+.movement-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  font-size: 1.1rem;
+  color: #fff;
+}
+.movement-icon.sale {
+  background: #27ae60;
+}
+.movement-icon.debt {
+  background: #e67e22;
+}
+.movement-icon.payment {
+  background: #3498db;
+}
+.movement-details {
+  flex: 1;
+}
+.movement-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.2rem;
+}
+.movement-subtitle {
+  font-size: 0.9rem;
+  color: #666;
+}
+.movement-amount {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.movement-amount.positive {
+  color: #27ae60;
+}
+.movement-amount.negative {
+  color: #e74c3c;
+}
 
-/* Clases dark mode para movimientos antiguas eliminadas - usar versiones -treinta */
+/* Modo oscuro */
+.dark-mode .period-filters .btn {
+  background: #2a2a2a;
+  color: #aaa;
+}
+.dark-mode .period-filters .btn-check:checked + .btn {
+  background: #1F2D3D;
+  color: #fff;
+}
+.dark-mode .balance-card-treinta {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+}
+.dark-mode .movements-list {
+  background: #23272b;
+  color: #eaf6ff;
+}
+.dark-mode .movement-item {
+  border-color: #333;
+}
+.dark-mode .movement-item:hover {
+  background: #2a2a2a;
+}
+.dark-mode .movement-title {
+  color: #eaf6ff;
+}
+.dark-mode .movement-subtitle {
+  color: #b0b8c1;
+}
 
 /* Tarjetas de producto mejoradas tipo Treinta.co */
 .product-card-treinta {
@@ -974,13 +1087,197 @@ button:active {
   color: #ff6b6b;
 }
 
-/* Clases cart-container y cart-item antiguas eliminadas - usar cart-panel-treinta y cart-item-treinta */
+/* Estilos para vista de ventas tipo Treinta.co */
+.cart-container {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
 
-/* Clase sales-product-card antigua eliminada - usar product-card-treinta */
+.cart-item {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
 
-/* Clases cart-qty-controls antiguas eliminadas - usar cart-item-qty-treinta */
+.cart-item:hover {
+  background: #e9ecef;
+  transform: translateX(4px);
+}
 
-/* Clases dark mode para ventas antiguas eliminadas - usar versiones -treinta */
+.cart-total {
+  background: linear-gradient(135deg, #1F2D3D, #2a3f5a) !important;
+  color: white;
+  border: none;
+}
+
+.cart-total .fw-bold {
+  color: white;
+}
+
+/* Productos en ventas */
+.sales-product-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #0001;
+  border: 1px solid #e0e0e0;
+  padding: 1rem;
+  text-align: center;
+  transition: all 0.2s ease;
+  height: 100%;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.sales-product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px #0002;
+  border-color: #1F2D3D;
+}
+
+.sales-product-card img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  transition: transform 0.2s;
+}
+
+.sales-product-card:hover img {
+  transform: scale(1.05);
+}
+
+.sales-product-card h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
+}
+
+.sales-product-card .product-price {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1F2D3D;
+  margin-bottom: 0.5rem;
+}
+
+.sales-product-card .product-stock {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 0.75rem;
+}
+
+.sales-product-card .add-to-cart-btn {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: none;
+  background: #1F2D3D;
+  color: white;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.sales-product-card .add-to-cart-btn:hover {
+  background: #2a3f5a;
+  transform: translateY(-1px);
+}
+
+.sales-product-card .add-to-cart-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Controles de cantidad en carrito */
+.cart-qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cart-qty-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.cart-qty-btn.minus {
+  border-color: #dc3545;
+  color: #dc3545;
+  background: transparent;
+}
+
+.cart-qty-btn.minus:hover {
+  background: #dc3545;
+  color: white;
+}
+
+.cart-qty-btn.plus {
+  border-color: #28a745;
+  color: #28a745;
+  background: transparent;
+}
+
+.cart-qty-btn.plus:hover {
+  background: #28a745;
+  color: white;
+}
+
+.cart-qty-display {
+  font-size: 1.1rem;
+  font-weight: 600;
+  min-width: 2rem;
+  text-align: center;
+  color: #1F2D3D;
+}
+
+/* Modo oscuro para ventas */
+.dark-mode .cart-item {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #eaf6ff;
+}
+
+.dark-mode .cart-total {
+  background: linear-gradient(135deg, #2a3f5a, #1F2D3D) !important;
+}
+
+.dark-mode .sales-product-card {
+  background: #23272b;
+  border-color: #444;
+  color: #eaf6ff;
+}
+
+.dark-mode .sales-product-card h6 {
+  color: #eaf6ff;
+}
+
+.dark-mode .sales-product-card .product-price {
+  color: #4ea8ff;
+}
+
+.dark-mode .sales-product-card .product-stock {
+  color: #b0b8c1;
+}
+
+.dark-mode .cart-qty-display {
+  color: #4ea8ff;
+}
 
 /* Comprobante tipo Treinta.co */
 .receipt-treinta {
@@ -3208,49 +3505,6 @@ button:active {
   animation: installPulse 2s infinite;
 }
 
-/* Indicador de actualización */
-.btn-update-indicator {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
-  border: none;
-  border-radius: 20px;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: updatePulse 2s infinite;
-}
-
-.btn-update-indicator:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
-  color: white;
-}
-
-.btn-update-indicator:active {
-  transform: translateY(0);
-}
-
-.update-text {
-  margin-left: 0.5rem;
-}
-
-@keyframes updatePulse {
-  0% { box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3); }
-  50% { box-shadow: 0 4px 20px rgba(40, 167, 69, 0.6); }
-  100% { box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3); }
-}
-
-.dark-mode .btn-update-indicator {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
-}
-
-.dark-mode .btn-update-indicator:hover {
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.5);
-}
-
 /* Modo oscuro para botón de instalación */
 .dark-mode .btn-install-pwa {
   background: linear-gradient(135deg, #2C3E50 0%, #34495E 100%);
@@ -4827,442 +5081,4 @@ button:active {
   .payment-options-treinta {
     padding: 0.75rem;
   }
-}
-
-/* Mejoras para la sección de ventas tipo Treinta.co */
-
-/* Contenedor de imagen de producto con overlay */
-.product-image-container {
-  position: relative;
-  overflow: hidden;
-  border-radius: 8px;
-  margin-bottom: 0.75rem;
-}
-
-.product-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(31, 45, 61, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.product-card-treinta:hover .product-overlay {
-  opacity: 1;
-}
-
-.add-to-cart-btn {
-  background: #fff !important;
-  color: #1F2D3D !important;
-  border: none !important;
-  font-weight: 600 !important;
-  padding: 0.5rem 1rem !important;
-  border-radius: 8px !important;
-  transition: all 0.2s ease !important;
-}
-
-.add-to-cart-btn:hover {
-  background: #f8f9fa !important;
-  transform: scale(1.05) !important;
-}
-
-.add-to-cart-btn:disabled {
-  background: #6c757d !important;
-  color: #fff !important;
-  cursor: not-allowed !important;
-  transform: none !important;
-}
-
-/* Categoría de producto */
-.product-category-treinta {
-  font-size: 0.75rem;
-  color: #666;
-  margin-bottom: 0.25rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Stock sin disponibilidad */
-.product-stock-treinta.out-of-stock {
-  color: #dc3545;
-  font-weight: 600;
-}
-
-/* Mejoras en el carrito */
-.cart-item-category-treinta {
-  font-size: 0.75rem;
-  color: #666;
-  margin-bottom: 0.25rem;
-}
-
-.qty-btn {
-  width: 32px !important;
-  height: 32px !important;
-  padding: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border-radius: 50% !important;
-  transition: all 0.2s ease !important;
-}
-
-.qty-btn:hover:not(:disabled) {
-  transform: scale(1.1);
-}
-
-.qty-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.remove-btn {
-  width: 32px !important;
-  height: 32px !important;
-  padding: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border-radius: 50% !important;
-  transition: all 0.2s ease !important;
-}
-
-.remove-btn:hover {
-  transform: scale(1.1);
-  background: #dc3545 !important;
-  color: #fff !important;
-}
-
-/* Mejoras en el selector de cliente */
-.selected-client-display {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.client-name-display {
-  font-weight: 600;
-  color: #1F2D3D;
-}
-
-/* Responsive mejorado */
-@media (max-width: 768px) {
-  .products-grid-treinta {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 0.75rem;
-  }
-  
-  .product-card-treinta {
-    padding: 0.75rem;
-  }
-  
-  .product-image-treinta {
-    height: 100px;
-  }
-  
-  .product-name-treinta {
-    font-size: 0.85rem;
-  }
-  
-  .product-price-treinta {
-    font-size: 1rem;
-  }
-  
-  .cart-panel-treinta {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 1050;
-    border-radius: 16px 16px 0 0;
-    max-height: 70vh;
-    overflow-y: auto;
-  }
-  
-  .cart-header-treinta {
-    position: sticky;
-    top: 0;
-    background: #fff;
-    z-index: 1;
-  }
-}
-
-@media (max-width: 480px) {
-  .products-grid-treinta {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 0.5rem;
-  }
-  
-  .product-card-treinta {
-    padding: 0.5rem;
-  }
-  
-  .product-image-treinta {
-    height: 80px;
-  }
-  
-  .product-name-treinta {
-    font-size: 0.8rem;
-  }
-  
-  .product-price-treinta {
-    font-size: 0.9rem;
-  }
-  
-  .cart-item-treinta {
-    padding: 0.5rem;
-  }
-  
-  .cart-item-header-treinta {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-  .cart-item-qty-treinta {
-    flex-direction: row;
-    justify-content: center;
-  }
-  
-  .cart-item-info-treinta {
-    text-align: center;
-  }
-  
-  .cart-item-actions-treinta {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-  }
-}
-
-/* Modo oscuro mejorado */
-.dark-mode .product-overlay {
-  background: rgba(0, 0, 0, 0.8);
-}
-
-.dark-mode .add-to-cart-btn {
-  background: #2d3748 !important;
-  color: #fff !important;
-}
-
-.dark-mode .add-to-cart-btn:hover {
-  background: #4a5568 !important;
-}
-
-.dark-mode .selected-client-display {
-  background: #2d3748;
-  border-color: #4a5568;
-}
-
-.dark-mode .client-name-display {
-  color: #e2e8f0;
-}
-
-.dark-mode .cart-panel-treinta {
-  background: #1a202c;
-}
-
-.dark-mode .cart-header-treinta {
-  background: #1a202c;
-  border-color: #4a5568;
-}
-
-/* Estilos para el icono PDF en movimientos */
-.movement-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.movement-actions .btn {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.movement-actions .btn:hover {
-  transform: scale(1.1);
-}
-
-/* Estilos para elementos de ganancia */
-.profit-amount {
-  color: #28a745 !important;
-  font-weight: 600;
-}
-
-.calculation-item .profit-amount {
-  color: #28a745;
-  font-weight: 600;
-}
-
-/* Mejorar el diseño de las estadísticas de ganancia */
-.stat-card-treinta .stat-value.profit {
-  color: #28a745;
-}
-
-/* Estilos para el botón de configuración de pollos */
-.chicken-config-treinta .form-text {
-  font-size: 0.75rem;
-  color: #6c757d;
-  margin-top: 0.25rem;
-}
-
-/* Mejorar el diseño de los cálculos automáticos */
-.calculation-display-treinta .calculation-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.calculation-display-treinta .calculation-item:last-child {
-  border-bottom: none;
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-
-.calculation-display-treinta .calculation-item .profit-amount {
-  color: #28a745;
-  font-weight: 600;
-}
-
-/* Responsive para el icono PDF */
-@media (max-width: 768px) {
-  .movement-actions {
-    position: absolute;
-    right: 0.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-  
-  .movement-item-treinta {
-    position: relative;
-    padding-right: 3rem;
-  }
-}
-
-/* Estilos para el resumen del período */
-.summary-card-treinta {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 1.5rem;
-  text-align: center;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.summary-card-treinta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-}
-
-.summary-icon {
-  font-size: 2rem;
-  color: var(--primary-color);
-  margin-bottom: 1rem;
-}
-
-.summary-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.summary-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-color);
-}
-
-.summary-value.profit {
-  color: #28a745;
-}
-
-.summary-label {
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.summary-amount {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-color);
-}
-
-/* Responsive para el resumen */
-@media (max-width: 768px) {
-  .summary-card-treinta {
-    padding: 1rem;
-  }
-  
-  .summary-icon {
-    font-size: 1.5rem;
-    margin-bottom: 0.75rem;
-  }
-  
-  .summary-value {
-    font-size: 1.25rem;
-  }
-  
-  .summary-label {
-    font-size: 0.75rem;
-  }
-  
-  .summary-amount {
-    font-size: 0.875rem;
-  }
-}
-
-/* Mejorar el diseño de los filtros de fecha */
-.date-filters-treinta {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.date-filters-treinta .form-label {
-  font-weight: 600;
-  color: var(--text-color);
-  margin-bottom: 0.5rem;
-}
-
-.date-filters-treinta .form-control {
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  padding: 0.75rem;
-  transition: all 0.2s ease;
-}
-
-.date-filters-treinta .form-control:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 0.2rem rgba(31, 45, 61, 0.25);
-}
-
-.date-filters-treinta .btn {
-  border-radius: 8px;
-  padding: 0.75rem 1.5rem;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-.date-filters-treinta .btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }

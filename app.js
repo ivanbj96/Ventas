@@ -1,3 +1,58 @@
+// === DETECCIÓN DE ACTUALIZACIONES DEL SERVICE WORKER ===
+let swRegistration = null;
+
+// Registrar Service Worker y detectar actualizaciones
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(registration => {
+      swRegistration = registration;
+      console.log('[SW] Registrado exitosamente:', registration.scope);
+      
+      // Detectar actualizaciones
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        console.log('[SW] Nueva versión detectada');
+        
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // Hay una nueva versión disponible
+            console.log('[SW] Nueva versión instalada, recargando...');
+            Swal.fire({
+              icon: 'info',
+              title: 'Actualización disponible',
+              text: 'Se ha detectado una nueva versión de TillUp. La aplicación se recargará automáticamente.',
+              timer: 2000,
+              showConfirmButton: false,
+              allowOutsideClick: false
+            }).then(() => {
+              window.location.reload();
+            });
+          }
+        });
+      });
+    })
+    .catch(error => {
+      console.error('[SW] Error en el registro:', error);
+    });
+  
+  // Escuchar mensajes del Service Worker
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'SW_UPDATED') {
+      console.log('[SW] Actualización detectada, recargando...');
+      Swal.fire({
+        icon: 'info',
+        title: 'Actualización disponible',
+        text: 'Se ha detectado una nueva versión de TillUp. La aplicación se recargará automáticamente.',
+        timer: 2000,
+        showConfirmButton: false,
+        allowOutsideClick: false
+      }).then(() => {
+        window.location.reload();
+      });
+    }
+  });
+}
+
 // === Arrays globales ===
 let products = [];
 let clients = [];
@@ -8,896 +63,70 @@ let currentClientId = null;
 let inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'grid'; // 'grid' o 'list'
 let clientsViewMode = localStorage.getItem('clientsViewMode') || 'grid'; // 'grid' o 'list'
 
-// === FUNCIÓN DE CARGA DE DATOS ===
-function loadData() {
-  try {
-    // Cargar productos
-    const savedProducts = localStorage.getItem('products');
-    if (savedProducts) {
-      products = JSON.parse(savedProducts);
-    }
-    
-    // Cargar clientes
-    const savedClients = localStorage.getItem('clients');
-    if (savedClients) {
-      clients = JSON.parse(savedClients);
-    }
-    
-    // Cargar ventas
-    const savedSales = localStorage.getItem('sales');
-    if (savedSales) {
-      sales = JSON.parse(savedSales);
-    }
-    
-    // Cargar deudas
-    const savedDebts = localStorage.getItem('debts');
-    if (savedDebts) {
-      debts = JSON.parse(savedDebts);
-    }
-    
-    // Cargar carrito
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      cart = JSON.parse(savedCart);
-    }
-    
-    // Cargar cliente seleccionado
-    const savedClientId = localStorage.getItem('currentClientId');
-    if (savedClientId) {
-      currentClientId = savedClientId;
-    }
-    
-    console.log('Datos cargados correctamente');
-  } catch (error) {
-    console.error('Error al cargar datos:', error);
-    // Si hay error, inicializar arrays vacíos
-    products = [];
-    clients = [];
-    sales = [];
-    debts = [];
-    cart = [];
-    currentClientId = null;
-  }
-}
-
-// === MEJORAS PARA EXPERIENCIA NATIVA ===
-
-// Configuración de gestos táctiles
-let touchStartX = 0;
-let touchStartY = 0;
-let touchEndX = 0;
-let touchEndY = 0;
-
-// Función para detectar gestos de swipe
-function detectSwipe(element, onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown) {
-  element.addEventListener('touchstart', (e) => {
-    touchStartX = e.changedTouches[0].screenX;
-    touchStartY = e.changedTouches[0].screenY;
-  });
-
-  element.addEventListener('touchend', (e) => {
-    touchEndX = e.changedTouches[0].screenX;
-    touchEndY = e.changedTouches[0].screenY;
-    handleSwipe();
-  });
-
-  function handleSwipe() {
-    const swipeThreshold = 50;
-    const diffX = touchStartX - touchEndX;
-    const diffY = touchStartY - touchEndY;
-
-    if (Math.abs(diffX) > Math.abs(diffY)) {
-      if (diffX > swipeThreshold && onSwipeLeft) {
-        onSwipeLeft();
-      } else if (diffX < -swipeThreshold && onSwipeRight) {
-        onSwipeRight();
-      }
-    } else {
-      if (diffY > swipeThreshold && onSwipeUp) {
-        onSwipeUp();
-      } else if (diffY < -swipeThreshold && onSwipeDown) {
-        onSwipeDown();
-      }
-    }
-  }
-}
-
-// Función para feedback táctil (vibración)
-function hapticFeedback(type = 'light') {
-  if ('vibrate' in navigator) {
-    switch (type) {
-      case 'light':
-        navigator.vibrate(10);
-        break;
-      case 'medium':
-        navigator.vibrate(50);
-        break;
-      case 'heavy':
-        navigator.vibrate(100);
-        break;
-      case 'success':
-        navigator.vibrate([50, 50, 50]);
-        break;
-      case 'error':
-        navigator.vibrate([100, 50, 100]);
-        break;
-    }
-  }
-}
-
-// Función para mostrar notificaciones nativas
-function showNativeNotification(title, options = {}) {
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, {
-      icon: './icons/icon-192.png',
-      badge: './icons/icon-192.png',
-      ...options
-    });
-  }
-}
-
-// Función para solicitar permisos de notificación
-async function requestNotificationPermission() {
-  if ('Notification' in window && Notification.permission === 'default') {
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      showNativeNotification('TillUp', {
-        body: 'Notificaciones activadas',
-        tag: 'permission-granted'
-      });
-    }
-  }
-}
-
-// Función para pull-to-refresh
-function setupPullToRefresh(container, onRefresh) {
-  let startY = 0;
-  let currentY = 0;
-  let pullDistance = 0;
-  const threshold = 80;
-  let isPulling = false;
-
-  container.addEventListener('touchstart', (e) => {
-    if (container.scrollTop === 0) {
-      startY = e.touches[0].clientY;
-      isPulling = true;
-    }
-  });
-
-  container.addEventListener('touchmove', (e) => {
-    if (!isPulling) return;
-    
-    currentY = e.touches[0].clientY;
-    pullDistance = currentY - startY;
-    
-    if (pullDistance > 0 && container.scrollTop === 0) {
-      e.preventDefault();
-      container.style.transform = `translateY(${Math.min(pullDistance * 0.5, threshold)}px)`;
-    }
-  });
-
-  container.addEventListener('touchend', () => {
-    if (isPulling && pullDistance > threshold) {
-      onRefresh();
-      hapticFeedback('success');
-    }
-    
-    container.style.transform = '';
-    isPulling = false;
-    pullDistance = 0;
-  });
-}
-
-// Función para mejorar la experiencia de scroll
-function setupSmoothScroll() {
-  const scrollElements = document.querySelectorAll('.movements-list-treinta, .products-grid-treinta, .clients-grid');
-  
-  scrollElements.forEach(element => {
-    element.style.scrollBehavior = 'smooth';
-    element.style.webkitOverflowScrolling = 'touch';
-  });
-}
-
-// Función para mejorar la experiencia de modales
-function setupModalGestures() {
-  const modals = document.querySelectorAll('.modal');
-  
-  modals.forEach(modal => {
-    const modalContent = modal.querySelector('.modal-content');
-    
-    detectSwipe(modalContent, 
-      () => closeModal(modal), // Swipe izquierda para cerrar
-      null, // Swipe derecha
-      null, // Swipe arriba
-      null  // Swipe abajo
-    );
-  });
-}
-
-// Función para cerrar modal con animación
-function closeModal(modal) {
-  modal.querySelector('.modal-content').style.transform = 'translateX(-100%)';
-  setTimeout(() => {
-    const modalInstance = bootstrap.Modal.getInstance(modal);
-    if (modalInstance) {
-      modalInstance.hide();
-    }
-  }, 300);
-}
-
-// Función para mejorar la experiencia de botones
-function setupButtonFeedback() {
-  const buttons = document.querySelectorAll('.btn');
-  
-  buttons.forEach(button => {
-    button.addEventListener('touchstart', () => {
-      hapticFeedback('light');
-    });
-    
-    button.addEventListener('click', () => {
-      hapticFeedback('medium');
-    });
-  });
-}
-
-// Función para mejorar la experiencia de inputs
-function setupInputEnhancements() {
-  const inputs = document.querySelectorAll('input, select, textarea');
-  
-  inputs.forEach(input => {
-    // Prevenir zoom en iOS
-    input.addEventListener('focus', () => {
-      if (window.innerWidth <= 768) {
-        setTimeout(() => {
-          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 300);
-      }
-    });
-    
-    // Mejorar experiencia de números
-    if (input.type === 'number') {
-      input.addEventListener('input', () => {
-        hapticFeedback('light');
-      });
-    }
-  });
-}
-
-// Función para mejorar la experiencia de cards
-function setupCardInteractions() {
-  const cards = document.querySelectorAll('.product-card, .client-card, .debt-card');
-  
-  cards.forEach(card => {
-    card.addEventListener('touchstart', () => {
-      hapticFeedback('light');
-    });
-    
-    // Efecto de presión
-    card.addEventListener('touchstart', () => {
-      card.style.transform = 'scale(0.98)';
-    });
-    
-    card.addEventListener('touchend', () => {
-      card.style.transform = '';
-    });
-  });
-}
-
-// Función para mejorar la experiencia de listas
-function setupListInteractions() {
-  const listItems = document.querySelectorAll('.movement-item-treinta, .cart-item-treinta');
-  
-  listItems.forEach(item => {
-    detectSwipe(item, 
-      () => {
-        // Swipe izquierda - mostrar acciones
-        showItemActions(item);
-      },
-      null, // Swipe derecha
-      null, // Swipe arriba
-      null  // Swipe abajo
-    );
-  });
-}
-
-// Función para mostrar acciones de elementos
-function showItemActions(item) {
-  const actions = document.createElement('div');
-  actions.className = 'item-actions';
-  actions.innerHTML = `
-    <button class="btn btn-sm btn-outline-primary" onclick="editItem('${item.dataset.id}')">
-      <i class="bi bi-pencil"></i>
-    </button>
-    <button class="btn btn-sm btn-outline-danger" onclick="deleteItem('${item.dataset.id}')">
-      <i class="bi bi-trash"></i>
-    </button>
-  `;
-  
-  item.appendChild(actions);
-  hapticFeedback('medium');
-}
-
-// Función para mejorar la experiencia de navegación
-function setupNavigationEnhancements() {
-  const navButtons = document.querySelectorAll('.sidebar-nav-item, .navbar-treinta .btn');
-  
-  navButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      hapticFeedback('medium');
-    });
-  });
-}
-
-// Función para mejorar la experiencia de búsqueda
-function setupSearchEnhancements() {
-  const searchInputs = document.querySelectorAll('input[type="search"], .search-input');
-  
-  searchInputs.forEach(input => {
-    let searchTimeout;
-    
-    input.addEventListener('input', (e) => {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => {
-        hapticFeedback('light');
-        // Aquí iría la lógica de búsqueda
-      }, 300);
-    });
-  });
-}
-
-// Función para mejorar la experiencia de formularios
-function setupFormEnhancements() {
-  const forms = document.querySelectorAll('form');
-  
-  forms.forEach(form => {
-    form.addEventListener('submit', (e) => {
-      hapticFeedback('success');
-    });
-    
-    // Validación en tiempo real
-    const inputs = form.querySelectorAll('input, select, textarea');
-    inputs.forEach(input => {
-      input.addEventListener('blur', () => {
-        validateField(input);
-      });
-    });
-  });
-}
-
-// Función para validar campos
-function validateField(field) {
-  const value = field.value.trim();
-  const fieldType = field.type;
-  const fieldName = field.name;
-  
-  let isValid = true;
-  let errorMessage = '';
-  
-  // Validaciones específicas
-  if (field.hasAttribute('required') && !value) {
-    isValid = false;
-    errorMessage = 'Este campo es requerido';
-  } else if (fieldType === 'email' && value && !isValidEmail(value)) {
-    isValid = false;
-    errorMessage = 'Email inválido';
-  } else if (fieldType === 'number' && value && isNaN(value)) {
-    isValid = false;
-    errorMessage = 'Número inválido';
-  }
-  
-  // Mostrar/ocultar error
-  const errorElement = field.parentNode.querySelector('.error-message');
-  if (!isValid) {
-    if (!errorElement) {
-      const error = document.createElement('div');
-      error.className = 'error-message text-danger small mt-1';
-      error.textContent = errorMessage;
-      field.parentNode.appendChild(error);
-    } else {
-      errorElement.textContent = errorMessage;
-    }
-    hapticFeedback('error');
-  } else if (errorElement) {
-    errorElement.remove();
-  }
-}
-
-// Función para validar email
-function isValidEmail(email) {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
-
-// Función para mejorar la experiencia de carga
-function setupLoadingEnhancements() {
-  // Mostrar spinner de carga
-  function showLoading(element) {
-    const spinner = document.createElement('div');
-    spinner.className = 'loading-spinner';
-    element.appendChild(spinner);
-  }
-  
-  // Ocultar spinner de carga
-  function hideLoading(element) {
-    const spinner = element.querySelector('.loading-spinner');
-    if (spinner) {
-      spinner.remove();
-    }
-  }
-  
-  // Exponer funciones globalmente
-  window.showLoading = showLoading;
-  window.hideLoading = hideLoading;
-}
-
-// Función para mejorar la experiencia de errores
-function setupErrorHandling() {
-  window.addEventListener('error', (e) => {
-    console.error('Error:', e.error);
-    hapticFeedback('error');
-    
-    // Mostrar notificación de error
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'Ha ocurrido un error inesperado',
-      confirmButtonText: 'Aceptar'
-    });
-  });
-}
-
-// Función para mejorar la experiencia offline
-function setupOfflineEnhancements() {
-  window.addEventListener('online', () => {
-    hapticFeedback('success');
-    showNativeNotification('TillUp', {
-      body: 'Conexión restaurada',
-      tag: 'connection-restored'
-    });
-    
-    // Verificar actualizaciones cuando se restaura la conexión
-    checkForAppUpdates();
-  });
-  
-  window.addEventListener('offline', () => {
-    hapticFeedback('error');
-    showNativeNotification('TillUp', {
-      body: 'Sin conexión - Modo offline',
-      tag: 'connection-lost'
-    });
-  });
-}
-
-// === SISTEMA DE ACTUALIZACIÓN AUTOMÁTICA ===
-
-// Variables para el sistema de actualización
-let updateAvailable = false;
-let updateData = null;
-let updateCheckInterval = null;
-
-// Función para configurar el sistema de actualización
-function setupUpdateSystem() {
-  // Escuchar mensajes del Service Worker
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', handleSWMessage);
-  }
-  
-  // Verificar actualizaciones periódicamente
-  startPeriodicUpdateCheck();
-  
-  // Verificar actualizaciones al cargar la app
-  checkForAppUpdates();
-}
-
-// Función para manejar mensajes del Service Worker
-function handleSWMessage(event) {
-  const { type, data, updates, timestamp } = event.data;
-  
-  switch (type) {
-    case 'SW_INSTALLED':
-      console.log('Nueva versión instalada:', data);
-      showUpdateNotification('Nueva versión instalada', 'success');
-      break;
-      
-    case 'SW_UPDATED':
-      console.log('Service Worker actualizado:', data);
-      if (data.requiresReload) {
-        showUpdateNotification('Actualización disponible', 'info');
-        showUpdateIndicator();
-      }
-      break;
-      
-    case 'UPDATE_AVAILABLE':
-      console.log('Actualización detectada:', data);
-      updateAvailable = true;
-      updateData = data;
-      showUpdateNotification('Actualización disponible', 'info');
-      showUpdateIndicator();
-      break;
-      
-    case 'UPDATES_FOUND':
-      console.log('Actualizaciones encontradas:', updates);
-      if (updates && updates.length > 0) {
-        updateAvailable = true;
-        updateData = { updates, timestamp };
-        showUpdateNotification(`${updates.length} actualización(es) disponible(s)`, 'info');
-        showUpdateIndicator();
-      }
-      break;
-      
-    case 'UPDATE_APPLIED':
-      console.log('Actualización aplicada:', data);
-      updateAvailable = false;
-      updateData = null;
-      hideUpdateIndicator();
-      showUpdateNotification('Actualización aplicada exitosamente', 'success');
-      // Recargar la página después de un breve delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-      break;
-      
-    case 'SYNC_COMPLETED':
-      console.log('Sincronización completada');
-      break;
-      
-    case 'SYNC_ERROR':
-      console.error('Error en sincronización:', data);
-      break;
-  }
-}
-
-// Función para mostrar indicador de actualización
-function showUpdateIndicator() {
-  const updateBtn = document.getElementById('updateIndicator');
-  const installBtn = document.getElementById('installPWA');
-  
-  if (updateBtn) {
-    updateBtn.style.display = 'block';
-  }
-  
-  if (installBtn) {
-    installBtn.style.display = 'none';
-  }
-  
-  hapticFeedback('medium');
-}
-
-// Función para ocultar indicador de actualización
-function hideUpdateIndicator() {
-  const updateBtn = document.getElementById('updateIndicator');
-  
-  if (updateBtn) {
-    updateBtn.style.display = 'none';
-  }
-}
-
-// Función para verificar actualizaciones de la app
-async function checkForAppUpdates() {
-  if (!navigator.onLine) return;
-  
-  try {
-    console.log('Verificando actualizaciones de la app...');
-    
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'CHECK_FOR_UPDATES'
-      });
-    }
-    
-    // También verificar manualmente archivos críticos
-    const criticalFiles = [
-      './app.js',
-      './style.css',
-      './utils.js'
-    ];
-    
-    const updatePromises = criticalFiles.map(async (file) => {
-      try {
-        const response = await fetch(file, { 
-          cache: 'no-cache',
-          headers: { 'Cache-Control': 'no-cache' }
-        });
-        
-        if (response.ok) {
-          const newContent = await response.text();
-          const cachedContent = localStorage.getItem(`cached_${file}`);
-          
-          if (cachedContent && cachedContent !== newContent) {
-            console.log('Actualización detectada en:', file);
-            return { file, hasUpdate: true };
-          } else {
-            localStorage.setItem(`cached_${file}`, newContent);
-          }
-        }
-        
-        return { file, hasUpdate: false };
-      } catch (error) {
-        console.error('Error verificando:', file, error);
-        return { file, hasUpdate: false, error: true };
-      }
-    });
-    
-    const results = await Promise.all(updatePromises);
-    const updates = results.filter(r => r.hasUpdate);
-    
-    if (updates.length > 0) {
-      updateAvailable = true;
-      updateData = { updates, timestamp: Date.now() };
-      showUpdateNotification(`${updates.length} actualización(es) disponible(s)`, 'info');
-    }
-    
-  } catch (error) {
-    console.error('Error verificando actualizaciones:', error);
-  }
-}
-
-// Función para iniciar verificación periódica de actualizaciones
-function startPeriodicUpdateCheck() {
-  // Verificar cada 30 minutos
-  const checkInterval = 30 * 60 * 1000;
-  
-  updateCheckInterval = setInterval(() => {
-    if (navigator.onLine) {
-      checkForAppUpdates();
-    }
-  }, checkInterval);
-  
-  // También verificar cuando la app vuelve a estar activa
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && navigator.onLine) {
-      checkForAppUpdates();
-    }
-  });
-}
-
-// Función para mostrar notificación de actualización
-function showUpdateNotification(message, type = 'info') {
-  // Mostrar notificación nativa si está disponible
-  if ('Notification' in window && Notification.permission === 'granted') {
-    const notification = new Notification('TillUp - Actualización', {
-      body: message,
-      icon: './icons/icon-192.png',
-      badge: './icons/icon-192.png',
-      tag: 'update-notification',
-      requireInteraction: type === 'info',
-      actions: type === 'info' ? [
-        {
-          action: 'apply_update',
-          title: 'Aplicar'
-        },
-        {
-          action: 'dismiss',
-          title: 'Más tarde'
-        }
-      ] : []
-    });
-    
-    notification.onclick = () => {
-      if (type === 'info' && updateAvailable) {
-        applyUpdate();
-      }
-      notification.close();
-    };
-  }
-  
-  // Mostrar notificación en la UI
-  showUpdateToast(message, type);
-}
-
-// Función para mostrar toast de actualización
-function showUpdateToast(message, type) {
-  const toastContainer = document.getElementById('toastContainer') || createToastContainer();
-  
-  const toast = document.createElement('div');
-  toast.className = `toast show bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'primary'} text-white`;
-  toast.innerHTML = `
-    <div class="toast-header">
-      <i class="bi bi-arrow-clockwise me-2"></i>
-      <strong class="me-auto">Actualización</strong>
-      <button type="button" class="btn-close btn-close-white" onclick="this.parentElement.parentElement.remove()"></button>
-    </div>
-    <div class="toast-body">
-      ${message}
-      ${type === 'info' && updateAvailable ? `
-        <div class="mt-2">
-          <button class="btn btn-sm btn-light" onclick="applyUpdate()">Aplicar</button>
-          <button class="btn btn-sm btn-outline-light ms-2" onclick="this.parentElement.parentElement.parentElement.remove()">Más tarde</button>
-        </div>
-      ` : ''}
-    </div>
-  `;
-  
-  toastContainer.appendChild(toast);
-  
-  // Auto-remover después de 10 segundos
-  setTimeout(() => {
-    if (toast.parentElement) {
-      toast.remove();
-    }
-  }, 10000);
-}
-
-// Función para crear contenedor de toasts
-function createToastContainer() {
-  const container = document.createElement('div');
-  container.id = 'toastContainer';
-  container.className = 'toast-container position-fixed top-0 end-0 p-3';
-  container.style.zIndex = '9999';
-  document.body.appendChild(container);
-  return container;
-}
-
-// Función para aplicar actualización
-async function applyUpdate() {
-  try {
-    console.log('Aplicando actualización...');
-    
-    // Mostrar indicador de carga
-    showUpdateToast('Aplicando actualización...', 'info');
-    
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'APPLY_UPDATE'
-      });
-    }
-    
-    // Limpiar caché del navegador
-    if ('caches' in window) {
-      const cacheNames = await caches.keys();
-      await Promise.all(
-        cacheNames.map(name => caches.delete(name))
-      );
-    }
-    
-    // Limpiar localStorage de archivos cacheados
-    const keys = Object.keys(localStorage);
-    keys.forEach(key => {
-      if (key.startsWith('cached_')) {
-        localStorage.removeItem(key);
-      }
-    });
-    
-    hapticFeedback('success');
-    
-    // Recargar la página después de un breve delay
-    setTimeout(() => {
-      window.location.reload();
-    }, 1500);
-    
-  } catch (error) {
-    console.error('Error aplicando actualización:', error);
-    showUpdateToast('Error al aplicar actualización', 'error');
-  }
-}
-
-// Función para forzar verificación de actualizaciones
-window.forceUpdateCheck = function() {
-  checkForAppUpdates();
-  hapticFeedback('medium');
-  showUpdateToast('Verificando actualizaciones...', 'info');
-};
-
-// Función para inicializar todas las mejoras nativas
-function initializeNativeEnhancements() {
-  setupSmoothScroll();
-  setupModalGestures();
-  setupButtonFeedback();
-  setupInputEnhancements();
-  setupCardInteractions();
-  setupListInteractions();
-  setupNavigationEnhancements();
-  setupSearchEnhancements();
-  setupFormEnhancements();
-  setupLoadingEnhancements();
-  setupErrorHandling();
-  setupOfflineEnhancements();
-  setupQuickActions();
-  setupUpdateSystem();
-  
-  // Configurar pull-to-refresh en contenedores principales
-  const mainContainer = document.getElementById('mainContent');
-  if (mainContainer) {
-    setupPullToRefresh(mainContainer, () => {
-      location.reload();
-    });
-  }
-  
-  // Solicitar permisos de notificación
-  requestNotificationPermission();
-}
-
-// Función para configurar acciones rápidas
-function setupQuickActions() {
-  // Cerrar menú al hacer clic fuera
-  document.addEventListener('click', (e) => {
-    const menu = document.getElementById('quickActionsMenu');
-    const btn = document.getElementById('floatingActionBtn');
-    
-    if (menu && !menu.contains(e.target) && !btn.contains(e.target)) {
-      hideQuickActions();
-    }
-  });
-}
-
-// Función para mostrar menú de acciones rápidas
-window.showQuickActions = function() {
-  const menu = document.getElementById('quickActionsMenu');
-  const btn = document.getElementById('floatingActionBtn');
-  
-  if (menu.style.display === 'none') {
-    menu.style.display = 'block';
-    btn.innerHTML = '<i class="bi bi-x-lg"></i>';
-    btn.style.transform = 'rotate(45deg)';
-    hapticFeedback('medium');
-  } else {
-    hideQuickActions();
-  }
-}
-
-// Función para ocultar menú de acciones rápidas
-function hideQuickActions() {
-  const menu = document.getElementById('quickActionsMenu');
-  const btn = document.getElementById('floatingActionBtn');
-  
-  menu.style.display = 'none';
-  btn.innerHTML = '<i class="bi bi-plus-lg"></i>';
-  btn.style.transform = 'rotate(0deg)';
-}
-
-// Cerrar menú de acciones rápidas al hacer clic fuera
-document.addEventListener('click', function(event) {
-  const menu = document.getElementById('quickActionsMenu');
-  const btn = document.getElementById('floatingActionBtn');
-  
-  if (menu && menu.style.display !== 'none' && 
-      !menu.contains(event.target) && 
-      !btn.contains(event.target)) {
-    hideQuickActions();
-  }
-});
-
-// Función para manejar acciones rápidas
-window.quickAction = function(action) {
-  hideQuickActions();
-  hapticFeedback('success');
-  
-  switch (action) {
-    case 'addProduct':
-      showView('inventory');
-      setTimeout(() => {
-        const modal = new bootstrap.Modal(document.getElementById('modalProduct'));
-        modal.show();
-      }, 300);
-      break;
-      
-    case 'addClient':
-      showView('clients');
-      setTimeout(() => {
-        const modal = new bootstrap.Modal(document.getElementById('modalClient'));
-        modal.show();
-      }, 300);
-      break;
-      
-    case 'newSale':
-      showView('sales');
-      break;
-      
-    case 'chickenSale':
-      showView('chickens');
-      break;
-      
-    default:
-      console.log('Acción no reconocida:', action);
-  }
-}
-
 // === GESTIÓN DE POLLOS ===
 
 // Variables globales para pollos
 let chickenSales = [];
 let pricePerPound = 2.50; // Precio por libra por defecto
-let costPerPound = 1.80; // Costo por libra por defecto
+
+// === Inicialización y Validación de Datos ===
+function initializeData() {
+  // Cargar datos del localStorage con validaciones
+  const savedProducts = localStorage.getItem('products');
+  const savedClients = localStorage.getItem('clients');
+  const savedSales = localStorage.getItem('sales');
+  const savedDebts = localStorage.getItem('debts');
+  const savedChickenSales = localStorage.getItem('chickenSales');
+  
+  try {
+    products = savedProducts ? JSON.parse(savedProducts) : [];
+    if (!Array.isArray(products)) products = [];
+  } catch (e) {
+    console.error('Error cargando productos:', e);
+    products = [];
+  }
+  
+  try {
+    clients = savedClients ? JSON.parse(savedClients) : [];
+    if (!Array.isArray(clients)) clients = [];
+  } catch (e) {
+    console.error('Error cargando clientes:', e);
+    clients = [];
+  }
+  
+  try {
+    sales = savedSales ? JSON.parse(savedSales) : [];
+    if (!Array.isArray(sales)) sales = [];
+  } catch (e) {
+    console.error('Error cargando ventas:', e);
+    sales = [];
+  }
+  
+  try {
+    debts = savedDebts ? JSON.parse(savedDebts) : [];
+    if (!Array.isArray(debts)) debts = [];
+  } catch (e) {
+    console.error('Error cargando deudas:', e);
+    debts = [];
+  }
+  
+  try {
+    chickenSales = savedChickenSales ? JSON.parse(savedChickenSales) : [];
+    if (!Array.isArray(chickenSales)) chickenSales = [];
+  } catch (e) {
+    console.error('Error cargando ventas de pollos:', e);
+    chickenSales = [];
+  }
+  
+  // Cargar precio por libra
+  const savedPricePerPound = localStorage.getItem('pricePerPound');
+  if (savedPricePerPound) {
+    pricePerPound = parseFloat(savedPricePerPound) || 2.50;
+  }
+}
+
+// Inicializar datos al cargar la página
+initializeData();
 
 // Inicializar datos de pollos
 function initializeChickenData() {
@@ -913,29 +142,17 @@ function initializeChickenData() {
     pricePerPound = parseFloat(savedPricePerPound);
   }
   
-  // Cargar costo por libra
-  const savedCostPerPound = localStorage.getItem('costPerPound');
-  if (savedCostPerPound) {
-    costPerPound = parseFloat(savedCostPerPound);
-  }
-  
-  // Actualizar campos de precio y costo
+  // Actualizar campo de precio
   const priceInput = document.getElementById('pricePerPound');
-  const costInput = document.getElementById('costPerPound');
   if (priceInput) {
     priceInput.value = pricePerPound.toFixed(2);
   }
-  if (costInput) {
-    costInput.value = costPerPound.toFixed(2);
-  }
 }
 
-// Actualizar configuración de pollos (precio y costo)
-function updateChickenConfig() {
+// Actualizar precio por libra
+function updatePricePerPound() {
   const priceInput = document.getElementById('pricePerPound');
-  const costInput = document.getElementById('costPerPound');
   const newPrice = parseFloat(priceInput.value);
-  const newCost = parseFloat(costInput.value);
   
   if (isNaN(newPrice) || newPrice < 0) {
     Swal.fire({
@@ -947,39 +164,17 @@ function updateChickenConfig() {
     return;
   }
   
-  if (isNaN(newCost) || newCost < 0) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Costo inválido',
-      text: 'Por favor ingresa un costo válido mayor a 0.',
-      confirmButtonText: 'Aceptar'
-    });
-    return;
-  }
-  
-  if (newCost >= newPrice) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Configuración inválida',
-      text: 'El costo debe ser menor al precio para generar ganancia.',
-      confirmButtonText: 'Aceptar'
-    });
-    return;
-  }
-  
   pricePerPound = newPrice;
-  costPerPound = newCost;
   localStorage.setItem('pricePerPound', pricePerPound.toString());
-  localStorage.setItem('costPerPound', costPerPound.toString());
   
   // Actualizar display
   updateChickenCalculation();
   
   Swal.fire({
     icon: 'success',
-    title: 'Configuración actualizada',
-    text: `Precio: $${pricePerPound.toFixed(2)} | Costo: $${costPerPound.toFixed(2)} | Ganancia: $${(pricePerPound - costPerPound).toFixed(2)}`,
-    timer: 3000,
+    title: 'Precio actualizado',
+    text: `El precio por libra se ha actualizado a $${pricePerPound.toFixed(2)}`,
+    timer: 2000,
     showConfirmButton: false
   });
 }
@@ -990,32 +185,15 @@ function updateChickenCalculation() {
   const weight = parseFloat(document.getElementById('chickenWeight')?.value) || 0;
   
   const displayPricePerPound = document.getElementById('displayPricePerPound');
-  const displayCostPerPound = document.getElementById('displayCostPerPound');
-  const displayProfitPerPound = document.getElementById('displayProfitPerPound');
   const displayTotalAmount = document.getElementById('displayTotalAmount');
-  const displayTotalProfit = document.getElementById('displayTotalProfit');
   
   if (displayPricePerPound) {
     displayPricePerPound.textContent = `$${pricePerPound.toFixed(2)}`;
   }
   
-  if (displayCostPerPound) {
-    displayCostPerPound.textContent = `$${costPerPound.toFixed(2)}`;
-  }
-  
-  if (displayProfitPerPound) {
-    const profitPerPound = pricePerPound - costPerPound;
-    displayProfitPerPound.textContent = `$${profitPerPound.toFixed(2)}`;
-  }
-  
   if (displayTotalAmount) {
     const total = weight * pricePerPound;
     displayTotalAmount.textContent = `$${total.toFixed(2)}`;
-  }
-  
-  if (displayTotalProfit) {
-    const totalProfit = weight * (pricePerPound - costPerPound);
-    displayTotalProfit.textContent = `$${totalProfit.toFixed(2)}`;
   }
 }
 
@@ -1074,7 +252,7 @@ function handleChickenSale(e) {
   const quantity = parseInt(document.getElementById('chickenQuantity').value);
   const weight = parseFloat(document.getElementById('chickenWeight').value);
   const paymentType = document.querySelector('input[name="chickenPayment"]:checked').value;
-  const abono = parseFloat(document.getElementById('chickenAbonoInput').value) || 0;
+  const abono = parseFloat(document.getElementById('chickenAbono').value) || 0;
   
   // Validaciones
   if (!clientId) {
@@ -1128,10 +306,7 @@ function handleChickenSale(e) {
     quantity: quantity,
     weight: weight,
     pricePerPound: pricePerPound,
-    costPerPound: costPerPound,
     total: total,
-    cost: weight * costPerPound,
-    profit: weight * (pricePerPound - costPerPound),
     paymentType: paymentType,
     abono: abono,
     remainingAmount: paymentType === 'credit' ? total - abono : 0,
@@ -1140,6 +315,9 @@ function handleChickenSale(e) {
   };
   
   // Agregar a la lista de ventas de pollos
+  if (!chickenSales || !Array.isArray(chickenSales)) {
+    chickenSales = [];
+  }
   chickenSales.push(chickenSale);
   saveToStorage('chickenSales', chickenSales);
   
@@ -1157,6 +335,9 @@ function handleChickenSale(e) {
       chickenSaleId: chickenSale.id
     };
     
+    if (!debts || !Array.isArray(debts)) {
+      debts = [];
+    }
     debts.push(debt);
     saveToStorage('debts', debts);
     
@@ -1166,7 +347,9 @@ function handleChickenSale(e) {
   }
   
   // Limpiar formulario
-  resetChickenForm();
+  document.getElementById('chickenSaleForm').reset();
+  document.getElementById('chickenQuantity').value = '1';
+  document.getElementById('chickenAbonoSection').style.display = 'none';
   
   // Actualizar vistas
   updateChickenStats();
@@ -1174,18 +357,10 @@ function handleChickenSale(e) {
   updateBalanceUI();
   renderDebts();
   renderClients();
+  renderBalanceGrid(); // Actualizar movimientos en tiempo real
   
   // Mostrar comprobante
   showChickenReceipt(chickenSale);
-}
-
-// Limpiar formulario de pollos
-function resetChickenForm() {
-  document.getElementById('chickenSaleForm').reset();
-  document.getElementById('chickenQuantity').value = '1';
-  document.getElementById('chickenAbonoSection').style.display = 'none';
-  const abonoInput = document.getElementById('chickenAbonoInput');
-  if (abonoInput) abonoInput.value = '';
 }
 
 // Mostrar comprobante de venta de pollos
@@ -1478,29 +653,40 @@ function updateChickenStats() {
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
   
+  // Verificar que chickenSales sea un array válido
+  if (!chickenSales || !Array.isArray(chickenSales)) {
+    const totalChickensElement = document.getElementById('totalChickensSold');
+    const totalWeightElement = document.getElementById('totalWeightSold');
+    const totalRevenueElement = document.getElementById('totalRevenue');
+    const avgWeightElement = document.getElementById('avgWeight');
+    
+    if (totalChickensElement) totalChickensElement.textContent = '0';
+    if (totalWeightElement) totalWeightElement.textContent = '0.0';
+    if (totalRevenueElement) totalRevenueElement.textContent = '$0.00';
+    if (avgWeightElement) avgWeightElement.textContent = '0.0';
+    return;
+  }
+  
   // Filtrar ventas de hoy
   const todaySales = chickenSales.filter(sale => 
-    sale.date.startsWith(todayStr)
+    sale && sale.date && sale.date.startsWith(todayStr)
   );
   
   // Calcular estadísticas
-  const totalChickens = todaySales.reduce((sum, sale) => sum + sale.quantity, 0);
-  const totalWeight = todaySales.reduce((sum, sale) => sum + sale.weight, 0);
-  const totalRevenue = todaySales.reduce((sum, sale) => sum + sale.total, 0);
-  const totalProfit = todaySales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+  const totalChickens = todaySales.reduce((sum, sale) => sum + (sale.quantity || 0), 0);
+  const totalWeight = todaySales.reduce((sum, sale) => sum + (sale.weight || 0), 0);
+  const totalRevenue = todaySales.reduce((sum, sale) => sum + (sale.total || 0), 0);
   const avgWeight = totalChickens > 0 ? totalWeight / totalChickens : 0;
   
   // Actualizar elementos en el DOM
   const totalChickensElement = document.getElementById('totalChickensSold');
   const totalWeightElement = document.getElementById('totalWeightSold');
   const totalRevenueElement = document.getElementById('totalRevenue');
-  const totalProfitElement = document.getElementById('totalProfit');
   const avgWeightElement = document.getElementById('avgWeight');
   
   if (totalChickensElement) totalChickensElement.textContent = totalChickens;
   if (totalWeightElement) totalWeightElement.textContent = totalWeight.toFixed(1);
   if (totalRevenueElement) totalRevenueElement.textContent = `$${totalRevenue.toFixed(2)}`;
-  if (totalProfitElement) totalProfitElement.textContent = `$${totalProfit.toFixed(2)}`;
   if (avgWeightElement) avgWeightElement.textContent = avgWeight.toFixed(1);
 }
 
@@ -1511,11 +697,16 @@ function updateChickenClientSelector() {
   
   selector.innerHTML = '<option value="">Seleccionar cliente...</option>';
   
+  // Verificar que clients sea un array válido
+  if (!clients || !Array.isArray(clients)) return;
+  
   clients.forEach(client => {
-    const option = document.createElement('option');
-    option.value = client.id;
-    option.textContent = client.name;
-    selector.appendChild(option);
+    if (client && client.id && client.name) {
+      const option = document.createElement('option');
+      option.value = client.id;
+      option.textContent = client.name;
+      selector.appendChild(option);
+    }
   });
 }
 
@@ -1526,8 +717,25 @@ function updateChickenSalesList() {
   
   if (!container) return;
   
+  // Verificar que chickenSales sea un array válido
+  if (!chickenSales || !Array.isArray(chickenSales)) {
+    if (countElement) {
+      countElement.textContent = '0 ventas';
+    }
+    container.innerHTML = `
+      <div class="text-center py-4">
+        <i class="bi bi-egg-fried" style="font-size: 3rem; color: #ccc;"></i>
+        <p class="text-muted mt-2">No hay ventas de pollos registradas</p>
+      </div>
+    `;
+    return;
+  }
+  
   // Ordenar por fecha más reciente
-  const sortedSales = [...chickenSales].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const sortedSales = [...chickenSales].sort((a, b) => {
+    if (!a || !b || !a.date || !b.date) return 0;
+    return new Date(b.date) - new Date(a.date);
+  });
   
   if (countElement) {
     countElement.textContent = `${sortedSales.length} ventas`;
@@ -1604,32 +812,36 @@ function migrateDateFormats() {
   let needsMigration = false;
   
   // Migrar fechas de ventas
-  sales.forEach(sale => {
-    if (typeof sale.date === 'string' && !sale.date.includes('T')) {
-      // Es una fecha en formato local, convertir a ISO
-      const dateParts = sale.date.split('/');
-      if (dateParts.length === 3) {
-        const [month, day, year] = dateParts;
-        const isoDate = new Date(year, month - 1, day).toISOString();
-        sale.date = isoDate;
-        needsMigration = true;
+  if (sales && Array.isArray(sales)) {
+    sales.forEach(sale => {
+      if (typeof sale.date === 'string' && !sale.date.includes('T')) {
+        // Es una fecha en formato local, convertir a ISO
+        const dateParts = sale.date.split('/');
+        if (dateParts.length === 3) {
+          const [month, day, year] = dateParts;
+          const isoDate = new Date(year, month - 1, day).toISOString();
+          sale.date = isoDate;
+          needsMigration = true;
+        }
       }
-    }
-  });
+    });
+  }
   
   // Migrar fechas de deudas
-  debts.forEach(debt => {
-    if (typeof debt.date === 'string' && !debt.date.includes('T')) {
-      // Es una fecha en formato local, convertir a ISO
-      const dateParts = debt.date.split('/');
-      if (dateParts.length === 3) {
-        const [month, day, year] = dateParts;
-        const isoDate = new Date(year, month - 1, day).toISOString();
-        debt.date = isoDate;
-        needsMigration = true;
+  if (debts && Array.isArray(debts)) {
+    debts.forEach(debt => {
+      if (typeof debt.date === 'string' && !debt.date.includes('T')) {
+        // Es una fecha en formato local, convertir a ISO
+        const dateParts = debt.date.split('/');
+        if (dateParts.length === 3) {
+          const [month, day, year] = dateParts;
+          const isoDate = new Date(year, month - 1, day).toISOString();
+          debt.date = isoDate;
+          needsMigration = true;
+        }
       }
-    }
-  });
+    });
+  }
   
   if (needsMigration) {
     saveToStorage('sales', sales);
@@ -1645,16 +857,28 @@ function openSidebar() {
   document.getElementById('sidebar').classList.add('open');
   document.getElementById('sidebarOverlay').style.display = 'block';
   document.body.style.overflow = 'hidden';
+  
+  // Corregir problema de accesibilidad: remover aria-hidden del contenido principal
+  const mainContent = document.getElementById('mainContent');
+  if (mainContent && mainContent.getAttribute('aria-hidden') === 'true') {
+    mainContent.removeAttribute('aria-hidden');
+  }
 }
 
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarOverlay').style.display = 'none';
   document.body.style.overflow = 'auto';
+  
+  // Asegurar que el contenido principal sea accesible
+  const mainContent = document.getElementById('mainContent');
+  if (mainContent && mainContent.getAttribute('aria-hidden') === 'true') {
+    mainContent.removeAttribute('aria-hidden');
+  }
 }
 
 // === Configuración de tema (global) ===
-function setTheme(mode, showNotification = true) {
+function setTheme(mode) {
   // Remover clases activas de todos los botones
   document.querySelectorAll('.sidebar-action-btn').forEach(btn => {
     btn.classList.remove('active');
@@ -1664,6 +888,7 @@ function setTheme(mode, showNotification = true) {
   document.getElementById(`theme-${mode}`).classList.add('active');
   
   if (mode === 'auto') {
+    // Detectar automáticamente
     detectDarkMode();
   } else if (mode === 'dark') {
     document.documentElement.classList.add('dark-mode');
@@ -1673,7 +898,21 @@ function setTheme(mode, showNotification = true) {
   
   // Guardar preferencia
   localStorage.setItem('theme', mode);
-  // No mostrar notificación de tema cambiado
+  
+  // Mostrar notificación
+  const themeNames = {
+    light: 'Modo Claro',
+    dark: 'Modo Oscuro',
+    auto: 'Automático'
+  };
+  
+  Swal.fire({
+    icon: 'success',
+    title: 'Tema cambiado',
+    text: `Cambiado a ${themeNames[mode]}`,
+    timer: 1500,
+    showConfirmButton: false
+  });
 }
 
 // === Funciones de instalación PWA ===
@@ -1883,14 +1122,6 @@ document.addEventListener('DOMContentLoaded', () => {
       renderCart();
     });
   }
-  
-  // Inicializar búsqueda de productos en ventas
-  const productSearch = document.getElementById('productSearch');
-  if (productSearch) {
-    productSearch.addEventListener('input', (e) => {
-      filterProductsInSales(e.target.value);
-    });
-  }
 
   // Eventos de formularios
   const formProduct = document.getElementById('formProduct');
@@ -2091,28 +1322,58 @@ document.addEventListener('DOMContentLoaded', () => {
 // === Agregar producto con vista previa de imagen ===
 function addProduct(e) {
   e.preventDefault();
-  const name = document.getElementById('productName').value.trim();
-  const cost = parseFloat(document.getElementById('productCost').value);
-  const price = parseFloat(document.getElementById('productPrice').value);
-  const category = document.getElementById('productCategory').value.trim();
-  const stock = parseInt(document.getElementById('productStock').value) || 0;
-  const imageInput = document.getElementById('productImageInput');
-
-  if (!name || isNaN(cost) || isNaN(price)) {
+  
+  // Obtener elementos del formulario
+  const nameInput = document.getElementById('productName');
+  const costInput = document.getElementById('productCost');
+  const priceInput = document.getElementById('productPrice');
+  const categoryInput = document.getElementById('productCategory');
+  const stockInput = document.getElementById('productStock');
+  const imageInput = document.getElementById('productImage');
+  
+  // Validar que los elementos existan
+  if (!nameInput || !costInput || !priceInput || !categoryInput || !stockInput) {
     Swal.fire({
       icon: 'error',
-      title: 'Datos incompletos',
-      text: 'Por favor completa todos los campos obligatorios.',
+      title: 'Error de formulario',
+      text: 'Faltan campos obligatorios en el formulario.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+  
+  const name = nameInput.value.trim();
+  const cost = parseFloat(costInput.value);
+  const price = parseFloat(priceInput.value);
+  const category = categoryInput.value.trim();
+  const stock = parseInt(stockInput.value) || 0;
+
+  // Validaciones básicas
+  if (!name) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Nombre requerido',
+      text: 'El nombre del producto es obligatorio.',
       confirmButtonText: 'Aceptar'
     });
     return;
   }
 
-  if (cost < 0 || price < 0) {
+  if (isNaN(cost) || cost < 0) {
     Swal.fire({
       icon: 'error',
-      title: 'Valores inválidos',
-      text: 'El costo y precio deben ser valores positivos.',
+      title: 'Costo inválido',
+      text: 'El costo debe ser un número positivo.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+
+  if (isNaN(price) || price < 0) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Precio inválido',
+      text: 'El precio debe ser un número positivo.',
       confirmButtonText: 'Aceptar'
     });
     return;
@@ -2137,6 +1398,11 @@ function addProduct(e) {
 
   function saveProduct() {
     const saveProductImage = (imageData) => {
+      // Inicializar array de productos si no existe
+      if (!products || !Array.isArray(products)) {
+        products = [];
+      }
+      
       if (window.editingProductId) {
         // Editar producto existente
         const productIndex = products.findIndex(p => p.id === window.editingProductId);
@@ -2156,19 +1422,23 @@ function addProduct(e) {
           renderSalesProducts();
           
           // Limpiar formulario y estado de edición
-          document.getElementById('formProduct').reset();
-          if (document.getElementById('productImagePreview')) {
-            document.getElementById('productImagePreview').innerHTML = '';
-          }
+          const form = document.getElementById('formProduct');
+          if (form) form.reset();
+          
+          const imagePreview = document.getElementById('imagePreview');
+          if (imagePreview) imagePreview.innerHTML = '';
+          
           window.editingProductId = null;
           
           // Cerrar modal
           const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
-          modal.hide();
+          if (modal) modal.hide();
           
           // Restaurar texto del botón
           const submitBtn = document.querySelector('#modalProduct .btn-primary');
-          submitBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar Producto';
+          if (submitBtn) {
+            submitBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar Producto';
+          }
           
           Swal.fire({
             icon: 'success',
@@ -2189,20 +1459,24 @@ function addProduct(e) {
           image: imageData
         };
         
+        if (!products || !Array.isArray(products)) {
+          products = [];
+        }
         products.push(newProduct);
         saveToStorage('products', products);
         renderInventory();
         renderSalesProducts();
         
         // Limpiar formulario
-        document.getElementById('formProduct').reset();
-        if (document.getElementById('productImagePreview')) {
-          document.getElementById('productImagePreview').innerHTML = '';
-        }
+        const form = document.getElementById('formProduct');
+        if (form) form.reset();
+        
+        const imagePreview = document.getElementById('imagePreview');
+        if (imagePreview) imagePreview.innerHTML = '';
         
         // Cerrar modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
-        modal.hide();
+        if (modal) modal.hide();
         
         Swal.fire({
           icon: 'success',
@@ -2224,26 +1498,23 @@ function addProduct(e) {
 }
 
 // Vista previa de imagen para productos
-const productPhotoInput = document.getElementById('productImageInput');
-if (productPhotoInput) {
-  productPhotoInput.addEventListener('change', function(e) {
-    const preview = document.getElementById('productImagePreview');
-    if (!preview) return;
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa">`;
-      };
-      reader.readAsDataURL(file);
-    } else {
-      preview.innerHTML = '';
-    }
-  });
-}
+document.getElementById('productImage').addEventListener('change', function(e) {
+  const preview = document.getElementById('imagePreview');
+  const file = e.target.files[0];
+  
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa">`;
+    };
+    reader.readAsDataURL(file);
+  } else {
+    preview.innerHTML = '';
+  }
+});
 
 // Vista previa de imagen para clientes
-const clientPhotoInput = document.getElementById('clientPhotoInput');
+const clientPhotoInput = document.getElementById('clientPhoto');
 if (clientPhotoInput) {
   clientPhotoInput.addEventListener('change', function(e) {
     const preview = document.getElementById('clientImagePreview');
@@ -2265,6 +1536,22 @@ if (clientPhotoInput) {
 // Renderizar inventario con diseño tipo Treinta.co
 function renderInventory() {
   const container = document.getElementById('inventoryList');
+  if (!container) return;
+  
+  // Verificar que products sea un array válido
+  if (!products || !Array.isArray(products)) {
+    container.innerHTML = `
+      <div class="col-12 text-center py-4">
+        <i class="bi bi-box-seam fs-1 text-muted"></i>
+        <p class="mt-2 text-muted">No hay productos en el inventario</p>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalProduct">
+          <i class="bi bi-plus-circle"></i> Agregar Producto
+        </button>
+      </div>
+    `;
+    return;
+  }
+  
   const isGridView = localStorage.getItem('inventoryView') !== 'list';
   
   if (isGridView) {
@@ -2314,6 +1601,17 @@ function renderInventory() {
 
 // === Agregar producto al carrito ===
 function addToCart(productId) {
+  // Verificar que products sea un array válido
+  if (!products || !Array.isArray(products)) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No hay productos disponibles.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+  
   const product = products.find(p => p.id == productId);
   if (!product) return;
 
@@ -2332,6 +1630,9 @@ function addToCart(productId) {
   if (existing) {
     existing.qty += 1;
   } else {
+    if (!cart || !Array.isArray(cart)) {
+      cart = [];
+    }
     cart.push({ ...product, qty: 1 });
   }
 
@@ -2342,73 +1643,56 @@ function addToCart(productId) {
   
   renderCart();
   
-  // Mostrar notificación de producto agregado mejorada
-  const toast = Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 2000,
-    timerProgressBar: true,
-    didOpen: (toast) => {
-      toast.addEventListener('mouseenter', Swal.stopTimer)
-      toast.addEventListener('mouseleave', Swal.resumeTimer)
-    }
-  });
-  
-  toast.fire({
+  // Mostrar notificación de producto agregado
+  Swal.fire({
     icon: 'success',
-    title: `${product.name} agregado al carrito`
+    title: 'Producto agregado',
+    text: `${product.name} agregado al carrito`,
+    timer: 1000,
+    showConfirmButton: false
   });
 }
 
-// === Mostrar carrito con diseño tipo Treinta.co mejorado ===
+// === Mostrar carrito con diseño tipo Treinta.co ===
 function renderCart() {
   const container = document.getElementById('cartList');
   const totalElement = document.getElementById('cartTotal');
   const finalizeBtn = document.getElementById('finalizeBtn');
   const clearCartBtn = document.getElementById('clearCartBtn');
-  const clientSelectorContainer = document.getElementById('clientSelectorContainer');
   
   if (!container) return;
 
-  if (cart.length === 0) {
+  if (!cart || !Array.isArray(cart) || cart.length === 0) {
     container.innerHTML = `
-      <div class="text-center py-5">
-        <i class="bi bi-cart-x" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-        <h6 class="text-muted">Carrito vacío</h6>
-        <p class="text-muted small">Selecciona productos para comenzar</p>
+      <div class="text-center py-4">
+        <i class="bi bi-cart-x" style="font-size: 3rem; color: #ccc;"></i>
+        <p class="text-muted mt-2">Carrito vacío</p>
+        <small class="text-muted">Selecciona productos para comenzar</small>
       </div>
     `;
     totalElement.textContent = '$0.00';
     finalizeBtn.disabled = true;
     clearCartBtn.style.display = 'none';
-    if (clientSelectorContainer) clientSelectorContainer.style.display = 'none';
     return;
   }
 
   clearCartBtn.style.display = 'block';
-  if (clientSelectorContainer) clientSelectorContainer.style.display = 'block';
 
   container.innerHTML = cart.map(item => `
     <div class="cart-item-treinta">
       <div class="cart-item-header-treinta">
         <div class="cart-item-qty-treinta">
-          <button class="btn btn-sm btn-outline-secondary qty-btn" onclick="changeCartQty('${item.id}', -1)" ${item.qty <= 1 ? 'disabled' : ''}>
-            <i class="bi bi-dash"></i>
-          </button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="changeCartQty('${item.id}', -1)">-</button>
           <span class="qty-display">${item.qty}</span>
-          <button class="btn btn-sm btn-outline-secondary qty-btn" onclick="changeCartQty('${item.id}', 1)">
-            <i class="bi bi-plus"></i>
-          </button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="changeCartQty('${item.id}', 1)">+</button>
         </div>
         <div class="cart-item-info-treinta">
           <div class="cart-item-name-treinta">${item.name}</div>
-          <div class="cart-item-category-treinta">${item.category || 'Sin categoría'}</div>
           <div class="cart-item-price-treinta">$${item.price.toFixed(2)} c/u</div>
         </div>
         <div class="cart-item-actions-treinta">
           <div class="cart-item-total-treinta">$${(item.price * item.qty).toFixed(2)}</div>
-          <button class="btn btn-sm btn-outline-danger remove-btn" onclick="removeFromCart('${item.id}')" title="Eliminar">
+          <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('${item.id}')">
             <i class="bi bi-trash"></i>
           </button>
         </div>
@@ -2418,35 +1702,47 @@ function renderCart() {
 
   const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
   totalElement.textContent = `$${total.toFixed(2)}`;
-  finalizeBtn.disabled = !currentClientId;
+  finalizeBtn.disabled = false; // Permitir finalizar venta sin cliente seleccionado
 }
 
 function changeCartQty(productId, delta) {
+  // Verificar que cart sea un array válido
+  if (!cart || !Array.isArray(cart)) return;
+  
   const idx = cart.findIndex(item => item.id === productId);
   if (idx === -1) return;
   cart[idx].qty += delta;
   if (cart[idx].qty < 1) cart[idx].qty = 1;
-  saveProforma(currentClientId, cart);
+  if (currentClientId) {
+    saveProforma(currentClientId, cart);
+  }
   renderCart();
 }
 
 // === Vaciar carrito ===
 function clearCart() {
-  if (!currentClientId) return;
   cart = [];
-  saveProforma(currentClientId, []);
+  if (currentClientId) {
+    saveProforma(currentClientId, []);
+  }
   renderCart();
 }
 
 // === Finalizar venta con comprobante tipo Treinta.co ===
 function finalizeSale() {
-  if (!currentClientId || cart.length === 0) {
+  if (cart.length === 0) {
     Swal.fire({
       icon: 'warning',
-      title: 'Faltan datos',
-      text: 'Selecciona cliente y agrega productos.',
+      title: 'Carrito vacío',
+      text: 'Agrega productos al carrito para continuar.',
       confirmButtonText: 'Aceptar'
     });
+    return;
+  }
+
+  // Si no hay cliente seleccionado, mostrar selector de cliente
+  if (!currentClientId) {
+    showClientSelectorForSale();
     return;
   }
 
@@ -2556,6 +1852,9 @@ function finalizeSale() {
         time: new Date().toLocaleTimeString()
       };
       
+      if (!sales || !Array.isArray(sales)) {
+        sales = [];
+      }
       sales.push(sale);
       saveToStorage('sales', sales);
       saveToStorage('products', products);
@@ -2565,6 +1864,7 @@ function finalizeSale() {
       
       // Actualizar balance
       updateBalanceUI();
+      renderBalanceGrid(); // Actualizar movimientos en tiempo real
       
       // Mostrar comprobante
       showReceipt(sale);
@@ -2572,6 +1872,42 @@ function finalizeSale() {
     } else if (result.isDenied) {
       // Venta a crédito
       showCreditSaleModal(total, cost, client);
+    }
+  });
+}
+
+// Función para mostrar selector de cliente al finalizar venta
+function showClientSelectorForSale() {
+  if (!clients || !Array.isArray(clients) || clients.length === 0) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'No hay clientes',
+      text: 'Debes registrar al menos un cliente para continuar.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+
+  Swal.fire({
+    title: 'Seleccionar Cliente',
+    input: 'select',
+    inputOptions: clients.reduce((options, client) => {
+      options[client.id] = `${client.name}${client.debt > 0 ? ` (Deuda: $${client.debt.toFixed(2)})` : ''}`;
+      return options;
+    }, {}),
+    inputPlaceholder: 'Selecciona un cliente',
+    showCancelButton: true,
+    confirmButtonText: 'Continuar',
+    cancelButtonText: 'Cancelar',
+    inputValidator: (value) => {
+      if (!value) {
+        return 'Debes seleccionar un cliente';
+      }
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      currentClientId = result.value;
+      finalizeSale(); // Continuar con la venta
     }
   });
 }
@@ -2648,6 +1984,9 @@ function showCreditSaleModal(total, cost, client) {
         time: new Date().toLocaleTimeString()
       };
       
+      if (!sales || !Array.isArray(sales)) {
+        sales = [];
+      }
       sales.push(sale);
       saveToStorage('sales', sales);
       saveToStorage('products', products);
@@ -2666,6 +2005,9 @@ function showCreditSaleModal(total, cost, client) {
           saleId: sale.id
         };
         
+        if (!debts || !Array.isArray(debts)) {
+          debts = [];
+        }
         debts.push(debt);
         saveToStorage('debts', debts);
         
@@ -2689,6 +2031,7 @@ function showCreditSaleModal(total, cost, client) {
       renderClients();
       renderDebts();
       updateBalanceUI();
+      renderBalanceGrid(); // Actualizar movimientos en tiempo real
     }
   });
 }
@@ -2812,27 +2155,32 @@ function getPaymentText(paymentType) {
 // === Agregar/Editar cliente con validación mejorada ===
 function addClient(e) {
   e.preventDefault();
+  
+  // Obtener elementos del formulario
   const nameInput = document.getElementById('clientName');
   const phoneInput = document.getElementById('clientPhone');
   const addressInput = document.getElementById('clientAddress');
-  const photoInput = document.getElementById('clientPhotoInput');
+  const photoInput = document.getElementById('clientPhoto');
   const locationInput = document.getElementById('clientLocation');
   const locationStatus = document.getElementById('locationStatus');
+  
+  // Validar que los elementos existan
   if (!nameInput || !phoneInput || !addressInput) {
-    Swal.fire({ icon: 'error', title: 'Error de formulario', text: 'Faltan campos obligatorios en el formulario.', confirmButtonText: 'Aceptar' });
+    Swal.fire({
+      icon: 'error',
+      title: 'Error de formulario',
+      text: 'Faltan campos obligatorios en el formulario.',
+      confirmButtonText: 'Aceptar'
+    });
     return;
   }
+  
   const name = nameInput.value.trim();
   const phone = phoneInput.value.trim();
   const address = addressInput.value.trim();
-  const photo = photoInput.files && photoInput.files[0] ? photoInput.files[0] : null;
-  const location = locationInput.value.trim();
-  if (location) {
-    locationStatus.textContent = 'Ubicación válida';
-  } else {
-    locationStatus.textContent = 'Ubicación no válida';
-  }
-
+  const location = locationInput ? locationInput.value.trim() : '';
+  
+  // Validaciones básicas
   if (!name) {
     Swal.fire({
       icon: 'error',
@@ -2854,7 +2202,21 @@ function addClient(e) {
     return;
   }
 
+  // Actualizar estado de ubicación si existe
+  if (locationStatus) {
+    if (location) {
+      locationStatus.textContent = 'Ubicación válida';
+    } else {
+      locationStatus.textContent = 'Ubicación no válida';
+    }
+  }
+
   const saveClient = (photo) => {
+    // Inicializar array de clientes si no existe
+    if (!clients || !Array.isArray(clients)) {
+      clients = [];
+    }
+    
     if (window.editingClientId) {
       // Editar cliente existente
       const clientIndex = clients.findIndex(c => c.id === window.editingClientId);
@@ -2864,44 +2226,57 @@ function addClient(e) {
           name,
           phone,
           address,
+          location,
           photo: photo || clients[clientIndex].photo
         };
       }
       delete window.editingClientId;
     } else {
       // Agregar nuevo cliente
+      if (!clients || !Array.isArray(clients)) {
+        clients = [];
+      }
       clients.push({
         id: generateId('client'),
         name,
         phone,
         address,
+        location,
         photo,
         debt: 0
       });
     }
 
     // Calcular deuda total por cliente
-    clients.forEach(client => {
-      const clientDebts = debts.filter(d => d.clientId === client.id);
-      client.debt = clientDebts.reduce((sum, d) => sum + d.amount, 0);
-    });
+    if (debts && Array.isArray(debts)) {
+      clients.forEach(client => {
+        const clientDebts = debts.filter(d => d.clientId === client.id);
+        client.debt = clientDebts.reduce((sum, d) => sum + d.amount, 0);
+      });
+    }
 
     saveToStorage('clients', clients);
     renderClients();
     updateClientSelector();
     
     // Limpiar formulario
-    if (document.getElementById('formClient')) document.getElementById('formClient').reset();
-    if (document.getElementById('clientImagePreview')) document.getElementById('clientImagePreview').innerHTML = '';
+    const form = document.getElementById('formClient');
+    if (form) form.reset();
+    
+    const imagePreview = document.getElementById('clientImagePreview');
+    if (imagePreview) imagePreview.innerHTML = '';
+    
     if (locationStatus) locationStatus.textContent = '';
     
     // Restaurar texto del botón
     const submitBtn = document.querySelector('#modalClient .btn-primary');
-    submitBtn.innerHTML = '<i class="bi bi-person-plus"></i> Agregar Cliente';
+    if (submitBtn) {
+      submitBtn.innerHTML = '<i class="bi bi-person-plus"></i> Agregar Cliente';
+    }
     
     // Cerrar modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('modalClient'));
-    modal.hide();
+    if (modal) modal.hide();
     
     Swal.fire({ 
       icon: 'success', 
@@ -2923,6 +2298,22 @@ function addClient(e) {
 // Renderizar clientes con diseño tipo Treinta.co
 function renderClients() {
   const container = document.getElementById('clientList');
+  if (!container) return;
+  
+  // Verificar que clients sea un array válido
+  if (!clients || !Array.isArray(clients)) {
+    container.innerHTML = `
+      <div class="col-12 text-center py-4">
+        <i class="bi bi-people fs-1 text-muted"></i>
+        <p class="mt-2 text-muted">No hay clientes registrados</p>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalClient">
+          <i class="bi bi-person-plus"></i> Agregar Cliente
+        </button>
+      </div>
+    `;
+    return;
+  }
+  
   const isGridView = localStorage.getItem('clientsView') !== 'list';
   
   if (isGridView) {
@@ -2987,38 +2378,20 @@ function renderClients() {
 
 // === Selector de cliente en ventas ===
 function updateClientSelector() {
-  const selector = document.getElementById('cartClientSelector');
-  if (!selector) return; // Evitar error si no existe
-  
-  // Limpiar opciones existentes
-  selector.innerHTML = `<option value="">Seleccionar cliente...</option>`;
-
-  clients.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c.id;
-    opt.innerText = `${c.name}${c.debt > 0 ? ` (Deuda: $${c.debt.toFixed(2)})` : ''}`;
-    selector.appendChild(opt);
-  });
-  
-  // Actualizar también el selector de pollos si existe
-  const chickenSelector = document.getElementById('chickenClient');
-  if (chickenSelector) {
-    chickenSelector.innerHTML = `<option value="">Seleccionar cliente...</option>`;
-    clients.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.id;
-      opt.innerText = `${c.name}${c.debt > 0 ? ` (Deuda: $${c.debt.toFixed(2)})` : ''}`;
-      chickenSelector.appendChild(opt);
-    });
-  }
+  // Esta función ya no es necesaria ya que eliminamos el selector de cliente del carrito
+  // Se mantiene por compatibilidad pero no hace nada
+  console.log('updateClientSelector: Selector de cliente eliminado del carrito');
 }
 
 // === Mostrar deudas con diseño tipo Treinta.co ===
 function renderDebts() {
   const list = document.getElementById('debtList');
+  if (!list) return;
+  
   list.innerHTML = '';
 
-  if (debts.length === 0) {
+  // Verificar que debts sea un array válido
+  if (!debts || !Array.isArray(debts) || debts.length === 0) {
     list.innerHTML = `<div class='alert alert-secondary text-center'>Sin deudas registradas</div>`;
     return;
   }
@@ -3157,27 +2530,11 @@ function detectDarkMode() {
   }
 }
 
-// Escuchar cambios en el sistema SOLO si el usuario elige 'auto'
-// window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectDarkMode);
+// Escuchar cambios en el sistema
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectDarkMode);
 
-// === Inicialización de tema ===
-function initializeTheme() {
-  let savedTheme = localStorage.getItem('theme');
-  if (!savedTheme) {
-    savedTheme = 'light';
-    localStorage.setItem('theme', 'light');
-  }
-  if (savedTheme === 'dark') {
-    setTheme('dark', false);
-  } else if (savedTheme === 'auto') {
-    setTheme('auto', false);
-    // Solo aquí escuchar cambios del sistema
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectDarkMode);
-  } else {
-    setTheme('light', false);
-  }
-}
-document.addEventListener('DOMContentLoaded', initializeTheme);
+// Ejecutar al iniciar
+detectDarkMode();
 
 // === Registrar Service Worker ===
 if ('serviceWorker' in navigator) {
@@ -3243,6 +2600,7 @@ function editProduct(productId) {
   const priceInput = document.getElementById('productPrice');
   const categoryInput = document.getElementById('productCategory');
   const stockInput = document.getElementById('productStock');
+  const descriptionInput = document.getElementById('productDescription');
   const preview = document.getElementById('productImagePreview');
   
   if (nameInput) nameInput.value = product.name;
@@ -3250,6 +2608,7 @@ function editProduct(productId) {
   if (priceInput) priceInput.value = product.price;
   if (categoryInput) categoryInput.value = product.category || '';
   if (stockInput) stockInput.value = product.stock || 0;
+  if (descriptionInput) descriptionInput.value = product.description || '';
   if (preview) {
     if (product.image) {
       preview.innerHTML = `<img src="${product.image}" alt="Imagen actual">`;
@@ -3270,27 +2629,41 @@ function editProduct(productId) {
   modal.show();
 }
 
-// Renderizar productos en ventas con diseño tipo Treinta.co mejorado
+// Renderizar productos en ventas con diseño tipo Treinta.co
 function renderSalesProducts() {
   const container = document.getElementById('salesProductsGrid');
   const productsCount = document.getElementById('productsCount');
   if (!container) return;
   
+  // Verificar que products sea un array válido
+  if (!products || !Array.isArray(products)) {
+    container.innerHTML = `
+      <div class="text-center py-4" style="grid-column: 1 / -1;">
+        <i class="bi bi-box-seam" style="font-size: 3rem; color: #ccc;"></i>
+        <p class="text-muted mt-2">No hay productos en el inventario</p>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalProduct">
+          <i class="bi bi-plus-circle"></i> Agregar Producto
+        </button>
+      </div>
+    `;
+    if (productsCount) productsCount.textContent = '0 productos';
+    return;
+  }
+  
   // Filtrar productos por búsqueda
   const searchTerm = document.getElementById('productSearch')?.value?.toLowerCase() || '';
   const filteredProducts = products.filter(product => 
     product.name.toLowerCase().includes(searchTerm) ||
-    product.category?.toLowerCase().includes(searchTerm)
+    product.description?.toLowerCase().includes(searchTerm)
   );
   
-  productsCount.textContent = `${filteredProducts.length} productos`;
+  if (productsCount) productsCount.textContent = `${filteredProducts.length} productos`;
   
   if (filteredProducts.length === 0) {
     container.innerHTML = `
-      <div class="text-center py-5" style="grid-column: 1 / -1;">
-        <i class="bi bi-search" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
-        <h5 class="text-muted">No se encontraron productos</h5>
-        <p class="text-muted">Intenta con otros términos de búsqueda</p>
+      <div class="text-center py-4" style="grid-column: 1 / -1;">
+        <i class="bi bi-search" style="font-size: 3rem; color: #ccc;"></i>
+        <p class="text-muted mt-2">No se encontraron productos</p>
       </div>
     `;
     return;
@@ -3298,72 +2671,21 @@ function renderSalesProducts() {
   
   container.innerHTML = filteredProducts.map(product => `
     <div class="product-card-treinta" onclick="addToCart('${product.id}')">
-      <div class="product-image-container">
-        <img src="${product.image || 'icons/descarga.png'}" 
-             class="product-image-treinta" alt="${product.name}" 
-             onerror="this.src='icons/descarga.png'">
-        <div class="product-overlay">
-          <button class="btn btn-primary btn-sm add-to-cart-btn" onclick="event.stopPropagation(); addToCart('${product.id}')" ${product.stock <= 0 ? 'disabled' : ''}>
-            <i class="bi bi-plus"></i> Agregar
-          </button>
-        </div>
-      </div>
+      <img src="${product.image || 'icons/descarga.png'}" 
+           class="product-image-treinta" alt="${product.name}" onerror="this.src='icons/descarga.png'">
       <div class="product-info-treinta">
         <div class="product-name-treinta">${product.name}</div>
-        <div class="product-category-treinta">${product.category || 'Sin categoría'}</div>
         <div class="product-price-treinta">$${product.price.toFixed(2)}</div>
-        <div class="product-stock-treinta ${product.stock <= 0 ? 'out-of-stock' : ''}">
-          <i class="bi bi-box-seam"></i> 
-          ${product.stock <= 0 ? 'Sin stock' : `Stock: ${product.stock}`}
+        <div class="product-stock-treinta">
+          <i class="bi bi-box-seam"></i> Stock: ${product.stock}
         </div>
-      </div>
-    </div>
-  `).join('');
-}
-
-// Función para filtrar productos en tiempo real
-function filterProductsInSales(searchTerm) {
-  const container = document.getElementById('salesProductsGrid');
-  const productsCount = document.getElementById('productsCount');
-  if (!container) return;
-  
-  const filteredProducts = products.filter(product => 
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
-  productsCount.textContent = `${filteredProducts.length} productos`;
-  
-  if (filteredProducts.length === 0) {
-    container.innerHTML = `
-      <div class="text-center py-5" style="grid-column: 1 / -1;">
-        <i class="bi bi-search" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
-        <h5 class="text-muted">No se encontraron productos</h5>
-        <p class="text-muted">Intenta con otros términos de búsqueda</p>
-      </div>
-    `;
-    return;
-  }
-  
-  container.innerHTML = filteredProducts.map(product => `
-    <div class="product-card-treinta" onclick="addToCart('${product.id}')">
-      <div class="product-image-container">
-        <img src="${product.image || 'icons/descarga.png'}" 
-             class="product-image-treinta" alt="${product.name}" 
-             onerror="this.src='icons/descarga.png'">
-        <div class="product-overlay">
-          <button class="btn btn-primary btn-sm add-to-cart-btn" onclick="event.stopPropagation(); addToCart('${product.id}')" ${product.stock <= 0 ? 'disabled' : ''}>
-            <i class="bi bi-plus"></i> Agregar
+        <div class="product-actions-treinta">
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); addToCart('${product.id}')" ${product.stock <= 0 ? 'disabled' : ''}>
+            <i class="bi bi-plus"></i>
           </button>
-        </div>
-      </div>
-      <div class="product-info-treinta">
-        <div class="product-name-treinta">${product.name}</div>
-        <div class="product-category-treinta">${product.category || 'Sin categoría'}</div>
-        <div class="product-price-treinta">$${product.price.toFixed(2)}</div>
-        <div class="product-stock-treinta ${product.stock <= 0 ? 'out-of-stock' : ''}">
-          <i class="bi bi-box-seam"></i> 
-          ${product.stock <= 0 ? 'Sin stock' : `Stock: ${product.stock}`}
+          <button class="btn btn-outline-secondary btn-sm" onclick="event.stopPropagation(); showProductDetailModal('${product.id}')">
+            <i class="bi bi-eye"></i>
+          </button>
         </div>
       </div>
     </div>
@@ -3426,6 +2748,9 @@ function toggleClientsView() {
 
 // Remover producto del carrito
 function removeFromCart(productId) {
+  // Verificar que cart sea un array válido
+  if (!cart || !Array.isArray(cart)) return;
+  
   const index = cart.findIndex(item => item.id === productId);
   if (index !== -1) {
     cart.splice(index, 1);
@@ -3492,10 +2817,10 @@ function renderBalanceGrid() {
         </div>
         <h6 class="balance-card-title">Créditos</h6>
       </div>
-      <div class="balance-card-amount">$${debts.reduce((sum, d) => sum + d.amount, 0).toFixed(2)}</div>
+      <div class="balance-card-amount">$${(debts && Array.isArray(debts) ? debts.reduce((sum, d) => sum + d.amount, 0) : 0).toFixed(2)}</div>
       <div class="balance-card-change">
         <i class="bi bi-clock"></i>
-        <span>${debts.length} deudas pendientes</span>
+        <span>${debts && Array.isArray(debts) ? debts.length : 0} deudas pendientes</span>
       </div>
     </div>
   `;
@@ -3516,7 +2841,7 @@ function renderBalanceGrid() {
     return;
   }
   
-  movementsContainer.innerHTML = movements.map((movement, idx) => `
+  movementsContainer.innerHTML = (movements && Array.isArray(movements) ? movements.map((movement, idx) => `
     <div class="movement-item-treinta" onclick="showMovementDetail(${idx})" style="cursor:pointer;">
       <div class="movement-icon ${movement.type}">
         <i class="bi ${movement.icon}"></i>
@@ -3529,7 +2854,7 @@ function renderBalanceGrid() {
         ${movement.amountClass === 'positive' ? '+' : ''}$${movement.amount.toFixed(2)}
       </div>
     </div>
-  `).join('');
+  `).join('') : '');
 }
 
 // === Eventos para filtros de periodo ===
@@ -3586,13 +2911,31 @@ function calculateBalanceData(period) {
   
   let income = 0, expenses = 0, profit = 0;
   
-  sales.forEach(s => {
-    const fecha = new Date(s.date);
-    if (checkPeriod(fecha, now)) {
-      income += s.total;
-      profit += s.profit;
-    }
-  });
+  // Verificar que sales sea un array válido
+  if (sales && Array.isArray(sales)) {
+    sales.forEach(s => {
+      if (s && s.date && s.total !== undefined) {
+        const fecha = new Date(s.date);
+        if (checkPeriod(fecha, now)) {
+          income += s.total || 0;
+          profit += s.profit || 0;
+        }
+      }
+    });
+  }
+  
+  // Verificar que chickenSales sea un array válido y agregar ventas de pollos
+  if (chickenSales && Array.isArray(chickenSales)) {
+    chickenSales.forEach(s => {
+      if (s && s.date && s.total !== undefined) {
+        const fecha = new Date(s.date);
+        if (checkPeriod(fecha, now)) {
+          income += s.total || 0;
+          profit += s.total || 0; // Para pollos, el total es la utilidad
+        }
+      }
+    });
+  }
   
   // Gastos (costos de ventas)
   expenses = income - profit;
@@ -3622,60 +2965,91 @@ function getRecentMovements(period) {
       startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   }
   
-  // Agregar ventas del periodo
-  sales.forEach(sale => {
-    const saleDate = new Date(sale.date);
-    if (saleDate >= startDate) {
-      movements.push({
-        type: 'sale',
-        icon: 'bi-cart-check',
-        title: `Venta #${sale.id}`,
-        subtitle: `${sale.clientName} - ${saleDate.toLocaleDateString()}`,
-        amount: sale.total,
-        amountClass: 'positive',
-        date: saleDate,
-        data: sale
-      });
-    }
-  });
-  
-  // Agregar deudas del periodo
-  debts.forEach(debt => {
-    const debtDate = new Date(debt.date);
-    if (debtDate >= startDate) {
-      movements.push({
-        type: 'debt',
-        icon: 'bi-cash-stack',
-        title: `Deuda #${debt.id}`,
-        subtitle: `${debt.clientName} - ${debtDate.toLocaleDateString()}`,
-        amount: debt.amount,
-        amountClass: 'negative',
-        date: debtDate,
-        data: debt
-      });
-    }
-  });
-  
-  // Agregar pagos de deudas del periodo
-  debts.forEach(debt => {
-    if (debt.payments && debt.payments.length > 0) {
-      debt.payments.forEach(payment => {
-        const paymentDate = new Date(payment.date);
-        if (paymentDate >= startDate) {
+  // Verificar que sales sea un array válido y agregar ventas del periodo
+  if (sales && Array.isArray(sales)) {
+    sales.forEach(sale => {
+      if (sale && sale.date && sale.id && sale.clientName && sale.total !== undefined) {
+        const saleDate = new Date(sale.date);
+        if (saleDate >= startDate) {
           movements.push({
-            type: 'payment',
-            icon: 'bi-cash-coin',
-            title: `Pago deuda #${debt.id}`,
-            subtitle: `${debt.clientName} - ${paymentDate.toLocaleDateString()}`,
-            amount: payment.amount,
+            type: 'sale',
+            icon: 'bi-cart-check',
+            title: `Venta #${sale.id}`,
+            subtitle: `${sale.clientName} - ${saleDate.toLocaleDateString()}`,
+            amount: sale.total,
             amountClass: 'positive',
-            date: paymentDate,
-            data: { debt, payment }
+            date: saleDate,
+            data: sale
           });
         }
-      });
-    }
-  });
+      }
+    });
+  }
+  
+  // Verificar que chickenSales sea un array válido y agregar ventas de pollos del periodo
+  if (chickenSales && Array.isArray(chickenSales)) {
+    chickenSales.forEach(sale => {
+      if (sale && sale.date && sale.id && sale.clientName && sale.total !== undefined) {
+        const saleDate = new Date(sale.date);
+        if (saleDate >= startDate) {
+          movements.push({
+            type: 'chicken_sale',
+            icon: 'bi-egg-fried',
+            title: `Venta Pollos #${sale.id}`,
+            subtitle: `${sale.clientName} - ${saleDate.toLocaleDateString()}`,
+            amount: sale.total,
+            amountClass: 'positive',
+            date: saleDate,
+            data: sale
+          });
+        }
+      }
+    });
+  }
+  
+  // Verificar que debts sea un array válido y agregar deudas del periodo
+  if (debts && Array.isArray(debts)) {
+    debts.forEach(debt => {
+      if (debt && debt.date && debt.id && debt.clientName && debt.amount !== undefined) {
+        const debtDate = new Date(debt.date);
+        if (debtDate >= startDate) {
+          movements.push({
+            type: 'debt',
+            icon: 'bi-cash-stack',
+            title: `Deuda #${debt.id}`,
+            subtitle: `${debt.clientName} - ${debtDate.toLocaleDateString()}`,
+            amount: debt.amount,
+            amountClass: 'negative',
+            date: debtDate,
+            data: debt
+          });
+        }
+      }
+    });
+    
+    // Agregar pagos de deudas del periodo
+    debts.forEach(debt => {
+      if (debt && debt.payments && Array.isArray(debt.payments) && debt.payments.length > 0) {
+        debt.payments.forEach(payment => {
+          if (payment && payment.date && payment.amount !== undefined) {
+            const paymentDate = new Date(payment.date);
+            if (paymentDate >= startDate) {
+              movements.push({
+                type: 'payment',
+                icon: 'bi-cash-coin',
+                title: `Pago deuda #${debt.id}`,
+                subtitle: `${debt.clientName} - ${paymentDate.toLocaleDateString()}`,
+                amount: payment.amount,
+                amountClass: 'positive',
+                date: paymentDate,
+                data: { debt, payment }
+              });
+            }
+          }
+        });
+      }
+    });
+  }
   
   // Ordenar por fecha más reciente y limitar a 10
   return movements
@@ -3849,7 +3223,7 @@ function showClientDebts(clientId) {
   }).then((result) => {
     if (result.isConfirmed) {
       // Mostrar modal de abono
-      const totalDebt = clientDebts.reduce((sum, d) => sum + d.amount, 0);
+      const totalDebt = clientDebts && Array.isArray(clientDebts) ? clientDebts.reduce((sum, d) => sum + d.amount, 0) : 0;
       Swal.fire({
         title: 'Abonar a deuda',
         html: `<div class='mb-2'>¿Cuánto desea abonar?</div><input id='abonoInput' type='number' min='1' max='${totalDebt}' class='form-control' placeholder='Abono' />`,
@@ -4024,15 +3398,22 @@ function filterDebts(searchTerm) {
 // Estadísticas adicionales para balance
 function getAdvancedStats(period) {
   const data = calculateBalanceData(period);
+  
+  // Verificar que los arrays existan y sean válidos
+  const salesArray = sales && Array.isArray(sales) ? sales : [];
+  const clientsArray = clients && Array.isArray(clients) ? clients : [];
+  const productsArray = products && Array.isArray(products) ? products : [];
+  const debtsArray = debts && Array.isArray(debts) ? debts : [];
+  
   const stats = {
-    totalSales: sales.length,
-    totalClients: clients.length,
-    totalProducts: products.length,
-    avgSaleValue: data.income / Math.max(sales.length, 1),
+    totalSales: salesArray.length,
+    totalClients: clientsArray.length,
+    totalProducts: productsArray.length,
+    avgSaleValue: data.income / Math.max(salesArray.length, 1),
     profitMargin: ((data.profit / data.income) * 100) || 0,
     topSellingProduct: getTopSellingProduct(),
     mostValuableClient: getMostValuableClient(),
-    debtRatio: (debts.reduce((sum, d) => sum + d.amount, 0) / Math.max(data.income, 1)) * 100
+    debtRatio: ((debtsArray.reduce((sum, d) => sum + (d.amount || 0), 0)) / Math.max(data.income, 1)) * 100
   };
   
   return stats;
@@ -4042,17 +3423,24 @@ function getAdvancedStats(period) {
 function getTopSellingProduct() {
   const productSales = {};
   
-  sales.forEach(sale => {
-    sale.items?.forEach(item => {
-      productSales[item.id] = (productSales[item.id] || 0) + item.qty;
+  // Verificar que sales sea un array válido
+  if (sales && Array.isArray(sales)) {
+    sales.forEach(sale => {
+      if (sale && sale.items && Array.isArray(sale.items)) {
+        sale.items.forEach(item => {
+          if (item && item.id && item.qty) {
+            productSales[item.id] = (productSales[item.id] || 0) + item.qty;
+          }
+        });
+      }
     });
-  });
+  }
   
   const topProduct = Object.entries(productSales)
     .sort(([,a], [,b]) => b - a)[0];
   
   if (topProduct) {
-    const product = products.find(p => p.id === topProduct[0]);
+    const product = products && Array.isArray(products) ? products.find(p => p.id === topProduct[0]) : null;
     return {
       name: product?.name || 'Producto desconocido',
       sales: topProduct[1]
@@ -4066,15 +3454,20 @@ function getTopSellingProduct() {
 function getMostValuableClient() {
   const clientSales = {};
   
-  sales.forEach(sale => {
-    clientSales[sale.clientId] = (clientSales[sale.clientId] || 0) + sale.total;
-  });
+  // Verificar que sales sea un array válido
+  if (sales && Array.isArray(sales)) {
+    sales.forEach(sale => {
+      if (sale && sale.clientId && sale.total !== undefined) {
+        clientSales[sale.clientId] = (clientSales[sale.clientId] || 0) + sale.total;
+      }
+    });
+  }
   
   const topClient = Object.entries(clientSales)
     .sort(([,a], [,b]) => b - a)[0];
   
   if (topClient) {
-    const client = clients.find(c => c.id === topClient[0]);
+    const client = clients && Array.isArray(clients) ? clients.find(c => c.id === topClient[0]) : null;
     return {
       name: client?.name || 'Cliente desconocido',
       total: topClient[1]
@@ -4187,6 +3580,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Restaurar backup si es necesario
   restoreBackup();
   
+  // Configurar corrección de accesibilidad
+  setupAccessibilityFix();
+  
   // Mostrar estadísticas avanzadas en balance
   const balanceView = document.getElementById('view-balance');
   if (balanceView) {
@@ -4198,6 +3594,47 @@ document.addEventListener('DOMContentLoaded', function() {
     observer.observe(balanceView, { attributes: true, attributeFilter: ['class'] });
   }
 });
+
+// Función para corregir problemas de accesibilidad
+function setupAccessibilityFix() {
+  // Observar cambios en el atributo aria-hidden del contenido principal
+  const mainContent = document.getElementById('mainContent');
+  if (mainContent) {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'aria-hidden') {
+          const target = mutation.target;
+          if (target.getAttribute('aria-hidden') === 'true') {
+            // Verificar si hay elementos focables dentro
+            const focusableElements = target.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+            if (focusableElements.length > 0) {
+              // Si hay elementos focables, remover aria-hidden para evitar el error de accesibilidad
+              target.removeAttribute('aria-hidden');
+              console.log('[Accesibilidad] Removido aria-hidden del contenido principal para evitar conflicto con elementos focables');
+            }
+          }
+        }
+      });
+    });
+    
+    observer.observe(mainContent, { 
+      attributes: true, 
+      attributeFilter: ['aria-hidden'] 
+    });
+  }
+  
+  // También verificar periódicamente
+  setInterval(() => {
+    const mainContent = document.getElementById('mainContent');
+    if (mainContent && mainContent.getAttribute('aria-hidden') === 'true') {
+      const focusableElements = mainContent.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (focusableElements.length > 0) {
+        mainContent.removeAttribute('aria-hidden');
+        console.log('[Accesibilidad] Corrección periódica: removido aria-hidden del contenido principal');
+      }
+    }
+  }, 5000); // Verificar cada 5 segundos
+}
 
 // Mostrar estadísticas avanzadas
 function showAdvancedStats() {
@@ -4319,32 +3756,40 @@ function validateDataIntegrity() {
   const errors = [];
   
   // Validar productos
-  products.forEach((product, index) => {
-    if (!product.id || !product.name || typeof product.price !== 'number') {
-      errors.push(`Producto ${index + 1}: Datos incompletos o inválidos`);
-    }
-  });
+  if (products && Array.isArray(products)) {
+    products.forEach((product, index) => {
+      if (!product.id || !product.name || typeof product.price !== 'number') {
+        errors.push(`Producto ${index + 1}: Datos incompletos o inválidos`);
+      }
+    });
+  }
   
   // Validar clientes
-  clients.forEach((client, index) => {
-    if (!client.id || !client.name) {
-      errors.push(`Cliente ${index + 1}: Datos incompletos`);
-    }
-  });
+  if (clients && Array.isArray(clients)) {
+    clients.forEach((client, index) => {
+      if (!client.id || !client.name) {
+        errors.push(`Cliente ${index + 1}: Datos incompletos`);
+      }
+    });
+  }
   
   // Validar ventas
-  sales.forEach((sale, index) => {
-    if (!sale.id || !sale.clientId || typeof sale.total !== 'number') {
-      errors.push(`Venta ${index + 1}: Datos incompletos`);
-    }
-  });
+  if (sales && Array.isArray(sales)) {
+    sales.forEach((sale, index) => {
+      if (!sale.id || !sale.clientId || typeof sale.total !== 'number') {
+        errors.push(`Venta ${index + 1}: Datos incompletos`);
+      }
+    });
+  }
   
   // Validar deudas
-  debts.forEach((debt, index) => {
-    if (!debt.id || !debt.clientId || typeof debt.amount !== 'number') {
-      errors.push(`Deuda ${index + 1}: Datos incompletos`);
-    }
-  });
+  if (debts && Array.isArray(debts)) {
+    debts.forEach((debt, index) => {
+      if (!debt.id || !debt.clientId || typeof debt.amount !== 'number') {
+        errors.push(`Deuda ${index + 1}: Datos incompletos`);
+      }
+    });
+  }
   
   if (errors.length > 0) {
     console.warn('Errores de integridad de datos encontrados:', errors);
@@ -4359,43 +3804,51 @@ function cleanCorruptedData() {
   let cleaned = false;
   
   // Limpiar productos corruptos
-  const originalProductsLength = products.length;
-  products = products.filter(product => 
-    product && product.id && product.name && typeof product.price === 'number'
-  );
-  if (products.length !== originalProductsLength) {
-    cleaned = true;
-    saveToStorage('products', products);
+  if (products && Array.isArray(products)) {
+    const originalProductsLength = products.length;
+    products = products.filter(product => 
+      product && product.id && product.name && typeof product.price === 'number'
+    );
+    if (products.length !== originalProductsLength) {
+      cleaned = true;
+      saveToStorage('products', products);
+    }
   }
   
   // Limpiar clientes corruptos
-  const originalClientsLength = clients.length;
-  clients = clients.filter(client => 
-    client && client.id && client.name
-  );
-  if (clients.length !== originalClientsLength) {
-    cleaned = true;
-    saveToStorage('clients', clients);
+  if (clients && Array.isArray(clients)) {
+    const originalClientsLength = clients.length;
+    clients = clients.filter(client => 
+      client && client.id && client.name
+    );
+    if (clients.length !== originalClientsLength) {
+      cleaned = true;
+      saveToStorage('clients', clients);
+    }
   }
   
   // Limpiar ventas corruptas
-  const originalSalesLength = sales.length;
-  sales = sales.filter(sale => 
-    sale && sale.id && sale.clientId && typeof sale.total === 'number'
-  );
-  if (sales.length !== originalSalesLength) {
-    cleaned = true;
-    saveToStorage('sales', sales);
+  if (sales && Array.isArray(sales)) {
+    const originalSalesLength = sales.length;
+    sales = sales.filter(sale => 
+      sale && sale.id && sale.clientId && typeof sale.total === 'number'
+    );
+    if (sales.length !== originalSalesLength) {
+      cleaned = true;
+      saveToStorage('sales', sales);
+    }
   }
   
   // Limpiar deudas corruptas
-  const originalDebtsLength = debts.length;
-  debts = debts.filter(debt => 
-    debt && debt.id && debt.clientId && typeof debt.amount === 'number'
-  );
-  if (debts.length !== originalDebtsLength) {
-    cleaned = true;
-    saveToStorage('debts', debts);
+  if (debts && Array.isArray(debts)) {
+    const originalDebtsLength = debts.length;
+    debts = debts.filter(debt => 
+      debt && debt.id && debt.clientId && typeof debt.amount === 'number'
+    );
+    if (debts.length !== originalDebtsLength) {
+      cleaned = true;
+      saveToStorage('debts', debts);
+    }
   }
   
   if (cleaned) {
@@ -4735,51 +4188,24 @@ function showCredits() {
 
 // Función para seleccionar cliente desde el carrito
 function selectClientForCart(clientId) {
-  if (!clientId) {
-    currentClientId = null;
-    renderCart();
-    return;
-  }
-  
   currentClientId = clientId;
-  const client = clients.find(c => c.id === clientId);
-  
-  // Cargar proforma guardada para este cliente
-  const proforma = loadProforma(clientId);
-  if (proforma && proforma.length > 0) {
-    cart = proforma;
-  }
-  
-  renderCart();
-  
-  // Mostrar información del cliente seleccionado
-  const selectedClientInfo = document.getElementById('selectedClientInfo');
-  const selectedClientName = document.getElementById('selectedClientName');
-  const cartClientSelector = document.getElementById('cartClientSelector');
-  
-  if (selectedClientInfo && selectedClientName && cartClientSelector) {
-    selectedClientInfo.style.display = 'block';
-    selectedClientName.textContent = client.name;
-    cartClientSelector.style.display = 'none';
-  }
-  
-  // Mostrar notificación de cliente seleccionado
-  const toast = Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 2000,
-    timerProgressBar: true,
-    didOpen: (toast) => {
-      toast.addEventListener('mouseenter', Swal.stopTimer)
-      toast.addEventListener('mouseleave', Swal.resumeTimer)
+  if (clientId) {
+    // Cargar proforma guardada para este cliente
+    loadProforma(clientId);
+    renderCart();
+    
+    // Mostrar notificación
+    const client = clients.find(c => c.id === clientId);
+    if (client) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Cliente seleccionado',
+        text: `Cliente: ${client.name}`,
+        timer: 1500,
+        showConfirmButton: false
+      });
     }
-  });
-  
-  toast.fire({
-    icon: 'info',
-    title: `Cliente seleccionado: ${client.name}`
-  });
+  }
 }
 
 // Función para mostrar modal de agregar cliente desde el carrito
@@ -4846,31 +4272,12 @@ function removeSelectedClient() {
   currentClientId = null;
   renderCart();
   
-  // Mostrar información del cliente seleccionado
-  const selectedClientInfo = document.getElementById('selectedClientInfo');
-  const cartClientSelector = document.getElementById('cartClientSelector');
-  
-  if (selectedClientInfo && cartClientSelector) {
-    selectedClientInfo.style.display = 'none';
-    cartClientSelector.style.display = 'block';
-  }
-  
-  // Mostrar notificación
-  const toast = Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 2000,
-    timerProgressBar: true,
-    didOpen: (toast) => {
-      toast.addEventListener('mouseenter', Swal.stopTimer)
-      toast.addEventListener('mouseleave', Swal.resumeTimer)
-    }
-  });
-  
-  toast.fire({
+  Swal.fire({
     icon: 'info',
-    title: 'Cliente eliminado del carrito'
+    title: 'Cliente eliminado',
+    text: 'Selecciona otro cliente para continuar',
+    timer: 1500,
+    showConfirmButton: false
   });
 }
 
@@ -4920,76 +4327,63 @@ function getMovementsByDateRange(startDate, endDate) {
   const movements = [];
   
   // Agregar ventas del rango
-  sales.forEach(sale => {
-    const saleDate = new Date(sale.date);
-    if (saleDate >= startDate && saleDate <= endDate) {
-      movements.push({
-        type: 'sale',
-        icon: 'bi-cart-check',
-        title: `Venta #${sale.id}`,
-        subtitle: `${sale.clientName} - ${saleDate.toLocaleDateString()}`,
-        amount: sale.total,
-        amountClass: 'positive',
-        date: saleDate,
-        data: sale
-      });
-    }
-  });
-  
-  // Agregar ventas de pollos del rango
-  chickenSales.forEach(sale => {
-    const saleDate = new Date(sale.date);
-    if (saleDate >= startDate && saleDate <= endDate) {
-      movements.push({
-        type: 'chicken',
-        icon: 'bi-egg-fried',
-        title: `Venta Pollos #${sale.id}`,
-        subtitle: `${sale.clientName} - ${sale.quantity} pollo(s) - ${saleDate.toLocaleDateString()}`,
-        amount: sale.total,
-        amountClass: 'positive',
-        date: saleDate,
-        data: sale
-      });
-    }
-  });
+  if (sales && Array.isArray(sales)) {
+    sales.forEach(sale => {
+      const saleDate = new Date(sale.date);
+      if (saleDate >= startDate && saleDate <= endDate) {
+        movements.push({
+          type: 'sale',
+          icon: 'bi-cart-check',
+          title: `Venta #${sale.id}`,
+          subtitle: `${sale.clientName} - ${saleDate.toLocaleDateString()}`,
+          amount: sale.total,
+          amountClass: 'positive',
+          date: saleDate,
+          data: sale
+        });
+      }
+    });
+  }
   
   // Agregar deudas del rango
-  debts.forEach(debt => {
-    const debtDate = new Date(debt.date);
-    if (debtDate >= startDate && debtDate <= endDate) {
-      movements.push({
-        type: 'debt',
-        icon: 'bi-cash-stack',
-        title: `Deuda #${debt.id}`,
-        subtitle: `${debt.clientName} - ${debtDate.toLocaleDateString()}`,
-        amount: debt.amount,
-        amountClass: 'negative',
-        date: debtDate,
-        data: debt
-      });
-    }
-  });
-  
-  // Agregar pagos de deudas del rango
-  debts.forEach(debt => {
-    if (debt.payments && debt.payments.length > 0) {
-      debt.payments.forEach(payment => {
-        const paymentDate = new Date(payment.date);
-        if (paymentDate >= startDate && paymentDate <= endDate) {
-          movements.push({
-            type: 'payment',
-            icon: 'bi-cash-coin',
-            title: `Pago deuda #${debt.id}`,
-            subtitle: `${debt.clientName} - ${paymentDate.toLocaleDateString()}`,
-            amount: payment.amount,
-            amountClass: 'positive',
-            date: paymentDate,
-            data: { debt, payment }
-          });
-        }
-      });
-    }
-  });
+  if (debts && Array.isArray(debts)) {
+    debts.forEach(debt => {
+      const debtDate = new Date(debt.date);
+      if (debtDate >= startDate && debtDate <= endDate) {
+        movements.push({
+          type: 'debt',
+          icon: 'bi-cash-stack',
+          title: `Deuda #${debt.id}`,
+          subtitle: `${debt.clientName} - ${debtDate.toLocaleDateString()}`,
+          amount: debt.amount,
+          amountClass: 'negative',
+          date: debtDate,
+          data: debt
+        });
+      }
+    });
+    
+    // Agregar pagos de deudas del rango
+    debts.forEach(debt => {
+      if (debt.payments && debt.payments.length > 0) {
+        debt.payments.forEach(payment => {
+          const paymentDate = new Date(payment.date);
+          if (paymentDate >= startDate && paymentDate <= endDate) {
+            movements.push({
+              type: 'payment',
+              icon: 'bi-cash-coin',
+              title: `Pago deuda #${debt.id}`,
+              subtitle: `${debt.clientName} - ${paymentDate.toLocaleDateString()}`,
+              amount: payment.amount,
+              amountClass: 'positive',
+              date: paymentDate,
+              data: { debt, payment }
+            });
+          }
+        });
+      }
+    });
+  }
   
   // Ordenar por fecha más reciente
   return movements.sort((a, b) => b.date - a.date);
@@ -5003,29 +4397,25 @@ function calculatePeriodSummary(movements) {
     totalExpenses: 0,
     totalDebts: 0,
     totalPayments: 0,
-    totalProfit: 0,
     sales: 0,
-    chickenSales: 0,
     debts: 0,
     payments: 0
   };
   
-  movements.forEach(movement => {
-    if (movement.type === 'sale') {
-      summary.totalIncome += movement.amount;
-      summary.sales++;
-    } else if (movement.type === 'chicken') {
-      summary.totalIncome += movement.amount;
-      summary.totalProfit += movement.data.profit || 0;
-      summary.chickenSales++;
-    } else if (movement.type === 'debt') {
-      summary.totalDebts += movement.amount;
-      summary.debts++;
-    } else if (movement.type === 'payment') {
-      summary.totalPayments += movement.amount;
-      summary.payments++;
-    }
-  });
+  if (movements && Array.isArray(movements)) {
+    movements.forEach(movement => {
+      if (movement.type === 'sale') {
+        summary.totalIncome += movement.amount;
+        summary.sales++;
+      } else if (movement.type === 'debt') {
+        summary.totalDebts += movement.amount;
+        summary.debts++;
+      } else if (movement.type === 'payment') {
+        summary.totalPayments += movement.amount;
+        summary.payments++;
+      }
+    });
+  }
   
   summary.totalExpenses = summary.totalIncome - summary.totalPayments;
   
@@ -5038,7 +4428,7 @@ function renderPeriodSummary(summary) {
   
   container.innerHTML = `
     <div class="row g-3">
-      <div class="col-md-2">
+      <div class="col-md-3">
         <div class="summary-card-treinta">
           <div class="summary-icon">
             <i class="bi bi-cart-check"></i>
@@ -5046,23 +4436,11 @@ function renderPeriodSummary(summary) {
           <div class="summary-content">
             <div class="summary-value">${summary.sales}</div>
             <div class="summary-label">Ventas</div>
-            <div class="summary-amount">$${(summary.totalIncome - (summary.chickenSales > 0 ? summary.totalIncome * (summary.chickenSales / summary.totalMovements) : 0)).toFixed(2)}</div>
+            <div class="summary-amount">$${summary.totalIncome.toFixed(2)}</div>
           </div>
         </div>
       </div>
-      <div class="col-md-2">
-        <div class="summary-card-treinta">
-          <div class="summary-icon">
-            <i class="bi bi-egg-fried"></i>
-          </div>
-          <div class="summary-content">
-            <div class="summary-value">${summary.chickenSales}</div>
-            <div class="summary-label">Pollos</div>
-            <div class="summary-amount">$${(summary.totalIncome * (summary.chickenSales / summary.totalMovements)).toFixed(2)}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-2">
+      <div class="col-md-3">
         <div class="summary-card-treinta">
           <div class="summary-icon">
             <i class="bi bi-cash-stack"></i>
@@ -5074,7 +4452,7 @@ function renderPeriodSummary(summary) {
           </div>
         </div>
       </div>
-      <div class="col-md-2">
+      <div class="col-md-3">
         <div class="summary-card-treinta">
           <div class="summary-icon">
             <i class="bi bi-cash-coin"></i>
@@ -5086,7 +4464,7 @@ function renderPeriodSummary(summary) {
           </div>
         </div>
       </div>
-      <div class="col-md-2">
+      <div class="col-md-3">
         <div class="summary-card-treinta">
           <div class="summary-icon">
             <i class="bi bi-graph-up"></i>
@@ -5098,18 +4476,6 @@ function renderPeriodSummary(summary) {
           </div>
         </div>
       </div>
-      <div class="col-md-2">
-        <div class="summary-card-treinta">
-          <div class="summary-icon">
-            <i class="bi bi-cash-stack"></i>
-          </div>
-          <div class="summary-content">
-            <div class="summary-value profit">$${summary.totalProfit.toFixed(2)}</div>
-            <div class="summary-label">Ganancia</div>
-            <div class="summary-amount">Pollos</div>
-          </div>
-        </div>
-      </div>
     </div>
   `;
 }
@@ -5118,6 +4484,20 @@ function renderPeriodSummary(summary) {
 function renderFilteredMovements(movements) {
   const container = document.getElementById('filteredMovementsList');
   const countElement = document.getElementById('filteredMovementsCount');
+  
+  if (!container || !countElement) return;
+  
+  // Verificar que movements sea un array válido
+  if (!movements || !Array.isArray(movements)) {
+    countElement.textContent = '0 movimientos';
+    container.innerHTML = `
+      <div class="text-center py-4">
+        <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+        <p class="text-muted mt-2">Sin movimientos en este período</p>
+      </div>
+    `;
+    return;
+  }
   
   countElement.textContent = `${movements.length} movimientos`;
   
@@ -5143,11 +4523,6 @@ function renderFilteredMovements(movements) {
       <div class="movement-amount ${movement.amountClass}">
         $${movement.amount.toFixed(2)}
       </div>
-      <div class="movement-actions">
-        <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); showMovementPDF(${idx})" title="Ver PDF">
-          <i class="bi bi-file-pdf"></i>
-        </button>
-      </div>
     </div>
   `).join('');
 }
@@ -5164,9 +4539,7 @@ window.showFilteredMovementDetail = function(idx) {
   if (!movement) return;
 
   if (movement.type === 'sale') {
-    showReceipt(movement.data); // Modal de venta normal
-  } else if (movement.type === 'chicken') {
-    showChickenReceipt(movement.data); // Modal de venta de pollos
+    showReceipt(movement.data);
   } else if (movement.type === 'debt') {
     showDebtDetailModal(movement.data.id);
   } else if (movement.type === 'payment') {
@@ -5185,32 +4558,6 @@ window.showFilteredMovementDetail = function(idx) {
       showConfirmButton: true,
       confirmButtonText: 'Cerrar',
     });
-  }
-}
-
-// Función para mostrar PDF del movimiento
-window.showMovementPDF = function(idx) {
-  const startDate = document.getElementById('startDate').value;
-  const endDate = document.getElementById('endDate').value;
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const movements = getMovementsByDateRange(start, end);
-  const movement = movements[idx];
-  
-  if (!movement) return;
-
-  if (movement.type === 'sale') {
-    // Mostrar el mismo modal que se muestra al finalizar la venta
-    showReceipt(movement.data);
-  } else if (movement.type === 'chicken') {
-    // Mostrar el modal de recibo de pollos
-    showChickenReceipt(movement.data);
-  } else if (movement.type === 'debt') {
-    // Generar PDF de deuda
-    generateDebtPDF(movement.data);
-  } else if (movement.type === 'payment') {
-    // Generar PDF de pago
-    generatePaymentPDF(movement.data);
   }
 }
 
@@ -5437,293 +4784,509 @@ function downloadReceiptPDF(sale) {
   doc.save(`Comprobante_${sale.id}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
-// Función para generar PDF de deuda
-function generateDebtPDF(debt) {
-  if (typeof window.jspdf === 'undefined') {
+// Función para mostrar detalles de un movimiento
+function showMovementDetail(movementIndex) {
+  const currentPeriod = document.querySelector('input[name="periodFilter"]:checked').value;
+  const movements = getRecentMovements(currentPeriod);
+  
+  if (!movements || !Array.isArray(movements) || movementIndex >= movements.length) {
     Swal.fire({
       icon: 'error',
       title: 'Error',
-      text: 'La librería PDF no está disponible. Verifica tu conexión a internet.',
+      text: 'No se pudo cargar el detalle del movimiento.',
       confirmButtonText: 'Aceptar'
     });
     return;
   }
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
   
-  // Configurar fuente
-  doc.setFont('helvetica');
-  doc.setFontSize(12);
+  const movement = movements[movementIndex];
   
-  // Título
-  doc.setFontSize(18);
-  doc.text('COMPROBANTE DE DEUDA', 105, 20, { align: 'center' });
-  
-  // Información de la deuda
-  doc.setFontSize(12);
-  doc.text(`Deuda #${debt.id}`, 14, 35);
-  doc.text(`Fecha: ${new Date(debt.date).toLocaleDateString()}`, 14, 45);
-  doc.text(`Cliente: ${debt.clientName}`, 14, 55);
-  doc.text(`Monto: $${debt.amount.toFixed(2)}`, 14, 65);
-  doc.text(`Descripción: ${debt.description || 'Sin descripción'}`, 14, 75);
-  
-  // Estado de la deuda
-  const remainingAmount = debt.amount - (debt.payments || []).reduce((sum, p) => sum + p.amount, 0);
-  doc.text(`Monto restante: $${remainingAmount.toFixed(2)}`, 14, 85);
-  
-  // Historial de pagos
-  if (debt.payments && debt.payments.length > 0) {
-    doc.text('Historial de pagos:', 14, 105);
-    let yPos = 115;
-    debt.payments.forEach((payment, index) => {
-      if (yPos < 250) {
-        doc.text(`${index + 1}. $${payment.amount.toFixed(2)} - ${new Date(payment.date).toLocaleDateString()}`, 20, yPos);
-        yPos += 10;
-      }
-    });
-  }
-  
-  // Pie de página
-  doc.setFontSize(10);
-  doc.text('Generado por TillUp POS', 105, 280, { align: 'center' });
-  
-  // Descargar PDF
-  doc.save(`deuda_${debt.id}.pdf`);
-}
-
-// Función para generar PDF de pago
-function generatePaymentPDF(data) {
-  if (typeof window.jspdf === 'undefined') {
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'La librería PDF no está disponible. Verifica tu conexión a internet.',
-      confirmButtonText: 'Aceptar'
-    });
-    return;
-  }
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const { debt, payment } = data;
-  
-  // Configurar fuente
-  doc.setFont('helvetica');
-  doc.setFontSize(12);
-  
-  // Título
-  doc.setFontSize(18);
-  doc.text('COMPROBANTE DE PAGO', 105, 20, { align: 'center' });
-  
-  // Información del pago
-  doc.setFontSize(12);
-  doc.text(`Pago de Deuda #${debt.id}`, 14, 35);
-  doc.text(`Fecha: ${new Date(payment.date).toLocaleDateString()}`, 14, 45);
-  doc.text(`Cliente: ${debt.clientName}`, 14, 55);
-  doc.text(`Monto pagado: $${payment.amount.toFixed(2)}`, 14, 65);
-  
-  // Información de la deuda original
-  doc.text(`Deuda original: $${debt.amount.toFixed(2)}`, 14, 80);
-  
-  // Calcular monto restante
-  const totalPaid = (debt.payments || []).reduce((sum, p) => sum + p.amount, 0);
-  const remainingAmount = debt.amount - totalPaid;
-  doc.text(`Monto restante: $${remainingAmount.toFixed(2)}`, 14, 90);
-  
-  // Descripción si existe
-  if (debt.description) {
-    doc.text(`Descripción: ${debt.description}`, 14, 105);
-  }
-  
-  // Pie de página
-  doc.setFontSize(10);
-  doc.text('Generado por TillUp POS', 105, 280, { align: 'center' });
-  
-  // Descargar PDF
-  doc.save(`pago_deuda_${debt.id}_${new Date(payment.date).getTime()}.pdf`);
-}
-
-// Nueva función para actualizar estadísticas de pollos por rango de fechas
-function updateChickenStatsByRange(startDate, endDate) {
-  // Filtrar ventas de pollos por rango
-  const rangeSales = chickenSales.filter(sale => {
-    const saleDate = new Date(sale.date);
-    return saleDate >= startDate && saleDate <= endDate;
-  });
-
-  const totalChickens = rangeSales.reduce((sum, sale) => sum + sale.quantity, 0);
-  const totalWeight = rangeSales.reduce((sum, sale) => sum + sale.weight, 0);
-  const totalRevenue = rangeSales.reduce((sum, sale) => sum + sale.total, 0);
-  const totalProfit = rangeSales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
-  const avgWeight = totalChickens > 0 ? totalWeight / totalChickens : 0;
-
-  const totalChickensElement = document.getElementById('totalChickensSold');
-  const totalWeightElement = document.getElementById('totalWeightSold');
-  const totalRevenueElement = document.getElementById('totalRevenue');
-  const totalProfitElement = document.getElementById('totalProfit');
-  const avgWeightElement = document.getElementById('avgWeight');
-
-  if (totalChickensElement) totalChickensElement.textContent = totalChickens;
-  if (totalWeightElement) totalWeightElement.textContent = totalWeight.toFixed(1);
-  if (totalRevenueElement) totalRevenueElement.textContent = `$${totalRevenue.toFixed(2)}`;
-  if (totalProfitElement) totalProfitElement.textContent = `$${totalProfit.toFixed(2)}`;
-  if (avgWeightElement) avgWeightElement.textContent = avgWeight.toFixed(1);
-}
-
-// Hook para actualizar estadísticas de pollos al filtrar por fecha
-function onDateRangeChange() {
-  const startDate = document.getElementById('startDate').value;
-  const endDate = document.getElementById('endDate').value;
-  if (startDate && endDate) {
-    updateChickenStatsByRange(new Date(startDate), new Date(endDate));
+  if (movement.type === 'sale') {
+    // Mostrar comprobante de venta
+    showReceipt(movement.data);
+  } else if (movement.type === 'debt') {
+    // Mostrar detalle de deuda
+    showDebtDetailModal(movement.data.id);
+  } else if (movement.type === 'payment') {
+    // Mostrar detalle de pago
+    showPaymentDetail(movement.data);
+  } else if (movement.type === 'chicken_sale') {
+    // Mostrar comprobante de venta de pollos
+    showChickenReceipt(movement.data);
   }
 }
 
-// Agregar evento a los inputs de fecha si existen
-window.addEventListener('DOMContentLoaded', () => {
-  const startDateInput = document.getElementById('startDate');
-  const endDateInput = document.getElementById('endDate');
-  if (startDateInput && endDateInput) {
-    startDateInput.addEventListener('change', onDateRangeChange);
-    endDateInput.addEventListener('change', onDateRangeChange);
-  }
-});
-
-// Migrar fechas de ventas de pollos a formato ISO
-function migrateChickenSalesDates() {
-  let needsMigration = false;
-  chickenSales.forEach(sale => {
-    if (typeof sale.date === 'string' && !sale.date.includes('T')) {
-      // Es una fecha en formato local, convertir a ISO
-      const dateParts = sale.date.split('/');
-      if (dateParts.length === 3) {
-        const [month, day, year] = dateParts;
-        const isoDate = new Date(year, month - 1, day).toISOString();
-        sale.date = isoDate;
-        needsMigration = true;
-      }
+// Función para mostrar detalle de pago
+function showPaymentDetail(paymentData) {
+  const { debt, payment } = paymentData;
+  
+  Swal.fire({
+    title: `Pago de Deuda #${debt.id}`,
+    html: `
+      <div class="payment-detail-treinta">
+        <div class="payment-info">
+          <p><strong>Cliente:</strong> ${debt.clientName}</p>
+          <p><strong>Monto del pago:</strong> $${payment.amount.toFixed(2)}</p>
+          <p><strong>Fecha del pago:</strong> ${new Date(payment.date).toLocaleDateString()}</p>
+          <p><strong>Deuda original:</strong> $${debt.amount.toFixed(2)}</p>
+          <p><strong>Saldo restante:</strong> $${(debt.amount - payment.amount).toFixed(2)}</p>
+        </div>
+      </div>
+    `,
+    icon: 'info',
+    confirmButtonText: 'Cerrar',
+    showCancelButton: true,
+    cancelButtonText: 'Ver Deuda Completa',
+    cancelButtonColor: '#007bff'
+  }).then((result) => {
+    if (result.dismiss === Swal.DismissReason.cancel) {
+      showDebtDetailModal(debt.id);
     }
   });
-  if (needsMigration) {
-    saveToStorage('chickenSales', chickenSales);
-    console.log('Migración de fechas de pollos completada');
+}
+
+// Función para registrar pago de deuda
+function registerDebtPayment(debtId) {
+  const debt = debts.find(d => d.id === debtId);
+  if (!debt) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No se encontró la deuda especificada.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
   }
-}
 
-// Ejecutar migración de fechas de pollos al cargar la app
-if (typeof migrateChickenSalesDates === 'function') {
-  migrateChickenSalesDates();
-}
-
-// === INICIALIZACIÓN DE LA APLICACIÓN ===
-
-// Inicializar la aplicación
-document.addEventListener('DOMContentLoaded', function() {
-  // Cargar datos guardados
-  loadData();
-  
-  // Inicializar datos de pollos
-  initializeChickenData();
-  
-  // Actualizar UI
-  updateBalanceUI();
-  renderInventory();
-  renderClients();
-  renderDebts();
-  renderSalesProducts();
-  
-  // Configurar búsqueda global
-  setupGlobalSearch();
-  
-  // Configurar carga lazy
-  setupLazyLoading();
-  
-  // Configurar backup automático
-  setupAutoBackup();
-  
-  // Actualizar fecha y hora
-  updateDateTime();
-  setInterval(updateDateTime, 1000);
-  
-  // Detectar modo oscuro
-  detectDarkMode();
-  
-  // Inicializar mejoras para experiencia nativa
-  initializeNativeEnhancements();
-  
-  // Mostrar botón de instalación si es necesario
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-      .then(registration => {
-        console.log('SW registrado:', registration);
-        
-        // Escuchar actualizaciones del SW
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              showInstallButton();
-            }
-          });
-        });
-      })
-      .catch(error => {
-        console.error('Error registrando SW:', error);
+  Swal.fire({
+    title: 'Registrar Pago',
+    html: `
+      <div class="payment-form-treinta">
+        <div class="alert alert-info">
+          <strong>Deuda:</strong> $${debt.amount.toFixed(2)}<br>
+          <strong>Cliente:</strong> ${debt.clientName}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Monto del pago:</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" id="paymentAmount" class="form-control" 
+                   placeholder="0.00" min="0.01" max="${debt.amount}" step="0.01" 
+                   value="${debt.amount}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Método de pago:</label>
+          <select id="paymentMethod" class="form-select">
+            <option value="cash">Efectivo</option>
+            <option value="card">Tarjeta</option>
+            <option value="transfer">Transferencia</option>
+          </select>
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Registrar Pago',
+    cancelButtonText: 'Cancelar',
+    preConfirm: () => {
+      const amount = parseFloat(document.getElementById('paymentAmount').value);
+      const method = document.getElementById('paymentMethod').value;
+      
+      if (!amount || amount <= 0) {
+        Swal.showValidationMessage('El monto debe ser mayor a 0');
+        return false;
+      }
+      
+      if (amount > debt.amount) {
+        Swal.showValidationMessage('El pago no puede ser mayor a la deuda');
+        return false;
+      }
+      
+      return { amount, method };
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      const { amount, method } = result.value;
+      
+      // Crear el pago
+      const payment = {
+        id: generateId('payment'),
+        amount: amount,
+        method: method,
+        date: new Date().toISOString(),
+        time: new Date().toLocaleTimeString()
+      };
+      
+      // Agregar pago a la deuda
+      if (!debt.payments || !Array.isArray(debt.payments)) {
+        debt.payments = [];
+      }
+      debt.payments.push(payment);
+      
+      // Actualizar monto de la deuda
+      debt.amount -= amount;
+      
+      // Si la deuda está pagada completamente, marcarla como pagada
+      if (debt.amount <= 0) {
+        debt.status = 'paid';
+        debt.amount = 0;
+      }
+      
+      // Actualizar deuda del cliente
+      const client = clients.find(c => c.id === debt.clientId);
+      if (client) {
+        client.debt = Math.max(0, (client.debt || 0) - amount);
+      }
+      
+      // Guardar cambios
+      saveToStorage('debts', debts);
+      saveToStorage('clients', clients);
+      
+      // Actualizar vistas
+      renderDebts();
+      renderClients();
+      updateBalanceUI();
+      renderBalanceGrid(); // Actualizar movimientos en tiempo real
+      
+      // Mostrar confirmación
+      Swal.fire({
+        icon: 'success',
+        title: 'Pago registrado',
+        text: `Pago de $${amount.toFixed(2)} registrado exitosamente.`,
+        confirmButtonText: 'Aceptar'
       });
-  }
-  
-  // Verificar si la app está instalada
-  if (isAppInstalled()) {
-    document.getElementById('installPWA').style.display = 'none';
-  }
-  
-  // Mostrar mensaje de bienvenida si es la primera vez
-  if (!localStorage.getItem('appInitialized')) {
-    Swal.fire({
-      icon: 'success',
-      title: '¡Bienvenido a TillUp!',
-      text: 'Tu PWA de gestión de ventas está lista para usar.',
-      confirmButtonText: '¡Empezar!',
-      showClass: {
-        popup: 'animate__animated animate__fadeInDown'
-      },
-      hideClass: {
-        popup: 'animate__animated animate__fadeOutUp'
-      }
-    });
-    localStorage.setItem('appInitialized', 'true');
-  }
-});
-
-// === Prevenir pull-to-refresh en móviles ===
-let maybePrevent = false;
-let lastY = 0;
-document.addEventListener('touchstart', function(e) {
-  if (window.scrollY === 0) {
-    maybePrevent = true;
-    lastY = e.touches[0].clientY;
-  } else {
-    maybePrevent = false;
-  }
-}, {passive: false});
-document.addEventListener('touchmove', function(e) {
-  if (maybePrevent) {
-    let currentY = e.touches[0].clientY;
-    if (currentY > lastY) {
-      e.preventDefault();
     }
-  }
-}, {passive: false});
+  });
+}
 
-// Envolver todas las llamadas a Swal.fire en try/catch y verificar document.visibilityState
-const originalSwalFire = Swal.fire;
-Swal.fire = function(...args) {
-  if (document.visibilityState !== 'visible') return;
-  try {
-    return originalSwalFire.apply(this, args);
-  } catch (e) {
-    // Silenciar error
+// === FUNCIÓN PARA MOSTRAR DETALLES DE MOVIMIENTOS ===
+function showMovementDetails(movement) {
+  const fecha = new Date(movement.date).toLocaleString();
+  
+  let detalle = `
+    <div class="receipt-treinta">
+      <div class="receipt-header">
+        <div class="receipt-logo">
+          <img src="TillUp.png" alt="TillUp" style="width: 60px; height: 60px; object-fit: contain;">
+          <h3>TillUp POS</h3>
+        </div>
+        <div class="receipt-info">
+          <div class="receipt-title">DETALLE DE MOVIMIENTO</div>
+          <div class="receipt-number">#${movement.id}</div>
+          <div class="receipt-date">${fecha}</div>
+        </div>
+      </div>
+  `;
+
+  // Agregar información específica según el tipo de movimiento
+  if (movement.type === 'sale') {
+    detalle += `
+      <div class="receipt-client">
+        <i class="bi bi-person-circle"></i>
+        <span><strong>Cliente:</strong> ${movement.clientName}</span>
+      </div>
+      
+      <div class="receipt-items">
+        <div class="receipt-items-header">
+          <span>Producto</span>
+          <span>Cant.</span>
+          <span>Precio</span>
+          <span>Subtotal</span>
+        </div>
+        ${movement.items.map(item => `
+          <div class="receipt-item">
+            <span class="item-name">${item.name}</span>
+            <span class="item-qty">${item.qty}</span>
+            <span class="item-price">$${item.price.toFixed(2)}</span>
+            <span class="item-subtotal">$${(item.price * item.qty).toFixed(2)}</span>
+          </div>
+        `).join('')}
+      </div>
+      
+      <div class="receipt-total">
+        <div class="total-line">
+          <span>Subtotal:</span>
+          <span>$${movement.originalTotal.toFixed(2)}</span>
+        </div>
+        ${movement.discount > 0 ? `
+          <div class="total-line discount">
+            <span>Descuento:</span>
+            <span>-$${movement.discount.toFixed(2)}</span>
+          </div>
+        ` : ''}
+        <div class="total-line final">
+          <span>Total:</span>
+          <span class="total-amount">$${movement.total.toFixed(2)}</span>
+        </div>
+        <div class="payment-type">
+          <i class="bi bi-${getPaymentIcon(movement.paymentType)}"></i>
+          ${getPaymentText(movement.paymentType)}
+        </div>
+      </div>
+    `;
+  } else if (movement.type === 'chicken_sale') {
+    detalle += `
+      <div class="receipt-client">
+        <i class="bi bi-person-circle"></i>
+        <span><strong>Cliente:</strong> ${movement.clientName}</span>
+      </div>
+      
+      <div class="receipt-items">
+        <div class="receipt-items-header">
+          <span>Producto</span>
+          <span>Cant.</span>
+          <span>Peso</span>
+          <span>Precio</span>
+        </div>
+        <div class="receipt-item">
+          <span class="item-name">Pollo Entero</span>
+          <span class="item-qty">${movement.quantity}</span>
+          <span class="item-price">${movement.weight} lbs</span>
+          <span class="item-subtotal">$${movement.pricePerPound.toFixed(2)}/lb</span>
+        </div>
+      </div>
+      
+      <div class="receipt-total">
+        <div class="total-line">
+          <span>Peso total:</span>
+          <span>${movement.weight} lbs</span>
+        </div>
+        <div class="total-line">
+          <span>Precio por libra:</span>
+          <span>$${movement.pricePerPound.toFixed(2)}</span>
+        </div>
+        <div class="total-line final">
+          <span>Total:</span>
+          <span class="total-amount">$${movement.total.toFixed(2)}</span>
+        </div>
+        ${movement.paymentType === 'credit' && movement.abono > 0 ? `
+          <div class="total-line discount">
+            <span>Abono:</span>
+            <span>-$${movement.abono.toFixed(2)}</span>
+          </div>
+          <div class="total-line">
+            <span>Pendiente:</span>
+            <span>$${movement.remainingAmount.toFixed(2)}</span>
+          </div>
+        ` : ''}
+        <div class="payment-type">
+          <i class="bi bi-${getPaymentIcon(movement.paymentType)}"></i>
+          ${getPaymentText(movement.paymentType)}
+        </div>
+      </div>
+    `;
+  } else if (movement.type === 'debt_payment') {
+    detalle += `
+      <div class="receipt-client">
+        <i class="bi bi-person-circle"></i>
+        <span><strong>Cliente:</strong> ${movement.clientName}</span>
+      </div>
+      
+      <div class="receipt-items">
+        <div class="receipt-items-header">
+          <span>Concepto</span>
+          <span>Monto</span>
+        </div>
+        <div class="receipt-item">
+          <span class="item-name">Pago de Deuda</span>
+          <span class="item-qty">-</span>
+          <span class="item-price">-</span>
+          <span class="item-subtotal">$${movement.amount.toFixed(2)}</span>
+        </div>
+      </div>
+      
+      <div class="receipt-total">
+        <div class="total-line">
+          <span>Deuda Original:</span>
+          <span>$${movement.total.toFixed(2)}</span>
+        </div>
+        <div class="total-line">
+          <span>Abono Anterior:</span>
+          <span>$${movement.abono.toFixed(2)}</span>
+        </div>
+        <div class="total-line final">
+          <span>Pago Realizado:</span>
+          <span class="total-amount">$${movement.amount.toFixed(2)}</span>
+        </div>
+        <div class="payment-type">
+          <i class="bi bi-${getPaymentIcon(movement.paymentType)}"></i>
+          ${getPaymentText(movement.paymentType)}
+        </div>
+      </div>
+    `;
+  } else if (movement.type === 'debt_created') {
+    detalle += `
+      <div class="receipt-client">
+        <i class="bi bi-person-circle"></i>
+        <span><strong>Cliente:</strong> ${movement.clientName}</span>
+      </div>
+      
+      <div class="receipt-items">
+        <div class="receipt-items-header">
+          <span>Concepto</span>
+          <span>Monto</span>
+        </div>
+        <div class="receipt-item">
+          <span class="item-name">${movement.reason}</span>
+          <span class="item-qty">-</span>
+          <span class="item-price">-</span>
+          <span class="item-subtotal">$${movement.amount.toFixed(2)}</span>
+        </div>
+      </div>
+      
+      <div class="receipt-total">
+        <div class="total-line">
+          <span>Total Original:</span>
+          <span>$${movement.total.toFixed(2)}</span>
+        </div>
+        <div class="total-line discount">
+          <span>Abono:</span>
+          <span>-$${movement.abono.toFixed(2)}</span>
+        </div>
+        <div class="total-line final">
+          <span>Deuda Pendiente:</span>
+          <span class="total-amount">$${movement.amount.toFixed(2)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  detalle += `
+      <div class="receipt-footer">
+        <div class="footer-message">
+          <i class="bi bi-heart"></i>
+          <span>Movimiento registrado</span>
+        </div>
+        <div class="footer-brand">
+          <strong>TillUp POS</strong>
+          <small>Sistema de Gestión</small>
+        </div>
+      </div>
+    </div>
+  `;
+
+  Swal.fire({
+    title: '',
+    html: detalle,
+    showConfirmButton: true,
+    confirmButtonText: '<i class="bi bi-printer"></i> Imprimir',
+    showDenyButton: true,
+    denyButtonText: '<i class="bi bi-download"></i> PDF',
+    showCancelButton: true,
+    cancelButtonText: 'Cerrar',
+    customClass: { 
+      popup: 'swal2-receipt-treinta'
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // Imprimir
+      window.print();
+    } else if (result.isDenied) {
+      // Generar PDF
+      generateMovementPDF(movement);
+    }
+  });
+}
+
+// Función para generar PDF de movimiento
+function generateMovementPDF(movement) {
+  if (typeof window.jspdf === 'undefined') {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No se puede generar PDF. jsPDF no está disponible.',
+      confirmButtonText: 'Aceptar'
+    });
     return;
   }
-};
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  const fecha = new Date(movement.date).toLocaleString();
+  
+  // Configurar fuente y colores
+  doc.setFontSize(20);
+  doc.setTextColor(31, 45, 61);
+  doc.text('TillUp POS', 105, 20, { align: 'center' });
+  
+  doc.setFontSize(14);
+  doc.text('DETALLE DE MOVIMIENTO', 105, 35, { align: 'center' });
+  
+  doc.setFontSize(10);
+  doc.text(`#${movement.id}`, 105, 45, { align: 'center' });
+  doc.text(fecha, 105, 55, { align: 'center' });
+  
+  let y = 70;
+  
+  if (movement.clientName) {
+    doc.text(`Cliente: ${movement.clientName}`, 20, y);
+    y += 10;
+  }
+  
+  if (movement.type === 'sale' && movement.items) {
+    y += 10;
+    doc.setFontSize(12);
+    doc.text('Productos:', 20, y);
+    y += 10;
+    
+    movement.items.forEach(item => {
+      doc.setFontSize(10);
+      doc.text(`${item.name}`, 20, y);
+      doc.text(`${item.qty}`, 80, y);
+      doc.text(`$${item.price.toFixed(2)}`, 120, y);
+      doc.text(`$${(item.price * item.qty).toFixed(2)}`, 160, y);
+      y += 8;
+    });
+    
+    y += 5;
+    doc.setFontSize(12);
+    doc.text(`Total: $${movement.total.toFixed(2)}`, 20, y);
+  } else if (movement.type === 'chicken_sale') {
+    y += 10;
+    doc.setFontSize(12);
+    doc.text('Venta de Pollos:', 20, y);
+    y += 10;
+    doc.setFontSize(10);
+    doc.text(`Cantidad: ${movement.quantity} pollo(s)`, 20, y);
+    y += 8;
+    doc.text(`Peso: ${movement.weight} lbs`, 20, y);
+    y += 8;
+    doc.text(`Precio por libra: $${movement.pricePerPound.toFixed(2)}`, 20, y);
+    y += 8;
+    doc.text(`Total: $${movement.total.toFixed(2)}`, 20, y);
+  } else if (movement.type === 'debt_payment') {
+    y += 10;
+    doc.setFontSize(12);
+    doc.text('Pago de Deuda:', 20, y);
+    y += 10;
+    doc.setFontSize(10);
+    doc.text(`Monto pagado: $${movement.amount.toFixed(2)}`, 20, y);
+  } else if (movement.type === 'debt_created') {
+    y += 10;
+    doc.setFontSize(12);
+    doc.text('Deuda Creada:', 20, y);
+    y += 10;
+    doc.setFontSize(10);
+    doc.text(`Concepto: ${movement.reason}`, 20, y);
+    y += 8;
+    doc.text(`Monto pendiente: $${movement.amount.toFixed(2)}`, 20, y);
+  }
+  
+  // Pie de página
+  y = 250;
+  doc.setFontSize(10);
+  doc.setTextColor(100, 100, 100);
+  doc.text('TillUp POS - Sistema de Gestión', 105, y, { align: 'center' });
+  
+  // Guardar PDF
+  doc.save(`movimiento_${movement.id}_${new Date().toISOString().split('T')[0]}.pdf`);
+  
+  Swal.fire({
+    icon: 'success',
+    title: 'PDF Generado',
+    text: 'El PDF del movimiento ha sido descargado.',
+    timer: 2000,
+    showConfirmButton: false
+  });
+}

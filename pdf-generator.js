@@ -76,18 +76,18 @@ window.generatePDFFromFile = async function(type) {
     doc.save(`Reporte_Deudas_${new Date().toISOString().split('T')[0]}.pdf`);
 
   } else if (type === 'balance') {
-    const sales = loadFromStorage('sales');
-    const debts = loadFromStorage('debts');
+    const sales = loadFromStorage('sales') || [];
+    const debts = loadFromStorage('debts') || [];
 
     let totalProfit = 0;
     let totalCost = 0;
     let totalSales = 0;
     sales.forEach(s => {
-      totalProfit += s.profit;
-      totalCost += s.cost;
-      totalSales += s.total;
+      totalProfit += s.profit || 0;
+      totalCost += s.cost || 0;
+      totalSales += s.total || 0;
     });
-    const totalDebt = debts.reduce((sum, d) => sum + d.amount, 0);
+    const totalDebt = debts.reduce((sum, d) => sum + (d.amount || 0), 0);
 
     // Header con logo y título
     doc.setFillColor(...primaryColor);
@@ -161,7 +161,7 @@ window.generatePDFFromFile = async function(type) {
 
     doc.save(`Balance_General_${new Date().toISOString().split('T')[0]}.pdf`);
   } else if (type === 'sales') {
-    const sales = loadFromStorage('sales');
+    const sales = loadFromStorage('sales') || [];
 
     // Header con logo y título
     doc.setFillColor(...primaryColor);
@@ -182,8 +182,8 @@ window.generatePDFFromFile = async function(type) {
     doc.text(`Generado el: ${date}`, 14, 40);
     doc.text(`Total de ventas: ${sales.length}`, 14, 45);
     
-    const totalAmount = sales.reduce((sum, s) => sum + s.total, 0);
-    const totalProfit = sales.reduce((sum, s) => sum + s.profit, 0);
+    const totalAmount = sales.reduce((sum, s) => sum + (s.total || 0), 0);
+    const totalProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0);
     doc.text(`Monto total: ${formatCurrency(totalAmount)}`, 14, 50);
     doc.text(`Utilidad total: ${formatCurrency(totalProfit)}`, 14, 55);
 

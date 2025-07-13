@@ -13,20 +13,14 @@
   "categories": ["business", "productivity", "finance"],
   "icons": [
     {
-      "src": "./icons/icon-192.png",
+      "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "./icons/icon-512.png",
+      "src": "icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./icons/android-icon-192x192.png",
-      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     }
@@ -47,7 +41,7 @@
       "url": "./?view=sales",
       "icons": [
         {
-          "src": "./icons/icon-192.png",
+          "src": "icons/icon-192.png",
           "sizes": "192x192"
         }
       ]
@@ -59,7 +53,7 @@
       "url": "./?view=balance",
       "icons": [
         {
-          "src": "./icons/icon-192.png",
+          "src": "icons/icon-192.png",
           "sizes": "192x192"
         }
       ]
@@ -71,7 +65,7 @@
       "url": "./?view=inventory",
       "icons": [
         {
-          "src": "./icons/icon-192.png",
+          "src": "icons/icon-192.png",
           "sizes": "192x192"
         }
       ]
