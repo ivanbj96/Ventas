@@ -7,6 +7,8 @@ let cart = [];
 let currentClientId = null;
 let inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'grid'; // 'grid' o 'list'
 let clientsViewMode = localStorage.getItem('clientsViewMode') || 'grid'; // 'grid' o 'list'
+// Variables globales para pollos
+// (ELIMINAR cualquier declaración de let chickenSales, let pricePerPound, let costPerPound aquí)
 
 // === MEJORAS PARA EXPERIENCIA NATIVA ===
 
@@ -423,21 +425,7 @@ function setupOfflineEnhancements() {
   });
 }
 
-// === Arrays globales ===
-let products = [];
-let clients = [];
-let sales = [];
-let debts = [];
-let cart = [];
-let currentClientId = null;
-let inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'grid'; // 'grid' o 'list'
-let clientsViewMode = localStorage.getItem('clientsViewMode') || 'grid'; // 'grid' o 'list'
-
 // === GESTIÓN DE POLLOS ===
-
-// Variables globales para pollos
-let chickenSales = [];
-let pricePerPound = 2.50; // Precio por libra por defecto
 
 // === Inicialización y Validación de Datos ===
 function initializeData() {
@@ -589,11 +577,6 @@ window.quickAction = function(action) {
 }
 
 // === GESTIÓN DE POLLOS ===
-
-// Variables globales para pollos
-let chickenSales = [];
-let pricePerPound = 2.50; // Precio por libra por defecto
-let costPerPound = 1.80; // Costo por libra por defecto
 
 // Inicializar datos de pollos
 function initializeChickenData() {
@@ -1388,7 +1371,6 @@ function installPWA() {
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then((choiceResult) => {
       if (choiceResult.outcome === 'accepted') {
-        console.log('Usuario aceptó la instalación');
         Swal.fire({
           icon: 'success',
           title: '¡Instalación exitosa!',
@@ -1397,7 +1379,6 @@ function installPWA() {
           showConfirmButton: false
         });
       } else {
-        console.log('Usuario rechazó la instalación');
         Swal.fire({
           icon: 'info',
           title: 'Instalación cancelada',
@@ -1405,11 +1386,11 @@ function installPWA() {
           timer: 3000,
           showConfirmButton: false
         });
+        markInstallationRejected();
       }
+      if (installButton) installButton.style.display = 'none';
       deferredPrompt = null;
-      installButton.style.display = 'none';
-      // Limpiar el flag de rechazo ya que el usuario instaló la app
-      localStorage.removeItem('pwa-installation-rejected');
+      window.deferredPrompt = null;
     });
   }
 }
@@ -1544,7 +1525,8 @@ setInterval(updateDateTime, 1000);
 updateDateTime(); // Ejecutar inmediatamente
 
 // === Variables PWA ===
-let installButton;
+let installButton = null;
+let deferredPrompt = null;
 
 // === Función helper para verificar instalación ===
 function isAppInstalled() {
@@ -1561,6 +1543,49 @@ function hasUserRejectedInstallation() {
 function markInstallationRejected() {
   localStorage.setItem('pwa-installation-rejected', 'true');
 }
+
+// === Mostrar/ocultar botón de instalación PWA de forma centralizada ===
+function updateInstallButtonVisibility() {
+  if (!installButton) installButton = document.getElementById('installPWA');
+  if (!installButton) return;
+  if (isAppInstalled() || hasUserRejectedInstallation() || !deferredPrompt) {
+    installButton.style.display = 'none';
+  } else {
+    installButton.style.display = 'flex';
+    installButton.classList.add('animate');
+  }
+}
+
+// === Evento beforeinstallprompt (centralizado) ===
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  window.deferredPrompt = e;
+  updateInstallButtonVisibility();
+});
+
+// === Evento appinstalled ===
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  window.deferredPrompt = null;
+  updateInstallButtonVisibility();
+  Swal.fire({
+    icon: 'success',
+    title: '¡Instalación completada!',
+    text: 'TillUp POS está ahora instalado en tu dispositivo.',
+    timer: 3000,
+    showConfirmButton: false
+  });
+});
+
+// === Inicialización del botón de instalación PWA ===
+document.addEventListener('DOMContentLoaded', () => {
+  installButton = document.getElementById('installPWA');
+  updateInstallButtonVisibility();
+  if (installButton) {
+    installButton.onclick = installPWA;
+  }
+});
 
 // === Al cargar la app ===
 document.addEventListener('DOMContentLoaded', () => {
@@ -1684,32 +1709,30 @@ document.addEventListener('DOMContentLoaded', () => {
   // === Inicialización PWA ===
   installButton = document.getElementById('installPWA');
   
-  // Mostrar solo si hay deferredPrompt y no está instalada ni rechazada
-  if (isAppInstalled() || hasUserRejectedInstallation() || !window.deferredPrompt) {
-    installButton.style.display = 'none';
-  } else {
-    installButton.style.display = 'flex';
-    installButton.classList.add('animate');
+  // Mostrar botón solo si hay deferredPrompt y no está instalada ni rechazada
+  if (installButton) {
+    if (isAppInstalled() || hasUserRejectedInstallation() || !window.deferredPrompt) {
+      installButton.style.display = 'none';
+    } else {
+      installButton.style.display = 'flex';
+      installButton.classList.add('animate');
+    }
   }
 
   // Evento beforeinstallprompt
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    console.log("App puede instalarse. Ejecuta deferredPrompt.prompt() para instalar.");
-    
-    // Solo mostrar botón si NO está instalada y hay un prompt disponible
-    if (!isAppInstalled() && deferredPrompt) {
-      setTimeout(() => {
-        showInstallButton();
-      }, 3000);
+    window.deferredPrompt = e;
+    if (installButton && !isAppInstalled() && !hasUserRejectedInstallation()) {
+      installButton.style.display = 'flex';
+      installButton.classList.add('animate');
     }
   });
 
   // Evento appinstalled
   window.addEventListener('appinstalled', (evt) => {
-    console.log('App instalada');
-    installButton.style.display = 'none';
+    if (installButton) installButton.style.display = 'none';
     Swal.fire({
       icon: 'success',
       title: '¡Instalación completada!',
@@ -1784,6 +1807,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Inicializar datos de pollos
   initializeChickenData();
+
+  // Vista previa de imagen para productos
+  const productPhotoInput = document.getElementById('productImage');
+  if (productPhotoInput) {
+    productPhotoInput.addEventListener('change', function(e) {
+      const preview = document.getElementById('imagePreview');
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa">`;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        preview.innerHTML = '';
+      }
+    });
+  }
+
+  // Vista previa de imagen para clientes
+  const clientPhotoInput = document.getElementById('clientPhoto');
+  if (clientPhotoInput) {
+    clientPhotoInput.addEventListener('change', function(e) {
+      const preview = document.getElementById('clientImagePreview');
+      if (!preview) return;
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa">`;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        preview.innerHTML = '';
+      }
+    });
+  }
 });
 
 // === Agregar producto con vista previa de imagen ===
@@ -2978,7 +3038,7 @@ function updateBalanceUI() {
 }
 
 // === Instalar como PWA ===
-let deferredPrompt;
+// let deferredPrompt; // ELIMINADA: ya existe declaración global
 
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
@@ -5327,7 +5387,7 @@ function registerDebtPayment(debtId) {
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-  const { debt, payment } = data;
+  const { debt: paidDebt, payment } = data;
   
   // Configurar fuente
   doc.setFont('helvetica');
@@ -5339,22 +5399,22 @@ function registerDebtPayment(debtId) {
   
   // Información del pago
   doc.setFontSize(12);
-  doc.text(`Pago de Deuda #${debt.id}`, 14, 35);
+  doc.text(`Pago de Deuda #${paidDebt.id}`, 14, 35);
   doc.text(`Fecha: ${new Date(payment.date).toLocaleDateString()}`, 14, 45);
-  doc.text(`Cliente: ${debt.clientName}`, 14, 55);
+  doc.text(`Cliente: ${paidDebt.clientName}`, 14, 55);
   doc.text(`Monto pagado: $${payment.amount.toFixed(2)}`, 14, 65);
   
   // Información de la deuda original
-  doc.text(`Deuda original: $${debt.amount.toFixed(2)}`, 14, 80);
+  doc.text(`Deuda original: $${paidDebt.amount.toFixed(2)}`, 14, 80);
   
   // Calcular monto restante
-  const totalPaid = (debt.payments || []).reduce((sum, p) => sum + p.amount, 0);
-  const remainingAmount = debt.amount - totalPaid;
+  const totalPaid = (paidDebt.payments || []).reduce((sum, p) => sum + p.amount, 0);
+  const remainingAmount = paidDebt.amount - totalPaid;
   doc.text(`Monto restante: $${remainingAmount.toFixed(2)}`, 14, 90);
   
   // Descripción si existe
-  if (debt.description) {
-    doc.text(`Descripción: ${debt.description}`, 14, 105);
+  if (paidDebt.description) {
+    doc.text(`Descripción: ${paidDebt.description}`, 14, 105);
   }
   
   // Pie de página
@@ -5362,7 +5422,7 @@ function registerDebtPayment(debtId) {
   doc.text('Generado por TillUp POS', 105, 280, { align: 'center' });
   
   // Descargar PDF
-  doc.save(`pago_deuda_${debt.id}_${new Date(payment.date).getTime()}.pdf`);
+  doc.save(`pago_deuda_${paidDebt.id}_${new Date(payment.date).getTime()}.pdf`);
 }
 
 // Nueva función para actualizar estadísticas de pollos por rango de fechas
@@ -5516,3 +5576,11 @@ document.addEventListener('DOMContentLoaded', function() {
     localStorage.setItem('appInitialized', 'true');
   }
 });
+
+// Al final del archivo o después de definir cada función global:
+window.generatePDF = generatePDF;
+window.openSidebar = openSidebar;
+window.closeSidebar = closeSidebar;
+window.setTheme = setTheme;
+window.installPWA = installPWA;
+// Agregar aquí cualquier otra función que se use desde el HTML con onclick, etc.
