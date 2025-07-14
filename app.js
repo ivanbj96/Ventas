@@ -1,55 +1,425 @@
-// === DETECCIÓN DE ACTUALIZACIONES DEL SERVICE WORKER ===
-let swRegistration = null;
+// === Arrays globales ===
+let products = [];
+let clients = [];
+let sales = [];
+let debts = [];
+let cart = [];
+let currentClientId = null;
+let inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'grid'; // 'grid' o 'list'
+let clientsViewMode = localStorage.getItem('clientsViewMode') || 'grid'; // 'grid' o 'list'
 
-// Registrar Service Worker y detectar actualizaciones
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js')
-    .then(registration => {
-      swRegistration = registration;
-      console.log('[SW] Registrado exitosamente:', registration.scope);
-      
-      // Detectar actualizaciones
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        console.log('[SW] Nueva versión detectada');
-        
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            // Hay una nueva versión disponible
-            console.log('[SW] Nueva versión instalada, recargando...');
-            Swal.fire({
-              icon: 'info',
-              title: 'Actualización disponible',
-              text: 'Se ha detectado una nueva versión de TillUp. La aplicación se recargará automáticamente.',
-              timer: 2000,
-              showConfirmButton: false,
-              allowOutsideClick: false
-            }).then(() => {
-              window.location.reload();
-            });
-          }
-        });
-      });
-    })
-    .catch(error => {
-      console.error('[SW] Error en el registro:', error);
+// === MEJORAS PARA EXPERIENCIA NATIVA ===
+
+// Configuración de gestos táctiles
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
+
+// Función para detectar gestos de swipe
+function detectSwipe(element, onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown) {
+  element.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+  });
+
+  element.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
+    handleSwipe();
+  });
+
+  function handleSwipe() {
+    const swipeThreshold = 50;
+    const diffX = touchStartX - touchEndX;
+    const diffY = touchStartY - touchEndY;
+
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+      if (diffX > swipeThreshold && onSwipeLeft) {
+        onSwipeLeft();
+      } else if (diffX < -swipeThreshold && onSwipeRight) {
+        onSwipeRight();
+      }
+    } else {
+      if (diffY > swipeThreshold && onSwipeUp) {
+        onSwipeUp();
+      } else if (diffY < -swipeThreshold && onSwipeDown) {
+        onSwipeDown();
+      }
+    }
+  }
+}
+
+// Función para feedback táctil (vibración)
+function hapticFeedback(type = 'light') {
+  if ('vibrate' in navigator) {
+    switch (type) {
+      case 'light':
+        navigator.vibrate(10);
+        break;
+      case 'medium':
+        navigator.vibrate(50);
+        break;
+      case 'heavy':
+        navigator.vibrate(100);
+        break;
+      case 'success':
+        navigator.vibrate([50, 50, 50]);
+        break;
+      case 'error':
+        navigator.vibrate([100, 50, 100]);
+        break;
+    }
+  }
+}
+
+// Función para mostrar notificaciones nativas
+function showNativeNotification(title, options = {}) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, {
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
+      ...options
     });
-  
-  // Escuchar mensajes del Service Worker
-  navigator.serviceWorker.addEventListener('message', event => {
-    if (event.data && event.data.type === 'SW_UPDATED') {
-      console.log('[SW] Actualización detectada, recargando...');
-      Swal.fire({
-        icon: 'info',
-        title: 'Actualización disponible',
-        text: 'Se ha detectado una nueva versión de TillUp. La aplicación se recargará automáticamente.',
-        timer: 2000,
-        showConfirmButton: false,
-        allowOutsideClick: false
-      }).then(() => {
-        window.location.reload();
+  }
+}
+
+// Función para solicitar permisos de notificación
+async function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      showNativeNotification('TillUp', {
+        body: 'Notificaciones activadas',
+        tag: 'permission-granted'
       });
     }
+  }
+}
+
+// Función para pull-to-refresh
+function setupPullToRefresh(container, onRefresh) {
+  let startY = 0;
+  let currentY = 0;
+  let pullDistance = 0;
+  const threshold = 150; // Aumentado el umbral para hacer más difícil activar el refresh
+  let isPulling = false;
+  let isScrolled = false;
+
+  container.addEventListener('touchstart', (e) => {
+    startY = e.touches[0].clientY;
+    isScrolled = container.scrollTop > 0;
+    isPulling = !isScrolled; // Solo permitir pull si estamos en la parte superior
+  });
+
+  container.addEventListener('touchmove', (e) => {
+    if (!isPulling || isScrolled) return;
+    
+    currentY = e.touches[0].clientY;
+    pullDistance = currentY - startY;
+    
+    if (pullDistance > 0 && container.scrollTop === 0) {
+      if (pullDistance < threshold) {
+        e.preventDefault();
+        container.style.transform = `translateY(${Math.min(pullDistance * 0.3, threshold)}px)`;
+      }
+    }
+  });
+
+  container.addEventListener('touchend', () => {
+    if (isPulling && pullDistance > threshold && !isScrolled) {
+      onRefresh();
+      hapticFeedback('success');
+    }
+    
+    container.style.transform = '';
+    container.style.transition = 'transform 0.3s ease-out';
+    setTimeout(() => {
+      container.style.transition = '';
+    }, 300);
+    
+    isPulling = false;
+    pullDistance = 0;
+  });
+}
+
+// Función para mejorar la experiencia de scroll
+function setupSmoothScroll() {
+  const scrollElements = document.querySelectorAll('.movements-list-treinta, .products-grid-treinta, .clients-grid');
+  
+  scrollElements.forEach(element => {
+    element.style.scrollBehavior = 'smooth';
+    element.style.webkitOverflowScrolling = 'touch';
+  });
+}
+
+// Función para mejorar la experiencia de modales
+function setupModalGestures() {
+  const modals = document.querySelectorAll('.modal');
+  
+  modals.forEach(modal => {
+    const modalContent = modal.querySelector('.modal-content');
+    
+    detectSwipe(modalContent, 
+      () => closeModal(modal), // Swipe izquierda para cerrar
+      null, // Swipe derecha
+      null, // Swipe arriba
+      null  // Swipe abajo
+    );
+  });
+}
+
+// Función para cerrar modal con animación
+function closeModal(modal) {
+  modal.querySelector('.modal-content').style.transform = 'translateX(-100%)';
+  setTimeout(() => {
+    const modalInstance = bootstrap.Modal.getInstance(modal);
+    if (modalInstance) {
+      modalInstance.hide();
+    }
+  }, 300);
+}
+
+// Función para mejorar la experiencia de botones
+function setupButtonFeedback() {
+  const buttons = document.querySelectorAll('.btn');
+  
+  buttons.forEach(button => {
+    button.addEventListener('touchstart', () => {
+      hapticFeedback('light');
+    });
+    
+    button.addEventListener('click', () => {
+      hapticFeedback('medium');
+    });
+  });
+}
+
+// Función para mejorar la experiencia de inputs
+function setupInputEnhancements() {
+  const inputs = document.querySelectorAll('input, select, textarea');
+  
+  inputs.forEach(input => {
+    // Prevenir zoom en iOS
+    input.addEventListener('focus', () => {
+      if (window.innerWidth <= 768) {
+        setTimeout(() => {
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+      }
+    });
+    
+    // Mejorar experiencia de números
+    if (input.type === 'number') {
+      input.addEventListener('input', () => {
+        hapticFeedback('light');
+      });
+    }
+  });
+}
+
+// Función para mejorar la experiencia de cards
+function setupCardInteractions() {
+  const cards = document.querySelectorAll('.product-card, .client-card, .debt-card');
+  
+  cards.forEach(card => {
+    card.addEventListener('touchstart', () => {
+      hapticFeedback('light');
+    });
+    
+    // Efecto de presión
+    card.addEventListener('touchstart', () => {
+      card.style.transform = 'scale(0.98)';
+    });
+    
+    card.addEventListener('touchend', () => {
+      card.style.transform = '';
+    });
+  });
+}
+
+// Función para mejorar la experiencia de listas
+function setupListInteractions() {
+  const listItems = document.querySelectorAll('.movement-item-treinta, .cart-item-treinta');
+  
+  listItems.forEach(item => {
+    detectSwipe(item, 
+      () => {
+        // Swipe izquierda - mostrar acciones
+        showItemActions(item);
+      },
+      null, // Swipe derecha
+      null, // Swipe arriba
+      null  // Swipe abajo
+    );
+  });
+}
+
+// Función para mostrar acciones de elementos
+function showItemActions(item) {
+  const actions = document.createElement('div');
+  actions.className = 'item-actions';
+  actions.innerHTML = `
+    <button class="btn btn-sm btn-outline-primary" onclick="editItem('${item.dataset.id}')">
+      <i class="bi bi-pencil"></i>
+    </button>
+    <button class="btn btn-sm btn-outline-danger" onclick="deleteItem('${item.dataset.id}')">
+      <i class="bi bi-trash"></i>
+    </button>
+  `;
+  
+  item.appendChild(actions);
+  hapticFeedback('medium');
+}
+
+// Función para mejorar la experiencia de navegación
+function setupNavigationEnhancements() {
+  const navButtons = document.querySelectorAll('.sidebar-nav-item, .navbar-treinta .btn');
+  
+  navButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      hapticFeedback('medium');
+    });
+  });
+}
+
+// Función para mejorar la experiencia de búsqueda
+function setupSearchEnhancements() {
+  const searchInputs = document.querySelectorAll('input[type="search"], .search-input');
+  
+  searchInputs.forEach(input => {
+    let searchTimeout;
+    
+    input.addEventListener('input', (e) => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        hapticFeedback('light');
+        // Aquí iría la lógica de búsqueda
+      }, 300);
+    });
+  });
+}
+
+// Función para mejorar la experiencia de formularios
+function setupFormEnhancements() {
+  const forms = document.querySelectorAll('form');
+  
+  forms.forEach(form => {
+    form.addEventListener('submit', (e) => {
+      hapticFeedback('success');
+    });
+    
+    // Validación en tiempo real
+    const inputs = form.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+      input.addEventListener('blur', () => {
+        validateField(input);
+      });
+    });
+  });
+}
+
+// Función para validar campos
+function validateField(field) {
+  const value = field.value.trim();
+  const fieldType = field.type;
+  const fieldName = field.name;
+  
+  let isValid = true;
+  let errorMessage = '';
+  
+  // Validaciones específicas
+  if (field.hasAttribute('required') && !value) {
+    isValid = false;
+    errorMessage = 'Este campo es requerido';
+  } else if (fieldType === 'email' && value && !isValidEmail(value)) {
+    isValid = false;
+    errorMessage = 'Email inválido';
+  } else if (fieldType === 'number' && value && isNaN(value)) {
+    isValid = false;
+    errorMessage = 'Número inválido';
+  }
+  
+  // Mostrar/ocultar error
+  const errorElement = field.parentNode.querySelector('.error-message');
+  if (!isValid) {
+    if (!errorElement) {
+      const error = document.createElement('div');
+      error.className = 'error-message text-danger small mt-1';
+      error.textContent = errorMessage;
+      field.parentNode.appendChild(error);
+    } else {
+      errorElement.textContent = errorMessage;
+    }
+    hapticFeedback('error');
+  } else if (errorElement) {
+    errorElement.remove();
+  }
+}
+
+// Función para validar email
+function isValidEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+// Función para mejorar la experiencia de carga
+function setupLoadingEnhancements() {
+  // Mostrar spinner de carga
+  function showLoading(element) {
+    const spinner = document.createElement('div');
+    spinner.className = 'loading-spinner';
+    element.appendChild(spinner);
+  }
+  
+  // Ocultar spinner de carga
+  function hideLoading(element) {
+    const spinner = element.querySelector('.loading-spinner');
+    if (spinner) {
+      spinner.remove();
+    }
+  }
+  
+  // Exponer funciones globalmente
+  window.showLoading = showLoading;
+  window.hideLoading = hideLoading;
+}
+
+// Función para mejorar la experiencia de errores
+function setupErrorHandling() {
+  window.addEventListener('error', (e) => {
+    console.error('Error:', e.error);
+    hapticFeedback('error');
+    
+    // Mostrar notificación de error
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Ha ocurrido un error inesperado',
+      confirmButtonText: 'Aceptar'
+    });
+  });
+}
+
+// Función para mejorar la experiencia offline
+function setupOfflineEnhancements() {
+  window.addEventListener('online', () => {
+    hapticFeedback('success');
+    showNativeNotification('TillUp', {
+      body: 'Conexión restaurada',
+      tag: 'connection-restored'
+    });
+    
+    // Verificar actualizaciones cuando se restaura la conexión
+    checkForAppUpdates();
+  });
+  
+  window.addEventListener('offline', () => {
+    hapticFeedback('error');
+    showNativeNotification('TillUp', {
+      body: 'Sin conexión - Modo offline',
+      tag: 'connection-lost'
+    });
   });
 }
 
@@ -109,24 +479,121 @@ function initializeData() {
     console.error('Error cargando deudas:', e);
     debts = [];
   }
+}
+
+// Función para forzar verificación de actualizaciones
+window.forceUpdateCheck = function() {
+  checkForAppUpdates();
+  hapticFeedback('medium');
+  showUpdateToast('Verificando actualizaciones...', 'info');
+};
+
+// Función para inicializar todas las mejoras nativas
+function initializeNativeEnhancements() {
+  setupSmoothScroll();
+  setupModalGestures();
+  setupButtonFeedback();
+  setupInputEnhancements();
+  setupCardInteractions();
+  setupListInteractions();
+  setupNavigationEnhancements();
+  setupSearchEnhancements();
+  setupFormEnhancements();
+  setupLoadingEnhancements();
+  setupErrorHandling();
+  setupOfflineEnhancements();
+  setupQuickActions();
+  setupUpdateSystem();
   
-  try {
-    chickenSales = savedChickenSales ? JSON.parse(savedChickenSales) : [];
-    if (!Array.isArray(chickenSales)) chickenSales = [];
-  } catch (e) {
-    console.error('Error cargando ventas de pollos:', e);
-    chickenSales = [];
+  // Configurar pull-to-refresh en contenedores principales
+  const mainContainer = document.getElementById('mainContent');
+  if (mainContainer) {
+    setupPullToRefresh(mainContainer, () => {
+      location.reload();
+    });
   }
   
-  // Cargar precio por libra
-  const savedPricePerPound = localStorage.getItem('pricePerPound');
-  if (savedPricePerPound) {
-    pricePerPound = parseFloat(savedPricePerPound) || 2.50;
+  // Solicitar permisos de notificación
+  requestNotificationPermission();
+}
+
+// Función para configurar acciones rápidas
+function setupQuickActions() {
+  // Cerrar menú al hacer clic fuera
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('quickActionsMenu');
+    const btn = document.getElementById('floatingActionBtn');
+    
+    if (menu && !menu.contains(e.target) && !btn.contains(e.target)) {
+      hideQuickActions();
+    }
+  });
+}
+
+// Función para mostrar menú de acciones rápidas
+window.showQuickActions = function() {
+  const menu = document.getElementById('quickActionsMenu');
+  const btn = document.getElementById('floatingActionBtn');
+  
+  if (menu.style.display === 'none') {
+    menu.style.display = 'block';
+    btn.innerHTML = '<i class="bi bi-x-lg"></i>';
+    btn.style.transform = 'rotate(45deg)';
+    hapticFeedback('medium');
+  } else {
+    hideQuickActions();
   }
 }
 
-// Inicializar datos al cargar la página
-initializeData();
+// Función para ocultar menú de acciones rápidas
+function hideQuickActions() {
+  const menu = document.getElementById('quickActionsMenu');
+  const btn = document.getElementById('floatingActionBtn');
+  
+  menu.style.display = 'none';
+  btn.innerHTML = '<i class="bi bi-plus-lg"></i>';
+  btn.style.transform = 'rotate(0deg)';
+}
+
+// Función para manejar acciones rápidas
+window.quickAction = function(action) {
+  hideQuickActions();
+  hapticFeedback('success');
+  
+  switch (action) {
+    case 'addProduct':
+      showView('inventory');
+      setTimeout(() => {
+        document.querySelector('[onclick="addProduct(event)"]').click();
+      }, 300);
+      break;
+      
+    case 'addClient':
+      showView('clients');
+      setTimeout(() => {
+        document.querySelector('[onclick="addClient(event)"]').click();
+      }, 300);
+      break;
+      
+    case 'newSale':
+      showView('sales');
+      break;
+      
+    case 'chickenSale':
+      showView('chickens');
+      break;
+      
+    default:
+      console.log('Acción no reconocida:', action);
+  }
+}
+
+// === GESTIÓN DE POLLOS ===
+
+// Variables globales para pollos
+let chickenSales = [];
+let pricePerPound = 2.50; // Precio por libra por defecto
+let costPerPound = 1.80; // Costo por libra por defecto
 
 // Inicializar datos de pollos
 function initializeChickenData() {
@@ -1320,7 +1787,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // === Agregar producto con vista previa de imagen ===
-function addProduct(e) {
+async function addProduct(e) {
   e.preventDefault();
   
   // Obtener elementos del formulario
@@ -1352,127 +1819,94 @@ function addProduct(e) {
   if (!name) {
     Swal.fire({
       icon: 'error',
-      title: 'Nombre requerido',
-      text: 'El nombre del producto es obligatorio.',
-      confirmButtonText: 'Aceptar'
-    });
-    return;
-  }
-
-  if (isNaN(cost) || cost < 0) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Costo inválido',
-      text: 'El costo debe ser un número positivo.',
-      confirmButtonText: 'Aceptar'
-    });
-    return;
-  }
-
-  if (isNaN(price) || price < 0) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Precio inválido',
-      text: 'El precio debe ser un número positivo.',
+      title: 'Valores inválidos',
+      text: 'El costo y precio deben ser valores positivos.',
       confirmButtonText: 'Aceptar'
     });
     return;
   }
 
   if (price < cost) {
-    Swal.fire({
+    const result = await Swal.fire({
       icon: 'warning',
       title: 'Precio bajo',
       text: 'El precio de venta es menor al costo. ¿Estás seguro?',
       showCancelButton: true,
       confirmButtonText: 'Sí, continuar',
       cancelButtonText: 'Revisar'
-    }).then((result) => {
-      if (!result.isConfirmed) return;
-      saveProduct();
     });
-    return;
+    if (!result.isConfirmed) {
+      return;
+    }
   }
 
-  saveProduct();
-
-  function saveProduct() {
-    const saveProductImage = (imageData) => {
-      // Inicializar array de productos si no existe
-      if (!products || !Array.isArray(products)) {
-        products = [];
-      }
-      
-      if (window.editingProductId) {
-        // Editar producto existente
-        const productIndex = products.findIndex(p => p.id === window.editingProductId);
-        if (productIndex !== -1) {
-          products[productIndex] = {
-            ...products[productIndex],
-            name,
-            cost,
-            price,
-            category,
-            stock,
-            image: imageData || products[productIndex].image
-          };
-          
-          saveToStorage('products', products);
-          renderInventory();
-          renderSalesProducts();
-          
-          // Limpiar formulario y estado de edición
-          const form = document.getElementById('formProduct');
-          if (form) form.reset();
-          
-          const imagePreview = document.getElementById('imagePreview');
-          if (imagePreview) imagePreview.innerHTML = '';
-          
-          window.editingProductId = null;
-          
-          // Cerrar modal
-          const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
-          if (modal) modal.hide();
-          
-          // Restaurar texto del botón
-          const submitBtn = document.querySelector('#modalProduct .btn-primary');
-          if (submitBtn) {
-            submitBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar Producto';
-          }
-          
-          Swal.fire({
-            icon: 'success',
-            title: 'Producto actualizado',
-            text: 'Producto actualizado correctamente.',
-            confirmButtonText: 'Aceptar'
-          });
-        }
-      } else {
-        // Agregar nuevo producto
-        const newProduct = {
-          id: generateId('product'),
+  const save = (imageData) => {
+    if (window.editingProductId) {
+      // Editar producto existente
+      const productIndex = products.findIndex(p => p.id === window.editingProductId);
+      if (productIndex !== -1) {
+        products[productIndex] = {
+          ...products[productIndex],
           name,
           cost,
           price,
           category,
           stock,
-          image: imageData
+          image: imageData || products[productIndex].image
         };
         
-        if (!products || !Array.isArray(products)) {
-          products = [];
-        }
-        products.push(newProduct);
         saveToStorage('products', products);
         renderInventory();
         renderSalesProducts();
         
-        // Limpiar formulario
-        const form = document.getElementById('formProduct');
-        if (form) form.reset();
+        document.getElementById('formProduct').reset();
+        document.getElementById('imagePreview').innerHTML = '';
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
+        modal.hide();
         
-        const imagePreview = document.getElementById('imagePreview');
-        if (imagePreview) imagePreview.innerHTML = '';
+        const submitBtn = document.querySelector('#modalProduct .btn-primary');
+        submitBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar Producto';
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Producto actualizado',
+          text: 'Producto actualizado correctamente.',
+          confirmButtonText: 'Aceptar'
+        }).then(() => {
+            window.editingProductId = null;
+        });
+      }
+    } else {
+      // Agregar nuevo producto
+      const newProduct = {
+        id: generateId('product'),
+        name,
+        cost,
+        price,
+        category,
+        stock,
+        image: imageData
+      };
+      
+      products.push(newProduct);
+      saveToStorage('products', products);
+      renderInventory();
+      renderSalesProducts();
+      document.getElementById('formProduct').reset();
+      document.getElementById('imagePreview').innerHTML = '';
+      // Get modal instance without redeclaring variable
+      bootstrap.Modal.getInstance(document.getElementById('modalProduct')).hide();
+      modal.hide();
+      Swal.fire({
+        icon: 'success',
+        title: 'Producto agregado',
+        text: 'Producto agregado correctamente.',
+        confirmButtonText: 'Aceptar'
+      });
+        
+        // Limpiar formulario
+        document.getElementById('formProduct').reset();
+        document.getElementById('imagePreview').innerHTML = '';
         
         // Cerrar modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
@@ -1495,23 +1929,56 @@ function addProduct(e) {
       saveProductImage('');
     }
   }
+// Function to get payment icon
+function getPaymentIcon(paymentType) {
+  switch(paymentType) {
+    case 'cash':
+      return 'cash-coin';
+    case 'card':
+      return 'credit-card';
+    case 'transfer':
+      return 'bank';
+    case 'credit':
+      return 'clock-history';
+    default:
+      return 'question-circle';
+  }
 }
 
-// Vista previa de imagen para productos
-document.getElementById('productImage').addEventListener('change', function(e) {
-  const preview = document.getElementById('imagePreview');
-  const file = e.target.files[0];
-  
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa">`;
-    };
-    reader.readAsDataURL(file);
-  } else {
-    preview.innerHTML = '';
+// Function to get payment text
+function getPaymentText(paymentType) {
+  switch(paymentType) {
+    case 'cash':
+      return 'Pago en efectivo';
+    case 'card':
+      return 'Pago con tarjeta';
+    case 'transfer':
+      return 'Transferencia bancaria';
+    case 'credit':
+      return 'Venta a crédito';
+    default:
+      return 'Otro método de pago';
   }
-});
+}
+
+
+// Vista previa de imagen para productos
+const productPhotoInput = document.getElementById('productImageInput');
+if (productPhotoInput) {
+  productPhotoInput.addEventListener('change', function(e) {
+    const preview = document.getElementById('productImagePreview');
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa">`;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      preview.innerHTML = '';
+    }
+  });
+}
 
 // Vista previa de imagen para clientes
 const clientPhotoInput = document.getElementById('clientPhoto');
@@ -1677,8 +2144,53 @@ function renderCart() {
   }
 
   clearCartBtn.style.display = 'block';
+  if (clientSelectorContainer) clientSelectorContainer.style.display = 'block';
 
-  container.innerHTML = cart.map(item => `
+  // Agregar selector de cliente compacto al inicio del carrito
+  let clientSelectorHTML = '';
+  if (clients.length > 0) {
+    const selectedClient = clients.find(c => c.id === currentClientId);
+    const clientFirstName = selectedClient ? selectedClient.name.split(' ')[0] : '';
+    
+    clientSelectorHTML = `
+      <div class="client-selector-treinta mb-3">
+        ${selectedClient ? `
+          <div class="selected-client-display">
+            <div class="d-flex align-items-center">
+              <i class="bi bi-person-circle me-2"></i>
+              <span class="client-name-display">${clientFirstName}</span>
+              ${selectedClient.debt > 0 ? `<span class="badge bg-warning ms-2">Deuda: $${selectedClient.debt.toFixed(2)}</span>` : ''}
+            </div>
+            <button class="btn btn-sm btn-outline-danger remove-client-btn" onclick="removeSelectedClient()" title="Eliminar cliente">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        ` : `
+          <select id="cartClientSelector" class="form-select form-select-treinta" onchange="selectClientForCart(this.value)">
+            <option value="">Selecciona un cliente</option>
+            ${clients.map(client => `
+              <option value="${client.id}">
+                ${client.name.split(' ')[0]}${client.debt > 0 ? ` (Deuda: $${client.debt.toFixed(2)})` : ''}
+              </option>
+            `).join('')}
+          </select>
+        `}
+      </div>
+    `;
+  } else {
+    clientSelectorHTML = `
+      <div class="client-selector-treinta mb-3">
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i> No hay clientes registrados
+          <button class="btn btn-primary btn-sm ms-2" onclick="showAddClientModal()">
+            <i class="bi bi-person-plus"></i> Agregar Cliente
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = clientSelectorHTML + cart.map(item => `
     <div class="cart-item-treinta">
       <div class="cart-item-header-treinta">
         <div class="cart-item-qty-treinta">
@@ -2131,29 +2643,10 @@ function showReceipt(sale) {
   });
 }
 
-// Funciones auxiliares para el comprobante
-function getPaymentIcon(paymentType) {
-  const icons = {
-    cash: 'cash-coin',
-    card: 'credit-card',
-    transfer: 'bank',
-    credit: 'clock-history'
-  };
-  return icons[paymentType] || 'cash-coin';
-}
 
-function getPaymentText(paymentType) {
-  const texts = {
-    cash: 'Efectivo',
-    card: 'Tarjeta',
-    transfer: 'Transferencia',
-    credit: 'A Crédito'
-  };
-  return texts[paymentType] || 'Efectivo';
-}
 
 // === Agregar/Editar cliente con validación mejorada ===
-function addClient(e) {
+async function addClient(e) {
   e.preventDefault();
   
   // Obtener elementos del formulario
@@ -2163,8 +2656,7 @@ function addClient(e) {
   const photoInput = document.getElementById('clientPhoto');
   const locationInput = document.getElementById('clientLocation');
   const locationStatus = document.getElementById('locationStatus');
-  
-  // Validar que los elementos existan
+
   if (!nameInput || !phoneInput || !addressInput) {
     Swal.fire({
       icon: 'error',
@@ -2174,13 +2666,12 @@ function addClient(e) {
     });
     return;
   }
-  
+
   const name = nameInput.value.trim();
   const phone = phoneInput.value.trim();
   const address = addressInput.value.trim();
-  const location = locationInput ? locationInput.value.trim() : '';
-  
-  // Validaciones básicas
+  const location = locationInput.value.trim();
+
   if (!name) {
     Swal.fire({
       icon: 'error',
@@ -2191,7 +2682,6 @@ function addClient(e) {
     return;
   }
 
-  // Validar formato de teléfono si se proporciona
   if (phone && !/^[0-9]{7,15}$/.test(phone)) {
     Swal.fire({
       icon: 'error',
@@ -2211,87 +2701,55 @@ function addClient(e) {
     }
   }
 
-  const saveClient = (photo) => {
-    // Inicializar array de clientes si no existe
-    if (!clients || !Array.isArray(clients)) {
-      clients = [];
-    }
-    
-    if (window.editingClientId) {
-      // Editar cliente existente
-      const clientIndex = clients.findIndex(c => c.id === window.editingClientId);
-      if (clientIndex !== -1) {
-        clients[clientIndex] = {
-          ...clients[clientIndex],
-          name,
-          phone,
-          address,
-          location,
-          photo: photo || clients[clientIndex].photo
-        };
-      }
-      delete window.editingClientId;
-    } else {
-      // Agregar nuevo cliente
-      if (!clients || !Array.isArray(clients)) {
-        clients = [];
-      }
-      clients.push({
-        id: generateId('client'),
+  const save = (photo) => {
+    const clientData = {
         name,
         phone,
         address,
         location,
-        photo,
-        debt: 0
-      });
-    }
+        photo: photo || (window.editingClientId ? clients.find(c => c.id === window.editingClientId).photo : '')
+    };
 
-    // Calcular deuda total por cliente
-    if (debts && Array.isArray(debts)) {
-      clients.forEach(client => {
-        const clientDebts = debts.filter(d => d.clientId === client.id);
-        client.debt = clientDebts.reduce((sum, d) => sum + d.amount, 0);
-      });
+    if (window.editingClientId) {
+      const clientIndex = clients.findIndex(c => c.id === window.editingClientId);
+      if (clientIndex !== -1) {
+        clients[clientIndex] = { ...clients[clientIndex], ...clientData };
+      }
+    } else {
+      clients.push({ id: generateId('client'), ...clientData, debt: 0 });
     }
 
     saveToStorage('clients', clients);
     renderClients();
     updateClientSelector();
-    
-    // Limpiar formulario
-    const form = document.getElementById('formClient');
-    if (form) form.reset();
-    
-    const imagePreview = document.getElementById('clientImagePreview');
-    if (imagePreview) imagePreview.innerHTML = '';
-    
+
+    if (document.getElementById('formClient')) document.getElementById('formClient').reset();
+    if (document.getElementById('clientImagePreview')) document.getElementById('clientImagePreview').innerHTML = '';
     if (locationStatus) locationStatus.textContent = '';
-    
-    // Restaurar texto del botón
-    const submitBtn = document.querySelector('#modalClient .btn-primary');
-    if (submitBtn) {
-      submitBtn.innerHTML = '<i class="bi bi-person-plus"></i> Agregar Cliente';
-    }
-    
-    // Cerrar modal
+
     const modal = bootstrap.Modal.getInstance(document.getElementById('modalClient'));
-    if (modal) modal.hide();
-    
-    Swal.fire({ 
-      icon: 'success', 
-      title: window.editingClientId ? 'Cliente actualizado' : 'Cliente agregado', 
-      text: window.editingClientId ? 'Cliente actualizado correctamente.' : 'Cliente agregado correctamente.',
+    modal.hide();
+
+    Swal.fire({
+      icon: 'success',
+      title: window.editingClientId ? 'Cliente actualizado' : 'Cliente agregado',
+      text: `El cliente "${name}" se ha guardado correctamente.`,
       confirmButtonText: 'Aceptar'
+    }).then(() => {
+        if (window.editingClientId) {
+            delete window.editingClientId;
+            const submitBtn = document.querySelector('#modalClient .btn-primary');
+            submitBtn.innerHTML = '<i class="bi bi-person-plus"></i> Agregar Cliente';
+        }
     });
   };
 
   if (photoInput && photoInput.files && photoInput.files[0]) {
     const reader = new FileReader();
-    reader.onload = () => saveClient(reader.result);
+    reader.onload = () => save(reader.result);
     reader.readAsDataURL(photoInput.files[0]);
   } else {
-    saveClient('');
+    save('');
   }
 }
 
@@ -2378,9 +2836,18 @@ function renderClients() {
 
 // === Selector de cliente en ventas ===
 function updateClientSelector() {
-  // Esta función ya no es necesaria ya que eliminamos el selector de cliente del carrito
-  // Se mantiene por compatibilidad pero no hace nada
-  console.log('updateClientSelector: Selector de cliente eliminado del carrito');
+  const selector = document.getElementById('cartClientSelector');
+  if (!selector) return; // Evitar error si no existe
+  
+  // Limpiar opciones existentes
+  selector.innerHTML = `<option value="">Seleccionar cliente...</option>`;
+
+  clients.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.innerText = `${c.name}${c.debt > 0 ? ` (Deuda: $${c.debt.toFixed(2)})` : ''}`;
+    selector.appendChild(opt);
+  });
 }
 
 // === Mostrar deudas con diseño tipo Treinta.co ===
@@ -4858,435 +5325,194 @@ function registerDebtPayment(debtId) {
     return;
   }
 
-  Swal.fire({
-    title: 'Registrar Pago',
-    html: `
-      <div class="payment-form-treinta">
-        <div class="alert alert-info">
-          <strong>Deuda:</strong> $${debt.amount.toFixed(2)}<br>
-          <strong>Cliente:</strong> ${debt.clientName}
-        </div>
-        <div class="form-group">
-          <label class="form-label">Monto del pago:</label>
-          <div class="input-group">
-            <span class="input-group-text">$</span>
-            <input type="number" id="paymentAmount" class="form-control" 
-                   placeholder="0.00" min="0.01" max="${debt.amount}" step="0.01" 
-                   value="${debt.amount}">
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Método de pago:</label>
-          <select id="paymentMethod" class="form-select">
-            <option value="cash">Efectivo</option>
-            <option value="card">Tarjeta</option>
-            <option value="transfer">Transferencia</option>
-          </select>
-        </div>
-      </div>
-    `,
-    showCancelButton: true,
-    confirmButtonText: 'Registrar Pago',
-    cancelButtonText: 'Cancelar',
-    preConfirm: () => {
-      const amount = parseFloat(document.getElementById('paymentAmount').value);
-      const method = document.getElementById('paymentMethod').value;
-      
-      if (!amount || amount <= 0) {
-        Swal.showValidationMessage('El monto debe ser mayor a 0');
-        return false;
-      }
-      
-      if (amount > debt.amount) {
-        Swal.showValidationMessage('El pago no puede ser mayor a la deuda');
-        return false;
-      }
-      
-      return { amount, method };
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const { amount, method } = result.value;
-      
-      // Crear el pago
-      const payment = {
-        id: generateId('payment'),
-        amount: amount,
-        method: method,
-        date: new Date().toISOString(),
-        time: new Date().toLocaleTimeString()
-      };
-      
-      // Agregar pago a la deuda
-      if (!debt.payments || !Array.isArray(debt.payments)) {
-        debt.payments = [];
-      }
-      debt.payments.push(payment);
-      
-      // Actualizar monto de la deuda
-      debt.amount -= amount;
-      
-      // Si la deuda está pagada completamente, marcarla como pagada
-      if (debt.amount <= 0) {
-        debt.status = 'paid';
-        debt.amount = 0;
-      }
-      
-      // Actualizar deuda del cliente
-      const client = clients.find(c => c.id === debt.clientId);
-      if (client) {
-        client.debt = Math.max(0, (client.debt || 0) - amount);
-      }
-      
-      // Guardar cambios
-      saveToStorage('debts', debts);
-      saveToStorage('clients', clients);
-      
-      // Actualizar vistas
-      renderDebts();
-      renderClients();
-      updateBalanceUI();
-      renderBalanceGrid(); // Actualizar movimientos en tiempo real
-      
-      // Mostrar confirmación
-      Swal.fire({
-        icon: 'success',
-        title: 'Pago registrado',
-        text: `Pago de $${amount.toFixed(2)} registrado exitosamente.`,
-        confirmButtonText: 'Aceptar'
-      });
-    }
-  });
-}
-
-// === FUNCIÓN PARA MOSTRAR DETALLES DE MOVIMIENTOS ===
-function showMovementDetails(movement) {
-  const fecha = new Date(movement.date).toLocaleString();
-  
-  let detalle = `
-    <div class="receipt-treinta">
-      <div class="receipt-header">
-        <div class="receipt-logo">
-          <img src="TillUp.png" alt="TillUp" style="width: 60px; height: 60px; object-fit: contain;">
-          <h3>TillUp POS</h3>
-        </div>
-        <div class="receipt-info">
-          <div class="receipt-title">DETALLE DE MOVIMIENTO</div>
-          <div class="receipt-number">#${movement.id}</div>
-          <div class="receipt-date">${fecha}</div>
-        </div>
-      </div>
-  `;
-
-  // Agregar información específica según el tipo de movimiento
-  if (movement.type === 'sale') {
-    detalle += `
-      <div class="receipt-client">
-        <i class="bi bi-person-circle"></i>
-        <span><strong>Cliente:</strong> ${movement.clientName}</span>
-      </div>
-      
-      <div class="receipt-items">
-        <div class="receipt-items-header">
-          <span>Producto</span>
-          <span>Cant.</span>
-          <span>Precio</span>
-          <span>Subtotal</span>
-        </div>
-        ${movement.items.map(item => `
-          <div class="receipt-item">
-            <span class="item-name">${item.name}</span>
-            <span class="item-qty">${item.qty}</span>
-            <span class="item-price">$${item.price.toFixed(2)}</span>
-            <span class="item-subtotal">$${(item.price * item.qty).toFixed(2)}</span>
-          </div>
-        `).join('')}
-      </div>
-      
-      <div class="receipt-total">
-        <div class="total-line">
-          <span>Subtotal:</span>
-          <span>$${movement.originalTotal.toFixed(2)}</span>
-        </div>
-        ${movement.discount > 0 ? `
-          <div class="total-line discount">
-            <span>Descuento:</span>
-            <span>-$${movement.discount.toFixed(2)}</span>
-          </div>
-        ` : ''}
-        <div class="total-line final">
-          <span>Total:</span>
-          <span class="total-amount">$${movement.total.toFixed(2)}</span>
-        </div>
-        <div class="payment-type">
-          <i class="bi bi-${getPaymentIcon(movement.paymentType)}"></i>
-          ${getPaymentText(movement.paymentType)}
-        </div>
-      </div>
-    `;
-  } else if (movement.type === 'chicken_sale') {
-    detalle += `
-      <div class="receipt-client">
-        <i class="bi bi-person-circle"></i>
-        <span><strong>Cliente:</strong> ${movement.clientName}</span>
-      </div>
-      
-      <div class="receipt-items">
-        <div class="receipt-items-header">
-          <span>Producto</span>
-          <span>Cant.</span>
-          <span>Peso</span>
-          <span>Precio</span>
-        </div>
-        <div class="receipt-item">
-          <span class="item-name">Pollo Entero</span>
-          <span class="item-qty">${movement.quantity}</span>
-          <span class="item-price">${movement.weight} lbs</span>
-          <span class="item-subtotal">$${movement.pricePerPound.toFixed(2)}/lb</span>
-        </div>
-      </div>
-      
-      <div class="receipt-total">
-        <div class="total-line">
-          <span>Peso total:</span>
-          <span>${movement.weight} lbs</span>
-        </div>
-        <div class="total-line">
-          <span>Precio por libra:</span>
-          <span>$${movement.pricePerPound.toFixed(2)}</span>
-        </div>
-        <div class="total-line final">
-          <span>Total:</span>
-          <span class="total-amount">$${movement.total.toFixed(2)}</span>
-        </div>
-        ${movement.paymentType === 'credit' && movement.abono > 0 ? `
-          <div class="total-line discount">
-            <span>Abono:</span>
-            <span>-$${movement.abono.toFixed(2)}</span>
-          </div>
-          <div class="total-line">
-            <span>Pendiente:</span>
-            <span>$${movement.remainingAmount.toFixed(2)}</span>
-          </div>
-        ` : ''}
-        <div class="payment-type">
-          <i class="bi bi-${getPaymentIcon(movement.paymentType)}"></i>
-          ${getPaymentText(movement.paymentType)}
-        </div>
-      </div>
-    `;
-  } else if (movement.type === 'debt_payment') {
-    detalle += `
-      <div class="receipt-client">
-        <i class="bi bi-person-circle"></i>
-        <span><strong>Cliente:</strong> ${movement.clientName}</span>
-      </div>
-      
-      <div class="receipt-items">
-        <div class="receipt-items-header">
-          <span>Concepto</span>
-          <span>Monto</span>
-        </div>
-        <div class="receipt-item">
-          <span class="item-name">Pago de Deuda</span>
-          <span class="item-qty">-</span>
-          <span class="item-price">-</span>
-          <span class="item-subtotal">$${movement.amount.toFixed(2)}</span>
-        </div>
-      </div>
-      
-      <div class="receipt-total">
-        <div class="total-line">
-          <span>Deuda Original:</span>
-          <span>$${movement.total.toFixed(2)}</span>
-        </div>
-        <div class="total-line">
-          <span>Abono Anterior:</span>
-          <span>$${movement.abono.toFixed(2)}</span>
-        </div>
-        <div class="total-line final">
-          <span>Pago Realizado:</span>
-          <span class="total-amount">$${movement.amount.toFixed(2)}</span>
-        </div>
-        <div class="payment-type">
-          <i class="bi bi-${getPaymentIcon(movement.paymentType)}"></i>
-          ${getPaymentText(movement.paymentType)}
-        </div>
-      </div>
-    `;
-  } else if (movement.type === 'debt_created') {
-    detalle += `
-      <div class="receipt-client">
-        <i class="bi bi-person-circle"></i>
-        <span><strong>Cliente:</strong> ${movement.clientName}</span>
-      </div>
-      
-      <div class="receipt-items">
-        <div class="receipt-items-header">
-          <span>Concepto</span>
-          <span>Monto</span>
-        </div>
-        <div class="receipt-item">
-          <span class="item-name">${movement.reason}</span>
-          <span class="item-qty">-</span>
-          <span class="item-price">-</span>
-          <span class="item-subtotal">$${movement.amount.toFixed(2)}</span>
-        </div>
-      </div>
-      
-      <div class="receipt-total">
-        <div class="total-line">
-          <span>Total Original:</span>
-          <span>$${movement.total.toFixed(2)}</span>
-        </div>
-        <div class="total-line discount">
-          <span>Abono:</span>
-          <span>-$${movement.abono.toFixed(2)}</span>
-        </div>
-        <div class="total-line final">
-          <span>Deuda Pendiente:</span>
-          <span class="total-amount">$${movement.amount.toFixed(2)}</span>
-        </div>
-      </div>
-    `;
-  }
-
-  detalle += `
-      <div class="receipt-footer">
-        <div class="footer-message">
-          <i class="bi bi-heart"></i>
-          <span>Movimiento registrado</span>
-        </div>
-        <div class="footer-brand">
-          <strong>TillUp POS</strong>
-          <small>Sistema de Gestión</small>
-        </div>
-      </div>
-    </div>
-  `;
-
-  Swal.fire({
-    title: '',
-    html: detalle,
-    showConfirmButton: true,
-    confirmButtonText: '<i class="bi bi-printer"></i> Imprimir',
-    showDenyButton: true,
-    denyButtonText: '<i class="bi bi-download"></i> PDF',
-    showCancelButton: true,
-    cancelButtonText: 'Cerrar',
-    customClass: { 
-      popup: 'swal2-receipt-treinta'
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      // Imprimir
-      window.print();
-    } else if (result.isDenied) {
-      // Generar PDF
-      generateMovementPDF(movement);
-    }
-  });
-}
-
-// Función para generar PDF de movimiento
-function generateMovementPDF(movement) {
-  if (typeof window.jspdf === 'undefined') {
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'No se puede generar PDF. jsPDF no está disponible.',
-      confirmButtonText: 'Aceptar'
-    });
-    return;
-  }
-
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
+  const { debt, payment } = data;
   
-  const fecha = new Date(movement.date).toLocaleString();
+  // Configurar fuente
+  doc.setFont('helvetica');
+  doc.setFontSize(12);
   
-  // Configurar fuente y colores
-  doc.setFontSize(20);
-  doc.setTextColor(31, 45, 61);
-  doc.text('TillUp POS', 105, 20, { align: 'center' });
+  // Título
+  doc.setFontSize(18);
+  doc.text('COMPROBANTE DE PAGO', 105, 20, { align: 'center' });
   
-  doc.setFontSize(14);
-  doc.text('DETALLE DE MOVIMIENTO', 105, 35, { align: 'center' });
+  // Información del pago
+  doc.setFontSize(12);
+  doc.text(`Pago de Deuda #${debt.id}`, 14, 35);
+  doc.text(`Fecha: ${new Date(payment.date).toLocaleDateString()}`, 14, 45);
+  doc.text(`Cliente: ${debt.clientName}`, 14, 55);
+  doc.text(`Monto pagado: $${payment.amount.toFixed(2)}`, 14, 65);
   
-  doc.setFontSize(10);
-  doc.text(`#${movement.id}`, 105, 45, { align: 'center' });
-  doc.text(fecha, 105, 55, { align: 'center' });
+  // Información de la deuda original
+  doc.text(`Deuda original: $${debt.amount.toFixed(2)}`, 14, 80);
   
-  let y = 70;
+  // Calcular monto restante
+  const totalPaid = (debt.payments || []).reduce((sum, p) => sum + p.amount, 0);
+  const remainingAmount = debt.amount - totalPaid;
+  doc.text(`Monto restante: $${remainingAmount.toFixed(2)}`, 14, 90);
   
-  if (movement.clientName) {
-    doc.text(`Cliente: ${movement.clientName}`, 20, y);
-    y += 10;
-  }
-  
-  if (movement.type === 'sale' && movement.items) {
-    y += 10;
-    doc.setFontSize(12);
-    doc.text('Productos:', 20, y);
-    y += 10;
-    
-    movement.items.forEach(item => {
-      doc.setFontSize(10);
-      doc.text(`${item.name}`, 20, y);
-      doc.text(`${item.qty}`, 80, y);
-      doc.text(`$${item.price.toFixed(2)}`, 120, y);
-      doc.text(`$${(item.price * item.qty).toFixed(2)}`, 160, y);
-      y += 8;
-    });
-    
-    y += 5;
-    doc.setFontSize(12);
-    doc.text(`Total: $${movement.total.toFixed(2)}`, 20, y);
-  } else if (movement.type === 'chicken_sale') {
-    y += 10;
-    doc.setFontSize(12);
-    doc.text('Venta de Pollos:', 20, y);
-    y += 10;
-    doc.setFontSize(10);
-    doc.text(`Cantidad: ${movement.quantity} pollo(s)`, 20, y);
-    y += 8;
-    doc.text(`Peso: ${movement.weight} lbs`, 20, y);
-    y += 8;
-    doc.text(`Precio por libra: $${movement.pricePerPound.toFixed(2)}`, 20, y);
-    y += 8;
-    doc.text(`Total: $${movement.total.toFixed(2)}`, 20, y);
-  } else if (movement.type === 'debt_payment') {
-    y += 10;
-    doc.setFontSize(12);
-    doc.text('Pago de Deuda:', 20, y);
-    y += 10;
-    doc.setFontSize(10);
-    doc.text(`Monto pagado: $${movement.amount.toFixed(2)}`, 20, y);
-  } else if (movement.type === 'debt_created') {
-    y += 10;
-    doc.setFontSize(12);
-    doc.text('Deuda Creada:', 20, y);
-    y += 10;
-    doc.setFontSize(10);
-    doc.text(`Concepto: ${movement.reason}`, 20, y);
-    y += 8;
-    doc.text(`Monto pendiente: $${movement.amount.toFixed(2)}`, 20, y);
+  // Descripción si existe
+  if (debt.description) {
+    doc.text(`Descripción: ${debt.description}`, 14, 105);
   }
   
   // Pie de página
-  y = 250;
   doc.setFontSize(10);
-  doc.setTextColor(100, 100, 100);
-  doc.text('TillUp POS - Sistema de Gestión', 105, y, { align: 'center' });
+  doc.text('Generado por TillUp POS', 105, 280, { align: 'center' });
   
-  // Guardar PDF
-  doc.save(`movimiento_${movement.id}_${new Date().toISOString().split('T')[0]}.pdf`);
-  
-  Swal.fire({
-    icon: 'success',
-    title: 'PDF Generado',
-    text: 'El PDF del movimiento ha sido descargado.',
-    timer: 2000,
-    showConfirmButton: false
-  });
+  // Descargar PDF
+  doc.save(`pago_deuda_${debt.id}_${new Date(payment.date).getTime()}.pdf`);
 }
+
+// Nueva función para actualizar estadísticas de pollos por rango de fechas
+function updateChickenStatsByRange(startDate, endDate) {
+  // Filtrar ventas de pollos por rango
+  const rangeSales = chickenSales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    return saleDate >= startDate && saleDate <= endDate;
+  });
+
+  const totalChickens = rangeSales.reduce((sum, sale) => sum + sale.quantity, 0);
+  const totalWeight = rangeSales.reduce((sum, sale) => sum + sale.weight, 0);
+  const totalRevenue = rangeSales.reduce((sum, sale) => sum + sale.total, 0);
+  const totalProfit = rangeSales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+  const avgWeight = totalChickens > 0 ? totalWeight / totalChickens : 0;
+
+  const totalChickensElement = document.getElementById('totalChickensSold');
+  const totalWeightElement = document.getElementById('totalWeightSold');
+  const totalRevenueElement = document.getElementById('totalRevenue');
+  const totalProfitElement = document.getElementById('totalProfit');
+  const avgWeightElement = document.getElementById('avgWeight');
+
+  if (totalChickensElement) totalChickensElement.textContent = totalChickens;
+  if (totalWeightElement) totalWeightElement.textContent = totalWeight.toFixed(1);
+  if (totalRevenueElement) totalRevenueElement.textContent = `$${totalRevenue.toFixed(2)}`;
+  if (totalProfitElement) totalProfitElement.textContent = `$${totalProfit.toFixed(2)}`;
+  if (avgWeightElement) avgWeightElement.textContent = avgWeight.toFixed(1);
+}
+
+// Hook para actualizar estadísticas de pollos al filtrar por fecha
+function onDateRangeChange() {
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  if (startDate && endDate) {
+    updateChickenStatsByRange(new Date(startDate), new Date(endDate));
+  }
+}
+
+// Agregar evento a los inputs de fecha si existen
+window.addEventListener('DOMContentLoaded', () => {
+  const startDateInput = document.getElementById('startDate');
+  const endDateInput = document.getElementById('endDate');
+  if (startDateInput && endDateInput) {
+    startDateInput.addEventListener('change', onDateRangeChange);
+    endDateInput.addEventListener('change', onDateRangeChange);
+  }
+});
+
+// Migrar fechas de ventas de pollos a formato ISO
+function migrateChickenSalesDates() {
+  let needsMigration = false;
+  chickenSales.forEach(sale => {
+    if (typeof sale.date === 'string' && !sale.date.includes('T')) {
+      // Es una fecha en formato local, convertir a ISO
+      const dateParts = sale.date.split('/');
+      if (dateParts.length === 3) {
+        const [month, day, year] = dateParts;
+        const isoDate = new Date(year, month - 1, day).toISOString();
+        sale.date = isoDate;
+        needsMigration = true;
+      }
+    }
+  });
+  if (needsMigration) {
+    saveToStorage('chickenSales', chickenSales);
+    console.log('Migración de fechas de pollos completada');
+  }
+}
+
+// Ejecutar migración de fechas de pollos al cargar la app
+if (typeof migrateChickenSalesDates === 'function') {
+  migrateChickenSalesDates();
+}
+
+// === INICIALIZACIÓN DE LA APLICACIÓN ===
+
+// Inicializar la aplicación
+document.addEventListener('DOMContentLoaded', function() {
+  // Cargar datos guardados
+  loadData();
+  
+  // Inicializar datos de pollos
+  initializeChickenData();
+  
+  // Actualizar UI
+  updateBalanceUI();
+  renderInventory();
+  renderClients();
+  renderDebts();
+  renderSalesProducts();
+  
+  // Configurar búsqueda global
+  setupGlobalSearch();
+  
+  // Configurar carga lazy
+  setupLazyLoading();
+  
+  // Configurar backup automático
+  setupAutoBackup();
+  
+  // Actualizar fecha y hora
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+  
+  // Detectar modo oscuro
+  detectDarkMode();
+  
+  // Inicializar mejoras para experiencia nativa
+  initializeNativeEnhancements();
+  
+  // Mostrar botón de instalación si es necesario
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+      .then(registration => {
+        console.log('SW registrado:', registration);
+        
+        // Escuchar actualizaciones del SW
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              showInstallButton();
+            }
+          });
+        });
+      })
+      .catch(error => {
+        console.error('Error registrando SW:', error);
+      });
+  }
+  
+  // Verificar si la app está instalada
+  if (isAppInstalled()) {
+    document.getElementById('installPWA').style.display = 'none';
+  }
+  
+  // Mostrar mensaje de bienvenida si es la primera vez
+  if (!localStorage.getItem('appInitialized')) {
+    Swal.fire({
+      icon: 'success',
+      title: '¡Bienvenido a TillUp!',
+      text: 'Tu PWA de gestión de ventas está lista para usar.',
+      confirmButtonText: '¡Empezar!',
+      showClass: {
+        popup: 'animate__animated animate__fadeInDown'
+      },
+      hideClass: {
+        popup: 'animate__animated animate__fadeOutUp'
+      }
+    });
+    localStorage.setItem('appInitialized', 'true');
+  }
+});
