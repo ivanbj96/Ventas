@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tillup-cache-v1.1.3';
+const CACHE_NAME = 'tillup-cache-v1.1.4';
 const ASSETS = [
   './',
   './index.html',
@@ -18,7 +18,7 @@ const ASSETS = [
   'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js'
 ];
 
-// === Instalación: precachear archivos ===
+// === Instalación: precachear archivos y activar inmediatamente ===
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
@@ -57,27 +57,11 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// === Detectar actualizaciones del Service Worker ===
+// === Mensaje para forzar skipWaiting ===
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-});
-
-// === Escuchar actualizaciones del Service Worker ===
-self.addEventListener('install', event => {
-  self.addEventListener('activate', event => {
-    event.waitUntil(
-      self.clients.matchAll().then(clients => {
-        clients.forEach(client => {
-          client.postMessage({
-            type: 'SW_UPDATED',
-            cacheName: CACHE_NAME
-          });
-        });
-      })
-    );
-  });
 });
 
 // === Fetch: Network first para datos dinámicos, Cache first para assets ===
@@ -145,12 +129,5 @@ self.addEventListener('fetch', event => {
           });
       })
     );
-  }
-});
-
-// === Mensajes del Service Worker ===
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
   }
 });

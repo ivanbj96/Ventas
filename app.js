@@ -8,7 +8,62 @@ let currentClientId = null;
 let inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'grid'; // 'grid' o 'list'
 let clientsViewMode = localStorage.getItem('clientsViewMode') || 'grid'; // 'grid' o 'list'
 // Variables globales para pollos
-// (ELIMINAR cualquier declaración de let chickenSales, let pricePerPound, let costPerPound aquí)
+let chickenSales = [];
+let pricePerPound = 0;
+let costPerPound = 0;
+
+// === FUNCIÓN DE CARGA DE DATOS (FALTANTE) ===
+function loadData() {
+  try {
+    // Cargar datos del localStorage con validaciones robustas
+    const savedProducts = loadFromStorage('products');
+    const savedClients = loadFromStorage('clients');
+    const savedSales = loadFromStorage('sales');
+    const savedDebts = loadFromStorage('debts');
+    const savedChickenSales = loadFromStorage('chickenSales');
+    
+    // Validar y asignar productos
+    products = Array.isArray(savedProducts) ? savedProducts : [];
+    
+    // Validar y asignar clientes
+    clients = Array.isArray(savedClients) ? savedClients : [];
+    
+    // Validar y asignar ventas
+    sales = Array.isArray(savedSales) ? savedSales : [];
+    
+    // Validar y asignar deudas
+    debts = Array.isArray(savedDebts) ? savedDebts : [];
+    
+    // Validar y asignar ventas de pollos
+    chickenSales = Array.isArray(savedChickenSales) ? savedChickenSales : [];
+    
+    // Cargar configuración de pollos
+    const savedPricePerPound = localStorage.getItem('pricePerPound');
+    pricePerPound = savedPricePerPound ? parseFloat(savedPricePerPound) : 2.50;
+    
+    const savedCostPerPound = localStorage.getItem('costPerPound');
+    costPerPound = savedCostPerPound ? parseFloat(savedCostPerPound) : 0;
+    
+    console.log('Datos cargados correctamente:', {
+      products: products.length,
+      clients: clients.length,
+      sales: sales.length,
+      debts: debts.length,
+      chickenSales: chickenSales.length
+    });
+    
+  } catch (error) {
+    console.error('Error cargando datos:', error);
+    // Inicializar arrays vacíos en caso de error
+    products = [];
+    clients = [];
+    sales = [];
+    debts = [];
+    chickenSales = [];
+    pricePerPound = 2.50;
+    costPerPound = 0;
+  }
+}
 
 // === MEJORAS PARA EXPERIENCIA NATIVA ===
 
@@ -585,25 +640,24 @@ function initializeChickenData() {
   if (savedChickenSales) {
     chickenSales = JSON.parse(savedChickenSales);
   }
-  
-  // Cargar precio por libra
+  // Cargar precio y costo por libra
   const savedPricePerPound = localStorage.getItem('pricePerPound');
-  if (savedPricePerPound) {
-    pricePerPound = parseFloat(savedPricePerPound);
-  }
-  
-  // Actualizar campo de precio
+  pricePerPound = savedPricePerPound ? parseFloat(savedPricePerPound) : 0;
+  const savedCostPerPound = localStorage.getItem('costPerPound');
+  costPerPound = savedCostPerPound ? parseFloat(savedCostPerPound) : 0;
+  // Actualizar campos de precio y costo
   const priceInput = document.getElementById('pricePerPound');
-  if (priceInput) {
-    priceInput.value = pricePerPound.toFixed(2);
-  }
+  if (priceInput) priceInput.value = pricePerPound.toFixed(2);
+  const costInput = document.getElementById('costPerPound');
+  if (costInput) costInput.value = costPerPound.toFixed(2);
 }
 
 // Actualizar precio por libra
 function updatePricePerPound() {
   const priceInput = document.getElementById('pricePerPound');
+  const costInput = document.getElementById('costPerPound');
   const newPrice = parseFloat(priceInput.value);
-  
+  const newCost = costInput ? parseFloat(costInput.value) : 0;
   if (isNaN(newPrice) || newPrice < 0) {
     Swal.fire({
       icon: 'error',
@@ -613,17 +667,26 @@ function updatePricePerPound() {
     });
     return;
   }
-  
+  if (costInput && (isNaN(newCost) || newCost < 0)) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Costo inválido',
+      text: 'Por favor ingresa un costo válido mayor a 0.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
   pricePerPound = newPrice;
   localStorage.setItem('pricePerPound', pricePerPound.toString());
-  
-  // Actualizar display
+  if (costInput) {
+    costPerPound = newCost;
+    localStorage.setItem('costPerPound', costPerPound.toString());
+  }
   updateChickenCalculation();
-  
   Swal.fire({
     icon: 'success',
-    title: 'Precio actualizado',
-    text: `El precio por libra se ha actualizado a $${pricePerPound.toFixed(2)}`,
+    title: 'Precio y costo actualizados',
+    text: `El precio por libra se ha actualizado a $${pricePerPound.toFixed(2)} y el costo a $${costPerPound.toFixed(2)}`,
     timer: 2000,
     showConfirmButton: false
   });
@@ -703,6 +766,10 @@ function handleChickenSale(e) {
   const weight = parseFloat(document.getElementById('chickenWeight').value);
   const paymentType = document.querySelector('input[name="chickenPayment"]:checked').value;
   const abono = parseFloat(document.getElementById('chickenAbono').value) || 0;
+  const costInput = document.getElementById('costPerPound');
+  const saleDateInput = document.getElementById('chickenSaleDate');
+  const saleDate = saleDateInput && saleDateInput.value ? new Date(saleDateInput.value).toISOString() : new Date().toISOString();
+  const cost = costInput ? parseFloat(costInput.value) : costPerPound;
   
   // Validaciones
   if (!clientId) {
@@ -736,6 +803,8 @@ function handleChickenSale(e) {
   }
   
   const total = weight * pricePerPound;
+  const totalCost = weight * cost;
+  const profit = total - totalCost;
   const client = clients.find(c => c.id === clientId);
   
   if (paymentType === 'credit' && abono > total) {
@@ -756,12 +825,15 @@ function handleChickenSale(e) {
     quantity: quantity,
     weight: weight,
     pricePerPound: pricePerPound,
+    costPerPound: cost,
     total: total,
+    totalCost: totalCost,
+    profit: profit,
     paymentType: paymentType,
     abono: abono,
     remainingAmount: paymentType === 'credit' ? total - abono : 0,
-    date: new Date().toISOString(),
-    time: new Date().toLocaleTimeString()
+    date: saleDate,
+    time: new Date(saleDate).toLocaleTimeString()
   };
   
   // Agregar a la lista de ventas de pollos
@@ -1126,6 +1198,7 @@ function updateChickenStats() {
   const totalChickens = todaySales.reduce((sum, sale) => sum + (sale.quantity || 0), 0);
   const totalWeight = todaySales.reduce((sum, sale) => sum + (sale.weight || 0), 0);
   const totalRevenue = todaySales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+  const totalProfit = todaySales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
   const avgWeight = totalChickens > 0 ? totalWeight / totalChickens : 0;
   
   // Actualizar elementos en el DOM
@@ -1133,11 +1206,13 @@ function updateChickenStats() {
   const totalWeightElement = document.getElementById('totalWeightSold');
   const totalRevenueElement = document.getElementById('totalRevenue');
   const avgWeightElement = document.getElementById('avgWeight');
+  const totalProfitElement = document.getElementById('totalProfit');
   
   if (totalChickensElement) totalChickensElement.textContent = totalChickens;
   if (totalWeightElement) totalWeightElement.textContent = totalWeight.toFixed(1);
   if (totalRevenueElement) totalRevenueElement.textContent = `$${totalRevenue.toFixed(2)}`;
   if (avgWeightElement) avgWeightElement.textContent = avgWeight.toFixed(1);
+  if (totalProfitElement) totalProfitElement.textContent = `$${totalProfit.toFixed(2)}`;
 }
 
 // Actualizar selector de clientes para pollos
@@ -1589,14 +1664,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // === Al cargar la app ===
 document.addEventListener('DOMContentLoaded', () => {
-  products = loadFromStorage('products');
-  clients = loadFromStorage('clients');
-  sales = loadFromStorage('sales');
-  debts = loadFromStorage('debts');
+  // Cargar datos usando la función loadData
+  loadData();
 
   // Migrar fechas existentes al formato ISO
   migrateDateFormats();
 
+  // Renderizar todas las vistas
   renderInventory();
   renderSalesProducts();
   renderClients();
@@ -1618,15 +1692,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Eventos de formularios
   const formProduct = document.getElementById('formProduct');
   const formClient = document.getElementById('formClient');
+  
   if (formProduct) {
-    formProduct.removeEventListener('submit', addProduct); // Evitar duplicados
+    // Remover listeners existentes para evitar duplicados
+    formProduct.removeEventListener('submit', addProduct);
     formProduct.addEventListener('submit', addProduct);
     console.log('Formulario de producto inicializado');
   } else {
     console.error('No se encontró el formulario de producto');
   }
+  
   if (formClient) {
-    formClient.removeEventListener('submit', addClient); // Evitar duplicados
+    // Remover listeners existentes para evitar duplicados
+    formClient.removeEventListener('submit', addClient);
     formClient.addEventListener('submit', addClient);
     console.log('Formulario de cliente inicializado');
   } else {
@@ -1748,21 +1826,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (event.data && event.data.type === 'SW_UPDATED') {
         console.log('Service Worker actualizado:', event.data.cacheName);
         
+        // Recargar automáticamente después de 3 segundos
+        setTimeout(() => {
+          console.log('Recargando aplicación para aplicar actualizaciones...');
+          window.location.reload();
+        }, 3000);
+        
         // Mostrar notificación de actualización
         Swal.fire({
           icon: 'info',
           title: '¡Nueva versión disponible!',
-          text: 'Se han descargado mejoras. Recarga la página para aplicar los cambios.',
-          showCancelButton: true,
-          confirmButtonText: 'Recargar ahora',
-          cancelButtonText: 'Más tarde',
-          timer: 15000,
-          timerProgressBar: true
-        }).then((result) => {
-          if (result.isConfirmed) {
-            // Recargar la página para aplicar actualizaciones
-            window.location.reload();
-          }
+          text: 'Se han descargado mejoras. La aplicación se recargará automáticamente en 3 segundos.',
+          timer: 3000,
+          timerProgressBar: true,
+          showConfirmButton: false
         });
       }
     });
@@ -1774,35 +1851,64 @@ document.addEventListener('DOMContentLoaded', () => {
           registration.update();
         }
       });
-    }, 60000); // Verificar cada minuto
+    }, 30000); // Verificar cada 30 segundos para ser más proactivo
   }
 
   // Captura de ubicación en formulario de cliente
   const btnGetLocation = document.getElementById('btnGetLocation');
   const locationInput = document.getElementById('clientLocation');
   const locationStatus = document.getElementById('locationStatus');
+  
   if (btnGetLocation && locationInput && locationStatus) {
-    btnGetLocation.addEventListener('click', () => {
+    // Remover listener existente para evitar duplicados
+    btnGetLocation.removeEventListener('click', getCurrentLocation);
+    btnGetLocation.addEventListener('click', getCurrentLocation);
+    
+    function getCurrentLocation() {
       if (!navigator.geolocation) {
         locationStatus.textContent = 'La geolocalización no es soportada por tu navegador.';
         return;
       }
+      
       locationStatus.textContent = 'Obteniendo ubicación...';
       btnGetLocation.disabled = true;
+      
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const coords = `${position.coords.latitude},${position.coords.longitude}`;
           locationInput.value = coords;
           locationStatus.textContent = `Ubicación capturada: ${coords}`;
           btnGetLocation.disabled = false;
+          
+          // Feedback táctil
+          hapticFeedback('success');
         },
         (error) => {
-          locationStatus.textContent = 'No se pudo obtener la ubicación.';
+          let errorMessage = 'No se pudo obtener la ubicación.';
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'Permiso denegado. Habilita la ubicación en tu navegador.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'Ubicación no disponible.';
+              break;
+            case error.TIMEOUT:
+              errorMessage = 'Tiempo de espera agotado.';
+              break;
+          }
+          locationStatus.textContent = errorMessage;
           btnGetLocation.disabled = false;
+          
+          // Feedback táctil
+          hapticFeedback('error');
         },
-        { enableHighAccuracy: true, timeout: 10000 }
+        { 
+          enableHighAccuracy: true, 
+          timeout: 15000,
+          maximumAge: 60000 // Usar ubicación en caché si tiene menos de 1 minuto
+        }
       );
-    });
+    }
   }
 
   // Inicializar datos de pollos
@@ -1811,44 +1917,60 @@ document.addEventListener('DOMContentLoaded', () => {
   // Vista previa de imagen para productos
   const productPhotoInput = document.getElementById('productImage');
   if (productPhotoInput) {
-    productPhotoInput.addEventListener('change', function(e) {
+    // Remover listener existente para evitar duplicados
+    productPhotoInput.removeEventListener('change', handleProductImagePreview);
+    productPhotoInput.addEventListener('change', handleProductImagePreview);
+    
+    function handleProductImagePreview(e) {
       const preview = document.getElementById('imagePreview');
+      if (!preview) return;
+      
       const file = e.target.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
-          preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa">`;
+          preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa" style="max-width: 100%; height: auto; border-radius: 8px;">`;
         };
         reader.readAsDataURL(file);
       } else {
         preview.innerHTML = '';
       }
-    });
+    }
   }
 
   // Vista previa de imagen para clientes
   const clientPhotoInput = document.getElementById('clientPhoto');
   if (clientPhotoInput) {
-    clientPhotoInput.addEventListener('change', function(e) {
+    // Remover listener existente para evitar duplicados
+    clientPhotoInput.removeEventListener('change', handleClientImagePreview);
+    clientPhotoInput.addEventListener('change', handleClientImagePreview);
+    
+    function handleClientImagePreview(e) {
       const preview = document.getElementById('clientImagePreview');
       if (!preview) return;
+      
       const file = e.target.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
-          preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa">`;
+          preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa" style="max-width: 100%; height: auto; border-radius: 8px;">`;
         };
         reader.readAsDataURL(file);
       } else {
         preview.innerHTML = '';
       }
-    });
+    }
   }
 });
 
 // === Agregar producto con vista previa de imagen ===
 async function addProduct(e) {
   e.preventDefault();
+  
+  // Asegurar que products sea un array
+  if (!Array.isArray(products)) {
+    products = [];
+  }
   
   // Obtener elementos del formulario
   const nameInput = document.getElementById('productName');
@@ -1879,6 +2001,16 @@ async function addProduct(e) {
   if (!name) {
     Swal.fire({
       icon: 'error',
+      title: 'Nombre requerido',
+      text: 'El nombre del producto es obligatorio.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+
+  if (isNaN(cost) || cost < 0 || isNaN(price) || price < 0) {
+    Swal.fire({
+      icon: 'error',
       title: 'Valores inválidos',
       text: 'El costo y precio deben ser valores positivos.',
       confirmButtonText: 'Aceptar'
@@ -1900,7 +2032,7 @@ async function addProduct(e) {
     }
   }
 
-  const save = (imageData) => {
+  const saveProduct = (imageData) => {
     if (window.editingProductId) {
       // Editar producto existente
       const productIndex = products.findIndex(p => p.id === window.editingProductId);
@@ -1919,13 +2051,17 @@ async function addProduct(e) {
         renderInventory();
         renderSalesProducts();
         
+        // Limpiar formulario y cerrar modal
         document.getElementById('formProduct').reset();
         document.getElementById('imagePreview').innerHTML = '';
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
-        modal.hide();
+        if (modal) modal.hide();
         
+        // Restaurar botón
         const submitBtn = document.querySelector('#modalProduct .btn-primary');
-        submitBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar Producto';
+        if (submitBtn) {
+          submitBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar Producto';
+        }
         
         Swal.fire({
           icon: 'success',
@@ -1933,7 +2069,7 @@ async function addProduct(e) {
           text: 'Producto actualizado correctamente.',
           confirmButtonText: 'Aceptar'
         }).then(() => {
-            window.editingProductId = null;
+          window.editingProductId = null;
         });
       }
     } else {
@@ -1952,43 +2088,31 @@ async function addProduct(e) {
       saveToStorage('products', products);
       renderInventory();
       renderSalesProducts();
+      
+      // Limpiar formulario y cerrar modal
       document.getElementById('formProduct').reset();
       document.getElementById('imagePreview').innerHTML = '';
-      // Get modal instance without redeclaring variable
-      bootstrap.Modal.getInstance(document.getElementById('modalProduct')).hide();
-      modal.hide();
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
+      if (modal) modal.hide();
+      
       Swal.fire({
         icon: 'success',
         title: 'Producto agregado',
         text: 'Producto agregado correctamente.',
         confirmButtonText: 'Aceptar'
       });
-        
-        // Limpiar formulario
-        document.getElementById('formProduct').reset();
-        document.getElementById('imagePreview').innerHTML = '';
-        
-        // Cerrar modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
-        if (modal) modal.hide();
-        
-        Swal.fire({
-          icon: 'success',
-          title: 'Producto agregado',
-          text: 'Producto agregado correctamente.',
-          confirmButtonText: 'Aceptar'
-        });
-      }
-    };
-
-    if (imageInput && imageInput.files && imageInput.files[0]) {
-      const reader = new FileReader();
-      reader.onload = () => saveProductImage(reader.result);
-      reader.readAsDataURL(imageInput.files[0]);
-    } else {
-      saveProductImage('');
     }
+  };
+
+  // Procesar imagen si existe
+  if (imageInput && imageInput.files && imageInput.files[0]) {
+    const reader = new FileReader();
+    reader.onload = () => saveProduct(reader.result);
+    reader.readAsDataURL(imageInput.files[0]);
+  } else {
+    saveProduct('');
   }
+}
 // Function to get payment icon
 function getPaymentIcon(paymentType) {
   switch(paymentType) {
@@ -2709,6 +2833,11 @@ function showReceipt(sale) {
 async function addClient(e) {
   e.preventDefault();
   
+  // Asegurar que clients sea un array
+  if (!Array.isArray(clients)) {
+    clients = [];
+  }
+  
   // Obtener elementos del formulario
   const nameInput = document.getElementById('clientName');
   const phoneInput = document.getElementById('clientPhone');
@@ -2730,7 +2859,7 @@ async function addClient(e) {
   const name = nameInput.value.trim();
   const phone = phoneInput.value.trim();
   const address = addressInput.value.trim();
-  const location = locationInput.value.trim();
+  const location = locationInput ? locationInput.value.trim() : '';
 
   if (!name) {
     Swal.fire({
@@ -2761,13 +2890,13 @@ async function addClient(e) {
     }
   }
 
-  const save = (photo) => {
+  const saveClient = (photo) => {
     const clientData = {
-        name,
-        phone,
-        address,
-        location,
-        photo: photo || (window.editingClientId ? clients.find(c => c.id === window.editingClientId).photo : '')
+      name,
+      phone,
+      address,
+      location,
+      photo: photo || (window.editingClientId ? clients.find(c => c.id === window.editingClientId)?.photo : '')
     };
 
     if (window.editingClientId) {
@@ -2783,12 +2912,20 @@ async function addClient(e) {
     renderClients();
     updateClientSelector();
 
-    if (document.getElementById('formClient')) document.getElementById('formClient').reset();
-    if (document.getElementById('clientImagePreview')) document.getElementById('clientImagePreview').innerHTML = '';
-    if (locationStatus) locationStatus.textContent = '';
+    // Limpiar formulario
+    if (document.getElementById('formClient')) {
+      document.getElementById('formClient').reset();
+    }
+    if (document.getElementById('clientImagePreview')) {
+      document.getElementById('clientImagePreview').innerHTML = '';
+    }
+    if (locationStatus) {
+      locationStatus.textContent = '';
+    }
 
+    // Cerrar modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('modalClient'));
-    modal.hide();
+    if (modal) modal.hide();
 
     Swal.fire({
       icon: 'success',
@@ -2796,20 +2933,23 @@ async function addClient(e) {
       text: `El cliente "${name}" se ha guardado correctamente.`,
       confirmButtonText: 'Aceptar'
     }).then(() => {
-        if (window.editingClientId) {
-            delete window.editingClientId;
-            const submitBtn = document.querySelector('#modalClient .btn-primary');
-            submitBtn.innerHTML = '<i class="bi bi-person-plus"></i> Agregar Cliente';
+      if (window.editingClientId) {
+        delete window.editingClientId;
+        const submitBtn = document.querySelector('#modalClient .btn-primary');
+        if (submitBtn) {
+          submitBtn.innerHTML = '<i class="bi bi-person-plus"></i> Agregar Cliente';
         }
+      }
     });
   };
 
+  // Procesar foto si existe
   if (photoInput && photoInput.files && photoInput.files[0]) {
     const reader = new FileReader();
-    reader.onload = () => save(reader.result);
+    reader.onload = () => saveClient(reader.result);
     reader.readAsDataURL(photoInput.files[0]);
   } else {
-    save('');
+    saveClient('');
   }
 }
 
@@ -3800,16 +3940,28 @@ function showClientDebts(clientId) {
 // Editar cliente con vista previa de imagen
 function editClient(clientId) {
   const client = clients.find(c => c.id === clientId);
-  if (!client) return;
+  if (!client) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Cliente no encontrado',
+      text: 'No se pudo encontrar el cliente para editar.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
   
   // Llenar el formulario con los datos del cliente
   const nameInput = document.getElementById('clientName');
   const phoneInput = document.getElementById('clientPhone');
   const addressInput = document.getElementById('clientAddress');
+  const locationInput = document.getElementById('clientLocation');
   const preview = document.getElementById('clientImagePreview');
-  if (nameInput) nameInput.value = client.name;
+  
+  if (nameInput) nameInput.value = client.name || '';
   if (phoneInput) phoneInput.value = client.phone || '';
   if (addressInput) addressInput.value = client.address || '';
+  if (locationInput) locationInput.value = client.location || '';
+  
   if (preview) {
     if (client.photo) {
       preview.innerHTML = `<img src="${client.photo}" alt="Foto actual">`;
@@ -3818,12 +3970,24 @@ function editClient(clientId) {
     }
   }
   
+  // Actualizar estado de ubicación
+  const locationStatus = document.getElementById('locationStatus');
+  if (locationStatus) {
+    if (client.location) {
+      locationStatus.textContent = 'Ubicación válida';
+    } else {
+      locationStatus.textContent = 'Ubicación no válida';
+    }
+  }
+  
   // Guardar el ID del cliente a editar
   window.editingClientId = clientId;
   
   // Cambiar el texto del botón
   const submitBtn = document.querySelector('#modalClient .btn-primary');
-  submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Actualizar Cliente';
+  if (submitBtn) {
+    submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Actualizar Cliente';
+  }
   
   // Mostrar el modal
   const modal = new bootstrap.Modal(document.getElementById('modalClient'));
@@ -5577,10 +5741,49 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+// === FUNCIONES GLOBALES PARA HTML ===
 // Al final del archivo o después de definir cada función global:
 window.generatePDF = generatePDF;
 window.openSidebar = openSidebar;
 window.closeSidebar = closeSidebar;
 window.setTheme = setTheme;
 window.installPWA = installPWA;
-// Agregar aquí cualquier otra función que se use desde el HTML con onclick, etc.
+window.addProduct = addProduct;
+window.addClient = addClient;
+window.editClient = editClient;
+window.editProduct = editProduct;
+window.deleteProduct = deleteProduct;
+window.showClientDetails = showClientDetails;
+window.showClientDebts = showClientDebts;
+window.showProductDetailModal = showProductDetailModal;
+window.showView = showView;
+window.toggleSalesView = toggleSalesView;
+window.toggleInventoryView = toggleInventoryView;
+window.toggleClientsView = toggleClientsView;
+window.addToCart = addToCart;
+window.removeFromCart = removeFromCart;
+window.changeCartQty = changeCartQty;
+window.clearCart = clearCart;
+window.finalizeSale = finalizeSale;
+window.showReceipt = showReceipt;
+window.printReceipt = printReceipt;
+window.downloadReceiptPDF = downloadReceiptPDF;
+window.showDebtDetailModal = showDebtDetailModal;
+window.registerDebtPayment = registerDebtPayment;
+window.handleChickenSale = handleChickenSale;
+window.updatePricePerPound = updatePricePerPound;
+window.showChickenReceipt = showChickenReceipt;
+window.printChickenReceipt = printChickenReceipt;
+window.downloadChickenReceiptPDF = downloadChickenReceiptPDF;
+window.filterMovementsByDate = filterMovementsByDate;
+window.showMovementDetail = showMovementDetail;
+window.showPaymentDetail = showPaymentDetail;
+window.forceUpdate = forceUpdate;
+window.selectClientForCart = selectClientForCart;
+window.removeSelectedClient = removeSelectedClient;
+window.showAddClientModal = showAddClientModal;
+window.showAdvancedStats = showAdvancedStats;
+window.showAppStatus = showAppStatus;
+window.exportAllData = exportAllData;
+window.importData = importData;
+window.showCredits = showCredits;
