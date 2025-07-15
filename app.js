@@ -109,24 +109,29 @@ function detectSwipe(element, onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown)
 
 // Función para feedback táctil (vibración)
 function hapticFeedback(type = 'light') {
-  if ('vibrate' in navigator) {
-    switch (type) {
-      case 'light':
-        navigator.vibrate(10);
-        break;
-      case 'medium':
-        navigator.vibrate(50);
-        break;
-      case 'heavy':
-        navigator.vibrate(100);
-        break;
-      case 'success':
-        navigator.vibrate([50, 50, 50]);
-        break;
-      case 'error':
-        navigator.vibrate([100, 50, 100]);
-        break;
+  try {
+    if ('vibrate' in navigator && navigator.vibrate) {
+      switch (type) {
+        case 'light':
+          navigator.vibrate(10);
+          break;
+        case 'medium':
+          navigator.vibrate(50);
+          break;
+        case 'heavy':
+          navigator.vibrate(100);
+          break;
+        case 'success':
+          navigator.vibrate([50, 50, 50]);
+          break;
+        case 'error':
+          navigator.vibrate([100, 50, 100]);
+          break;
+      }
     }
+  } catch (error) {
+    // Silenciar errores de vibración (Chrome bloquea en algunos casos)
+    console.debug('Vibración no disponible:', error.message);
   }
 }
 
@@ -468,7 +473,13 @@ function setupOfflineEnhancements() {
     });
     
     // Verificar actualizaciones cuando se restaura la conexión
-    checkForAppUpdates();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then(registration => {
+        if (registration) {
+          registration.update();
+        }
+      });
+    }
   });
   
   window.addEventListener('offline', () => {
@@ -526,9 +537,9 @@ function initializeData() {
 
 // Función para forzar verificación de actualizaciones
 window.forceUpdateCheck = function() {
-  checkForAppUpdates();
   hapticFeedback('medium');
-  showUpdateToast('Verificando actualizaciones...', 'info');
+  // Recargar la página para verificar actualizaciones
+  window.location.reload();
 };
 
 // Función para inicializar todas las mejoras nativas
@@ -546,7 +557,6 @@ function initializeNativeEnhancements() {
   setupErrorHandling();
   setupOfflineEnhancements();
   setupQuickActions();
-  setupUpdateSystem();
   
   // Configurar pull-to-refresh en contenedores principales
   const mainContainer = document.getElementById('mainContent');
@@ -2328,7 +2338,6 @@ function renderCart() {
   }
 
   clearCartBtn.style.display = 'block';
-  if (clientSelectorContainer) clientSelectorContainer.style.display = 'block';
 
   // Agregar selector de cliente compacto al inicio del carrito
   let clientSelectorHTML = '';
@@ -2715,19 +2724,14 @@ function showCreditSaleModal(total, cost, client) {
       // Limpiar carrito
       clearCart();
       
-      // Mostrar confirmación
-      Swal.fire({
-        icon: 'success',
-        title: 'Venta a crédito registrada',
-        text: `Deuda registrada: $${remainingAmount.toFixed(2)}`,
-        confirmButtonText: 'Aceptar'
-      });
-      
       // Actualizar vistas
       renderClients();
       renderDebts();
       updateBalanceUI();
       renderBalanceGrid(); // Actualizar movimientos en tiempo real
+      
+      // Mostrar comprobante de venta a crédito
+      showReceipt(sale);
     }
   });
 }
@@ -2775,9 +2779,9 @@ function showReceipt(sale) {
       <div class="receipt-total">
         <div class="total-line">
           <span>Subtotal:</span>
-          <span>$${sale.originalTotal.toFixed(2)}</span>
+          <span>$${(sale.originalTotal || sale.total).toFixed(2)}</span>
         </div>
-        ${sale.discount > 0 ? `
+        ${(sale.discount || 0) > 0 ? `
           <div class="total-line discount">
             <span>Descuento:</span>
             <span>-$${sale.discount.toFixed(2)}</span>
@@ -4301,7 +4305,7 @@ function setupAccessibilityFix() {
             if (focusableElements.length > 0) {
               // Si hay elementos focables, remover aria-hidden para evitar el error de accesibilidad
               target.removeAttribute('aria-hidden');
-              console.log('[Accesibilidad] Removido aria-hidden del contenido principal para evitar conflicto con elementos focables');
+              console.debug('[Accesibilidad] Removido aria-hidden del contenido principal para evitar conflicto con elementos focables');
             }
           }
         }
@@ -4314,17 +4318,17 @@ function setupAccessibilityFix() {
     });
   }
   
-  // También verificar periódicamente
+  // También verificar periódicamente (menos frecuente)
   setInterval(() => {
     const mainContent = document.getElementById('mainContent');
     if (mainContent && mainContent.getAttribute('aria-hidden') === 'true') {
       const focusableElements = mainContent.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
       if (focusableElements.length > 0) {
         mainContent.removeAttribute('aria-hidden');
-        console.log('[Accesibilidad] Corrección periódica: removido aria-hidden del contenido principal');
+        console.debug('[Accesibilidad] Corrección periódica: removido aria-hidden del contenido principal');
       }
     }
-  }, 5000); // Verificar cada 5 segundos
+  }, 30000); // Verificar cada 30 segundos en lugar de 5
 }
 
 // Mostrar estadísticas avanzadas
@@ -5341,9 +5345,9 @@ function printReceipt(sale) {
         <div class="total">
           <div class="total-line">
             <span>Subtotal:</span>
-            <span>$${sale.originalTotal.toFixed(2)}</span>
+            <span>$${(sale.originalTotal || sale.total).toFixed(2)}</span>
           </div>
-          ${sale.discount > 0 ? `
+          ${(sale.discount || 0) > 0 ? `
             <div class="total-line">
               <span>Descuento:</span>
               <span>-$${sale.discount.toFixed(2)}</span>
@@ -5452,9 +5456,9 @@ function downloadReceiptPDF(sale) {
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Subtotal: $${sale.originalTotal.toFixed(2)}`, 14, finalY + 10);
+  doc.text(`Subtotal: $${(sale.originalTotal || sale.total).toFixed(2)}`, 14, finalY + 10);
   
-  if (sale.discount > 0) {
+  if ((sale.discount || 0) > 0) {
     doc.text(`Descuento: -$${sale.discount.toFixed(2)}`, 14, finalY + 15);
   }
   

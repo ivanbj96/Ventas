@@ -183,6 +183,10 @@
           <input type="radio" class="btn-check" name="periodFilter" id="periodYear" value="year">
           <label class="btn btn-outline-primary" for="periodYear">Este Año</label>
         </div>
+        <div class="input-group ms-3" style="max-width: 220px; display: inline-flex;">
+          <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
+          <input type="date" id="customDateFilter" class="form-control form-control-treinta" />
+        </div>
       </div>
 
       <!-- Tarjetas de balance -->
@@ -357,6 +361,11 @@
                 </div>
               </div>
               <div class="cart-actions-treinta">
+                <!-- Campo de fecha de facturación para ventas normales -->
+                <div class="mb-2">
+                  <label for="saleDate" class="form-label mb-1"><i class="bi bi-calendar-event"></i> Fecha de facturación</label>
+                  <input type="date" id="saleDate" class="form-control form-control-treinta" />
+                </div>
                 <button onclick="finalizeSale()" class="btn btn-primary btn-treinta w-100" id="finalizeBtn" disabled>
                   <i class="bi bi-cart-check"></i> Finalizar Venta
                 </button>
@@ -511,7 +520,7 @@
         <div class="row g-3">
           <div class="col-md-6">
             <label for="pricePerPound" class="form-label">
-              <i class="bi bi-currency-dollar"></i> Precio por Libra
+              <i class="bi bi-currency-dollar"></i> Precio por Libra (PVP)
             </label>
             <div class="input-group">
               <span class="input-group-text">$</span>
@@ -519,6 +528,17 @@
                      step="0.01" placeholder="0.00" value="2.50" />
             </div>
             <div class="form-text">Precio actual por libra de pollo</div>
+          </div>
+          <div class="col-md-6">
+            <label for="costPerPound" class="form-label">
+              <i class="bi bi-cash"></i> Costo por Libra
+            </label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" id="costPerPound" class="form-control form-control-treinta" 
+                     step="0.01" placeholder="0.00" value="2.00" />
+            </div>
+            <div class="form-text">Costo actual por libra de pollo</div>
           </div>
           <div class="col-md-6">
             <label class="form-label">&nbsp;</label>
@@ -589,6 +609,20 @@
           <i class="bi bi-plus-circle"></i> Nueva Venta de Pollos
         </h5>
         <form id="chickenSaleForm" class="form-treinta">
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label for="pricePerPound" class="form-label"><i class="bi bi-currency-dollar"></i> Precio por libra (PVP)</label>
+              <input type="number" id="pricePerPound" step="0.01" class="form-control form-control-treinta" required />
+            </div>
+            <div class="col-md-4">
+              <label for="costPerPound" class="form-label"><i class="bi bi-cash"></i> Costo por libra</label>
+              <input type="number" id="costPerPound" step="0.01" class="form-control form-control-treinta" required />
+            </div>
+            <div class="col-md-4">
+              <label for="chickenSaleDate" class="form-label"><i class="bi bi-calendar-event"></i> Fecha de facturación</label>
+              <input type="date" id="chickenSaleDate" class="form-control form-control-treinta" />
+            </div>
+          </div>
           <div class="row g-3">
             <div class="col-md-6">
               <label for="chickenClient" class="form-label">
