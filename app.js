@@ -75,6 +75,14 @@ let touchEndY = 0;
 
 // Función para detectar gestos de swipe
 function detectSwipe(element, onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown) {
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchEndX = 0;
+  let touchEndY = 0;
+
+  const horizontalThreshold = 60; // Sensibilidad normal
+  const verticalThreshold = 120;  // Más exigente para evitar pull-to-refresh accidental
+
   element.addEventListener('touchstart', (e) => {
     touchStartX = e.changedTouches[0].screenX;
     touchStartY = e.changedTouches[0].screenY;
@@ -87,20 +95,21 @@ function detectSwipe(element, onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown)
   });
 
   function handleSwipe() {
-    const swipeThreshold = 50;
     const diffX = touchStartX - touchEndX;
     const diffY = touchStartY - touchEndY;
 
     if (Math.abs(diffX) > Math.abs(diffY)) {
-      if (diffX > swipeThreshold && onSwipeLeft) {
+      // Swipe horizontal
+      if (diffX > horizontalThreshold && onSwipeLeft) {
         onSwipeLeft();
-      } else if (diffX < -swipeThreshold && onSwipeRight) {
+      } else if (diffX < -horizontalThreshold && onSwipeRight) {
         onSwipeRight();
       }
     } else {
-      if (diffY > swipeThreshold && onSwipeUp) {
+      // Swipe vertical
+      if (diffY > verticalThreshold && onSwipeUp) {
         onSwipeUp();
-      } else if (diffY < -swipeThreshold && onSwipeDown) {
+      } else if (diffY < -verticalThreshold && onSwipeDown) {
         onSwipeDown();
       }
     }
