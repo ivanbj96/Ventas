@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tillup-cache-v1.1.4';
+const CACHE_NAME = 'tillup-cache-v1.1.5';
 const ASSETS = [
   './',
   './index.html',
@@ -22,112 +22,49 @@ const ASSETS = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log('[SW] Precaching...');
       return cache.addAll(ASSETS);
-    }).catch(error => {
-      console.error('[SW] Error during install:', error);
     })
   );
   self.skipWaiting();
 });
 
-// === Activación: limpiar cachés viejos y notificar actualización ===
+// === Activación: limpiar cachés viejos ===
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => Promise.all(
-      keys.filter(k => k !== CACHE_NAME).map(k => {
-        console.log('[SW] Eliminando cache viejo:', k);
-        return caches.delete(k);
-      })
-    )).then(() => {
-      console.log('[SW] Cache actualizado a:', CACHE_NAME);
-      // Notificar a todos los clientes sobre la actualización
-      return self.clients.matchAll().then(clients => {
-        clients.forEach(client => {
-          client.postMessage({
-            type: 'SW_UPDATED',
-            cacheName: CACHE_NAME
-          });
-        });
-      });
-    }).catch(error => {
-      console.error('[SW] Error during activate:', error);
-    })
+      keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+    ))
   );
   self.clients.claim();
 });
 
-// === Mensaje para forzar skipWaiting ===
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
-
-// === Fetch: Network first para datos dinámicos, Cache first para assets ===
+// === Fetch: Network first para assets estáticos, sin recargar ni alertar ===
 self.addEventListener('fetch', event => {
-  const { request } = event;
-
-  // Evitar cachear llamadas POST
-  if (request.method !== 'GET') return;
-
-  // Estrategia Network First para archivos principales (para obtener actualizaciones)
-  if (request.url.includes('app.js') || request.url.includes('style.css') || request.url.includes('utils.js')) {
+  const url = new URL(event.request.url);
+  // Solo interceptar archivos declarados en ASSETS
+  const isAsset = ASSETS.some(asset => {
+    // Soporta rutas absolutas y relativas
+    return url.href === asset || url.pathname.endsWith(asset.replace('./', '/'));
+  });
+  if (isAsset) {
     event.respondWith(
-      fetch(request)
-        .then(response => {
-          // Verificar que la respuesta sea válida
-          if (!response || response.status !== 200) {
-            throw new Error('Invalid response');
+      fetch(event.request)
+        .then(networkResponse => {
+          // Clonar la respuesta antes de usarla
+          const responseClone = networkResponse.clone();
+          // Solo poner en caché si la respuesta es válida
+          if (networkResponse && networkResponse.ok) {
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, responseClone);
+            });
           }
-          // Cachear la nueva respuesta
-          return caches.open(CACHE_NAME).then(cache => {
-            cache.put(request, response.clone());
-            return response;
-          });
+          return networkResponse;
         })
         .catch(() => {
-          // Si falla la red, usar cache
-          return caches.match(request);
+          // Si falla la red, usa el caché
+          return caches.match(event.request);
         })
     );
-  } else {
-    // Cache First para otros recursos
-    event.respondWith(
-      caches.match(request).then(cached => {
-        if (cached) {
-          return cached;
-        }
-        
-        return fetch(request)
-          .then(response => {
-            // Verificar que la respuesta sea válida
-            if (!response || response.status !== 200) {
-              throw new Error('Invalid response');
-            }
-            return caches.open(CACHE_NAME).then(cache => {
-              cache.put(request, response.clone());
-              return response;
-            });
-          })
-          .catch(() => {
-            // Respuesta alternativa para offline
-            if (request.destination === 'document') {
-              return caches.match('./index.html');
-            }
-            // Para imágenes, devolver una respuesta vacía
-            if (request.destination === 'image') {
-              return new Response('', {
-                status: 404,
-                statusText: 'Not Found'
-              });
-            }
-            return new Response('', {
-              status: 404,
-              statusText: 'Not Found'
-            });
-          });
-      })
-    );
   }
+  // Si no es asset, no interceptar (deja pasar: datos dinámicos, API, etc.)
 });

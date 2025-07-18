@@ -12,45 +12,39 @@ let chickenSales = [];
 let pricePerPound = 0;
 let costPerPound = 0;
 
-// === FUNCIÓN DE CARGA DE DATOS (FALTANTE) ===
-function loadData() {
+// === FUNCIÓN DE CARGA DE DATOS MEJORADA ===
+async function loadData() {
   try {
-    // Cargar datos del localStorage con validaciones robustas
-    const savedProducts = loadFromStorage('products');
-    const savedClients = loadFromStorage('clients');
-    const savedSales = loadFromStorage('sales');
-    const savedDebts = loadFromStorage('debts');
-    const savedChickenSales = loadFromStorage('chickenSales');
+    // Usar el nuevo sistema de persistencia mejorado
+    const data = await loadAllCriticalData();
     
-    // Validar y asignar productos
-    products = Array.isArray(savedProducts) ? savedProducts : [];
+    // Asignar datos a variables globales
+    products = data.products || [];
+    clients = data.clients || [];
+    sales = data.sales || [];
+    debts = data.debts || [];
+    chickenSales = data.chickenSales || [];
+    pricePerPound = data.pricePerPound || 2.50;
+    costPerPound = data.costPerPound || 0;
     
-    // Validar y asignar clientes
-    clients = Array.isArray(savedClients) ? savedClients : [];
-    
-    // Validar y asignar ventas
-    sales = Array.isArray(savedSales) ? savedSales : [];
-    
-    // Validar y asignar deudas
-    debts = Array.isArray(savedDebts) ? savedDebts : [];
-    
-    // Validar y asignar ventas de pollos
-    chickenSales = Array.isArray(savedChickenSales) ? savedChickenSales : [];
-    
-    // Cargar configuración de pollos
-    const savedPricePerPound = localStorage.getItem('pricePerPound');
-    pricePerPound = savedPricePerPound ? parseFloat(savedPricePerPound) : 2.50;
-    
-    const savedCostPerPound = localStorage.getItem('costPerPound');
-    costPerPound = savedCostPerPound ? parseFloat(savedCostPerPound) : 0;
+    // Validar integridad de datos
+    const integrity = validateDataIntegrity();
+    if (!integrity.valid) {
+      console.warn('Problemas de integridad detectados, limpiando datos corruptos...');
+      cleanCorruptedData();
+    }
     
     console.log('Datos cargados correctamente:', {
       products: products.length,
       clients: clients.length,
       sales: sales.length,
       debts: debts.length,
-      chickenSales: chickenSales.length
+      chickenSales: chickenSales.length,
+      integrity: integrity.valid
     });
+    
+    // Iniciar backup automático
+    startAutoBackup();
     
   } catch (error) {
     console.error('Error cargando datos:', error);
@@ -503,44 +497,31 @@ function setupOfflineEnhancements() {
 // === GESTIÓN DE POLLOS ===
 
 // === Inicialización y Validación de Datos ===
-function initializeData() {
-  // Cargar datos del localStorage con validaciones
-  const savedProducts = localStorage.getItem('products');
-  const savedClients = localStorage.getItem('clients');
-  const savedSales = localStorage.getItem('sales');
-  const savedDebts = localStorage.getItem('debts');
-  const savedChickenSales = localStorage.getItem('chickenSales');
-  
+async function initializeData() {
   try {
-    products = savedProducts ? JSON.parse(savedProducts) : [];
-    if (!Array.isArray(products)) products = [];
-  } catch (e) {
-    console.error('Error cargando productos:', e);
+    // Usar el nuevo sistema de carga de datos mejorado
+    await loadData();
+    
+    // Inicializar datos de pollos
+    initializeChickenData();
+    
+    // Renderizar todas las vistas
+    renderInventory();
+    renderClients();
+    renderDebts();
+    renderSalesProducts();
+    updateBalanceUI();
+    renderBalanceGrid();
+    
+    console.log('Aplicación inicializada correctamente');
+  } catch (error) {
+    console.error('Error inicializando datos:', error);
+    // Inicializar con arrays vacíos en caso de error
     products = [];
-  }
-  
-  try {
-    clients = savedClients ? JSON.parse(savedClients) : [];
-    if (!Array.isArray(clients)) clients = [];
-  } catch (e) {
-    console.error('Error cargando clientes:', e);
     clients = [];
-  }
-  
-  try {
-    sales = savedSales ? JSON.parse(savedSales) : [];
-    if (!Array.isArray(sales)) sales = [];
-  } catch (e) {
-    console.error('Error cargando ventas:', e);
     sales = [];
-  }
-  
-  try {
-    debts = savedDebts ? JSON.parse(savedDebts) : [];
-    if (!Array.isArray(debts)) debts = [];
-  } catch (e) {
-    console.error('Error cargando deudas:', e);
     debts = [];
+    chickenSales = [];
   }
 }
 
@@ -618,35 +599,176 @@ function hideQuickActions() {
 }
 
 // Función para manejar acciones rápidas
-window.quickAction = function(action) {
-  hideQuickActions();
-  hapticFeedback('success');
+function quickAction(action) {
+  // Efecto visual de feedback
+  const btn = document.getElementById('quickActionsBtn');
+  if (btn) {
+    btn.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      btn.style.transform = 'scale(1)';
+    }, 150);
+  }
   
-  switch (action) {
-    case 'addProduct':
-      showView('inventory');
+  // Haptic feedback en dispositivos móviles
+  if ('vibrate' in navigator) {
+    navigator.vibrate(50);
+  }
+  
+  switch(action) {
+    case 'newSale':
+      showView('sales');
+      clearCart();
+      // Enfocar en la búsqueda de productos
       setTimeout(() => {
-        document.querySelector('[onclick="addProduct(event)"]').click();
-      }, 300);
+        const searchInput = document.getElementById('productSearch');
+        if (searchInput) searchInput.focus();
+      }, 100);
+      break;
+      
+    case 'newChickenSale':
+      showView('chickens');
+      // Limpiar formulario de pollos
+      const chickenForm = document.getElementById('chickenSaleForm');
+      if (chickenForm) chickenForm.reset();
+      // Enfocar en el primer campo
+      setTimeout(() => {
+        const firstInput = document.querySelector('#chickenSaleForm input');
+        if (firstInput) firstInput.focus();
+      }, 100);
+      break;
+      
+    case 'addProduct':
+      // Abrir modal de producto
+      const modalProduct = new bootstrap.Modal(document.getElementById('modalProduct'));
+      modalProduct.show();
+      // Limpiar formulario
+      const productForm = document.getElementById('formProduct');
+      if (productForm) productForm.reset();
+      // Enfocar en el nombre del producto
+      setTimeout(() => {
+        const nameInput = document.getElementById('productName');
+        if (nameInput) nameInput.focus();
+      }, 100);
       break;
       
     case 'addClient':
-      showView('clients');
+      // Abrir modal de cliente
+      const modalClient = new bootstrap.Modal(document.getElementById('modalClient'));
+      modalClient.show();
+      // Limpiar formulario
+      const clientForm = document.getElementById('formClient');
+      if (clientForm) clientForm.reset();
+      // Enfocar en el nombre del cliente
       setTimeout(() => {
-        document.querySelector('[onclick="addClient(event)"]').click();
-      }, 300);
+        const nameInput = document.getElementById('clientName');
+        if (nameInput) nameInput.focus();
+      }, 100);
       break;
       
-    case 'newSale':
-      showView('sales');
+    case 'viewBalance':
+      showView('balance');
+      updateBalance();
       break;
       
-    case 'chickenSale':
-      showView('chickens');
+    case 'viewDebts':
+      showView('debt');
+      loadDebts();
       break;
       
-    default:
-      console.log('Acción no reconocida:', action);
+    case 'exportData':
+      // Mostrar opciones de exportación
+      Swal.fire({
+        title: 'Exportar Datos',
+        text: '¿Qué datos deseas exportar?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ventas',
+        cancelButtonText: 'Cancelar',
+        showDenyButton: true,
+        denyButtonText: 'Balance',
+        showCloseButton: true,
+        customClass: {
+          popup: 'swal2-sale-treinta'
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          generatePDF('sales');
+        } else if (result.isDenied) {
+          generatePDF('balance');
+        }
+      });
+      break;
+      
+    case 'clearCache':
+      // Limpiar cache y datos locales
+      Swal.fire({
+        title: 'Limpiar Cache',
+        text: '¿Estás seguro de que quieres limpiar el cache? Esto no afectará tus datos guardados.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, limpiar',
+        cancelButtonText: 'Cancelar',
+        customClass: {
+          popup: 'swal2-sale-treinta'
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Limpiar cache del service worker
+          if ('caches' in window) {
+            caches.keys().then(names => {
+              names.forEach(name => {
+                caches.delete(name);
+              });
+            });
+          }
+          
+          // Limpiar localStorage temporal
+          const keysToKeep = ['sales', 'products', 'clients', 'chickenSales', 'debts', 'settings'];
+          Object.keys(localStorage).forEach(key => {
+            if (!keysToKeep.includes(key)) {
+              localStorage.removeItem(key);
+            }
+          });
+          
+          Swal.fire({
+            title: 'Cache Limpiado',
+            text: 'El cache ha sido limpiado exitosamente.',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false,
+            customClass: {
+              popup: 'swal2-sale-treinta'
+            }
+          });
+        }
+      });
+      break;
+    case 'filterByDate':
+      Swal.fire({
+        title: 'Selecciona una fecha',
+        input: 'date',
+        inputLabel: 'Filtrar registros por fecha',
+        showCancelButton: true,
+        confirmButtonText: 'Filtrar',
+        cancelButtonText: 'Cancelar',
+        customClass: { popup: 'swal2-sale-treinta' }
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          const selectedDate = result.value;
+          filtrarPorFecha(selectedDate);
+        }
+      });
+      break;
+  }
+  
+  // Cerrar el menú desplegable
+  const dropdown = document.querySelector('.dropdown-menu.show');
+  if (dropdown) {
+    const dropdownToggle = document.querySelector('[data-bs-toggle="dropdown"]');
+    if (dropdownToggle) {
+      const bsDropdown = bootstrap.Dropdown.getInstance(dropdownToggle);
+      if (bsDropdown) bsDropdown.hide();
+    }
   }
 }
 
@@ -654,17 +776,8 @@ window.quickAction = function(action) {
 
 // Inicializar datos de pollos
 function initializeChickenData() {
-  // Cargar ventas de pollos desde localStorage
-  const savedChickenSales = localStorage.getItem('chickenSales');
-  if (savedChickenSales) {
-    chickenSales = JSON.parse(savedChickenSales);
-  }
-  // Cargar precio y costo por libra
-  const savedPricePerPound = localStorage.getItem('pricePerPound');
-  pricePerPound = savedPricePerPound ? parseFloat(savedPricePerPound) : 0;
-  const savedCostPerPound = localStorage.getItem('costPerPound');
-  costPerPound = savedCostPerPound ? parseFloat(savedCostPerPound) : 0;
-  // Actualizar campos de precio y costo
+  // Los datos de pollos ya se cargaron en loadData()
+  // Solo actualizar los campos de precio y costo
   const priceInput = document.getElementById('pricePerPound');
   if (priceInput) priceInput.value = pricePerPound.toFixed(2);
   const costInput = document.getElementById('costPerPound');
@@ -672,11 +785,12 @@ function initializeChickenData() {
 }
 
 // Actualizar precio por libra
-function updatePricePerPound() {
+async function updatePricePerPound() {
   const priceInput = document.getElementById('pricePerPound');
   const costInput = document.getElementById('costPerPound');
   const newPrice = parseFloat(priceInput.value);
   const newCost = costInput ? parseFloat(costInput.value) : 0;
+  
   if (isNaN(newPrice) || newPrice < 0) {
     Swal.fire({
       icon: 'error',
@@ -686,6 +800,7 @@ function updatePricePerPound() {
     });
     return;
   }
+  
   if (costInput && (isNaN(newCost) || newCost < 0)) {
     Swal.fire({
       icon: 'error',
@@ -695,54 +810,33 @@ function updatePricePerPound() {
     });
     return;
   }
-  pricePerPound = newPrice;
-  localStorage.setItem('pricePerPound', pricePerPound.toString());
-  if (costInput) {
+  
+  try {
+    pricePerPound = newPrice;
     costPerPound = newCost;
+    localStorage.setItem('pricePerPound', pricePerPound.toString());
     localStorage.setItem('costPerPound', costPerPound.toString());
-  }
-  updateChickenCalculation();
-  Swal.fire({
-    icon: 'success',
-    title: 'Precio y costo actualizados',
-    text: `El precio por libra se ha actualizado a $${pricePerPound.toFixed(2)} y el costo a $${costPerPound.toFixed(2)}`,
-    timer: 2000,
-    showConfirmButton: false
-  });
-}
-
-// Actualizar cálculo automático
-function updateChickenCalculation() {
-  const quantity = parseInt(document.getElementById('chickenQuantity')?.value) || 0;
-  const weight = parseFloat(document.getElementById('chickenWeight')?.value) || 0;
-  
-  const displayPricePerPound = document.getElementById('displayPricePerPound');
-  const displayTotalAmount = document.getElementById('displayTotalAmount');
-  
-  if (displayPricePerPound) {
-    displayPricePerPound.textContent = `$${pricePerPound.toFixed(2)}`;
-  }
-  
-  if (displayTotalAmount) {
-    const total = weight * pricePerPound;
-    displayTotalAmount.textContent = `$${total.toFixed(2)}`;
+    updateChickenCalculation();
+    Swal.fire({
+      icon: 'success',
+      title: 'Precios actualizados',
+      text: `Precio por libra: $${pricePerPound.toFixed(2)}\nCosto por libra: $${costPerPound.toFixed(2)}`,
+      confirmButtonText: 'Aceptar'
+    });
+  } catch (error) {
+    console.error('Error actualizando precios:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No se pudieron actualizar los precios. Inténtalo de nuevo.',
+      confirmButtonText: 'Aceptar'
+    });
   }
 }
-
-// Mostrar vista de pollos
-function showChickenView() {
-  updateChickenStats();
-  updateChickenClientSelector();
-  updateChickenSalesList();
-  updateChickenCalculation();
   
-  // Configurar event listeners
-  setupChickenEventListeners();
-}
-
-// Configurar event listeners para pollos
-function setupChickenEventListeners() {
-  // Event listeners para cálculo automático
+  // Configurar event listeners para pollos
+  function setupChickenEventListeners() {
+    // Event listeners para cálculo automático
   const quantityInput = document.getElementById('chickenQuantity');
   const weightInput = document.getElementById('chickenWeight');
   
@@ -777,18 +871,19 @@ function setupChickenEventListeners() {
 }
 
 // Manejar venta de pollos
-function handleChickenSale(e) {
+async function handleChickenSale(e) {
   e.preventDefault();
   
+  const form = e.target;
+  const formData = new FormData(form);
+  
+  // Obtener datos del formulario
   const clientId = document.getElementById('chickenClient').value;
   const quantity = parseInt(document.getElementById('chickenQuantity').value);
   const weight = parseFloat(document.getElementById('chickenWeight').value);
+  const saleDate = document.getElementById('chickenSaleDate').value;
   const paymentType = document.querySelector('input[name="chickenPayment"]:checked').value;
-  const abono = parseFloat(document.getElementById('chickenAbono').value) || 0;
-  const costInput = document.getElementById('costPerPound');
-  const saleDateInput = document.getElementById('chickenSaleDate');
-  const saleDate = saleDateInput && saleDateInput.value ? new Date(saleDateInput.value).toISOString() : new Date().toISOString();
-  const cost = costInput ? parseFloat(costInput.value) : costPerPound;
+  const abono = paymentType === 'credit' ? parseFloat(document.getElementById('chickenAbono').value) || 0 : 0;
   
   // Validaciones
   if (!clientId) {
@@ -801,295 +896,392 @@ function handleChickenSale(e) {
     return;
   }
   
-  if (quantity < 1) {
+  if (quantity <= 0 || weight <= 0) {
     Swal.fire({
       icon: 'error',
-      title: 'Cantidad inválida',
-      text: 'La cantidad debe ser al menos 1 pollo.',
+      title: 'Datos inválidos',
+      text: 'La cantidad y peso deben ser mayores a 0.',
       confirmButtonText: 'Aceptar'
     });
     return;
   }
   
-  if (weight <= 0) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Peso inválido',
-      text: 'El peso debe ser mayor a 0.',
-      confirmButtonText: 'Aceptar'
-    });
-    return;
-  }
-  
-  const total = weight * pricePerPound;
-  const totalCost = weight * cost;
-  const profit = total - totalCost;
+  // Obtener cliente
   const client = clients.find(c => c.id === clientId);
-  
-  if (paymentType === 'credit' && abono > total) {
+  if (!client) {
     Swal.fire({
       icon: 'error',
-      title: 'Abono inválido',
-      text: 'El abono no puede ser mayor al total.',
+      title: 'Cliente no encontrado',
+      text: 'El cliente seleccionado no existe.',
       confirmButtonText: 'Aceptar'
     });
     return;
   }
   
-  // Crear venta de pollos
-  const chickenSale = {
-    id: generateId('chickenSale'),
+  // Calcular total basado en peso × precio por libra
+  const total = weight * pricePerPound;
+  
+  // Crear objeto de venta
+  const sale = {
+    id: Date.now().toString(),
     clientId: clientId,
     clientName: client.name,
     quantity: quantity,
     weight: weight,
     pricePerPound: pricePerPound,
-    costPerPound: cost,
     total: total,
-    totalCost: totalCost,
-    profit: profit,
+    date: saleDate,
+    time: new Date().toLocaleTimeString(),
     paymentType: paymentType,
     abono: abono,
-    remainingAmount: paymentType === 'credit' ? total - abono : 0,
-    date: saleDate,
-    time: new Date(saleDate).toLocaleTimeString()
+    profit: total * 0.20, // 20% de ganancia estimada
+    createdAt: new Date().toISOString()
   };
   
-  // Agregar a la lista de ventas de pollos
-  if (!chickenSales || !Array.isArray(chickenSales)) {
-    chickenSales = [];
-  }
-  chickenSales.push(chickenSale);
-  saveToStorage('chickenSales', chickenSales);
-  
-  // Si es a crédito y hay monto pendiente, crear deuda
-  if (paymentType === 'credit' && chickenSale.remainingAmount > 0) {
-    const debt = {
-      id: generateId('debt'),
-      clientId: clientId,
-      clientName: client.name,
-      amount: chickenSale.remainingAmount,
-      total: total,
-      abono: abono,
-      reason: `Venta de ${quantity} pollo(s) - ${weight} lbs`,
-      date: new Date().toISOString(),
-      chickenSaleId: chickenSale.id
-    };
+  try {
+    // Agregar a la lista de ventas
+    chickenSales.push(sale);
+    await saveToStorage('chickenSales', chickenSales);
     
-    if (!debts || !Array.isArray(debts)) {
-      debts = [];
-    }
-    debts.push(debt);
-    saveToStorage('debts', debts);
+    // Actualizar estadísticas
+    updateChickenStats();
+    updateChickenSalesList();
     
-    // Actualizar deuda del cliente
-    client.debt = (client.debt || 0) + chickenSale.remainingAmount;
-    saveToStorage('clients', clients);
+    // Limpiar formulario
+    form.reset();
+    document.getElementById('chickenSaleDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('chickenQuantity').value = '1';
+    document.getElementById('chickenAbonoSection').style.display = 'none';
+    
+    // Mostrar comprobante
+    showChickenReceipt(sale);
+    
+    // Notificación de éxito (eliminada para no tapar el comprobante)
+    // Swal.fire({
+    //   icon: 'success',
+    //   title: 'Venta registrada',
+    //   text: `Venta de ${quantity} pollo(s) registrada exitosamente.`,
+    //   timer: 2000,
+    //   showConfirmButton: false
+    // });
+    
+  } catch (error) {
+    console.error('Error guardando venta de pollos:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No se pudo guardar la venta. Inténtalo de nuevo.',
+      confirmButtonText: 'Aceptar'
+    });
   }
-  
-  // Limpiar formulario
-  document.getElementById('chickenSaleForm').reset();
-  document.getElementById('chickenQuantity').value = '1';
-  document.getElementById('chickenAbonoSection').style.display = 'none';
-  
-  // Actualizar vistas
-  updateChickenStats();
-  updateChickenSalesList();
-  updateBalanceUI();
-  renderDebts();
-  renderClients();
-  renderBalanceGrid(); // Actualizar movimientos en tiempo real
-  
-  // Mostrar comprobante
-  showChickenReceipt(chickenSale);
 }
 
 // Mostrar comprobante de venta de pollos
 function showChickenReceipt(sale) {
-  const fecha = new Date().toLocaleString();
-  
-  let detalle = `
+  const receiptHtml = `
     <div class="receipt-treinta">
       <div class="receipt-header">
         <div class="receipt-logo">
-          <img src="TillUp.png" alt="TillUp" style="width: 60px; height: 60px; object-fit: contain;">
+          <img src="TillUp.png" alt="TillUp" style="width: 40px; height: 40px; border-radius: 8px;">
           <h3>TillUp POS</h3>
         </div>
         <div class="receipt-info">
-          <div class="receipt-title">COMPROBANTE DE POLLOS</div>
-          <div class="receipt-number">#${sale.id}</div>
-          <div class="receipt-date">${fecha}</div>
+          <div class="receipt-title">COMPROBANTE DE VENTA DE POLLOS</div>
+          <div class="receipt-number">Venta #${sale.id}</div>
+          <div class="receipt-date">${new Date(sale.date).toLocaleDateString()} ${sale.time}</div>
         </div>
       </div>
       
       <div class="receipt-client">
-        <i class="bi bi-person-circle"></i>
-        <span><strong>Cliente:</strong> ${sale.clientName}</span>
+        <i class="bi bi-person"></i>
+        <strong>Cliente:</strong> ${sale.clientName}
       </div>
       
       <div class="receipt-items">
         <div class="receipt-items-header">
-          <span>Producto</span>
-          <span>Cant.</span>
-          <span>Peso</span>
-          <span>Precio</span>
+          <div class="item-name">Descripción</div>
+          <div class="item-qty">Cant.</div>
+          <div class="item-price">Precio/Lb</div>
+          <div class="item-subtotal">Subtotal</div>
         </div>
+        
         <div class="receipt-item">
-          <span class="item-name">Pollo Entero</span>
-          <span class="item-qty">${sale.quantity}</span>
-          <span class="item-price">${sale.weight} lbs</span>
-          <span class="item-subtotal">$${sale.pricePerPound.toFixed(2)}/lb</span>
+          <div class="item-name">Pollo(s) - ${sale.weight} lbs</div>
+          <div class="item-qty">${sale.quantity}</div>
+          <div class="item-price">$${sale.pricePerPound.toFixed(2)}</div>
+          <div class="item-subtotal">$${sale.total.toFixed(2)}</div>
         </div>
       </div>
       
       <div class="receipt-total">
-        <div class="total-line">
-          <span>Peso total:</span>
-          <span>${sale.weight} lbs</span>
-        </div>
-        <div class="total-line">
-          <span>Precio por libra:</span>
-          <span>$${sale.pricePerPound.toFixed(2)}</span>
-        </div>
         <div class="total-line final">
-          <span>Total:</span>
+          <span>TOTAL:</span>
           <span class="total-amount">$${sale.total.toFixed(2)}</span>
         </div>
-        ${sale.paymentType === 'credit' && sale.abono > 0 ? `
-          <div class="total-line discount">
-            <span>Abono:</span>
-            <span>-$${sale.abono.toFixed(2)}</span>
-          </div>
-          <div class="total-line">
-            <span>Pendiente:</span>
-            <span>$${sale.remainingAmount.toFixed(2)}</span>
-          </div>
-        ` : ''}
-        <div class="payment-type">
-          <i class="bi bi-${getPaymentIcon(sale.paymentType)}"></i>
-          ${getPaymentText(sale.paymentType)}
-        </div>
+      </div>
+      
+      <div class="payment-type">
+        <i class="bi bi-${getPaymentIcon(sale.paymentType)}"></i>
+        <strong>Método de pago:</strong> ${getPaymentText(sale.paymentType)}
+        ${sale.paymentType === 'credit' && sale.abono > 0 ? `<br><small>Abono inicial: $${sale.abono.toFixed(2)}</small>` : ''}
       </div>
       
       <div class="receipt-footer">
         <div class="footer-message">
           <i class="bi bi-heart"></i>
-          <span>¡Gracias por su compra!</span>
+          ¡Gracias por su compra!
         </div>
         <div class="footer-brand">
-          <span>Generado por TillUp POS</span>
-          <small>Especializado en venta de pollos</small>
+          <small>TillUp POS - Gestión de Ventas</small>
         </div>
       </div>
     </div>
   `;
 
   Swal.fire({
-    title: '',
-    html: detalle,
-    showConfirmButton: true,
-    confirmButtonText: '<i class="bi bi-printer"></i> Imprimir',
-    showDenyButton: true,
-    denyButtonText: '<i class="bi bi-download"></i> PDF',
+    title: 'Venta de Pollos Completada',
+    html: receiptHtml,
     showCancelButton: true,
+    confirmButtonText: 'Imprimir',
     cancelButtonText: 'Cerrar',
-    customClass: { 
-      popup: 'swal2-receipt-treinta'
+    showDenyButton: true,
+    denyButtonText: 'Descargar PDF',
+    width: 500,
+    customClass: {
+      popup: 'swal2-receipt-treinta',
+      confirmButton: 'btn btn-primary',
+      cancelButton: 'btn btn-secondary',
+      denyButton: 'btn btn-outline-primary'
     }
   }).then((result) => {
     if (result.isConfirmed) {
+      // Imprimir comprobante
       printChickenReceipt(sale);
     } else if (result.isDenied) {
+      // Descargar PDF
       downloadChickenReceiptPDF(sale);
     }
   });
 }
 
-// Imprimir comprobante de pollos
+// Imprimir comprobante de venta de pollos
 function printChickenReceipt(sale) {
-  const fecha = new Date().toLocaleString();
-  
-  const printWindow = window.open('', '_blank');
-  printWindow.document.write(`
+  const printContent = `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Comprobante de Pollos - ${sale.id}</title>
+      <title>Comprobante de Venta de Pollos - TillUp</title>
       <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        .receipt { max-width: 300px; margin: 0 auto; }
-        .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
-        .title { font-size: 18px; font-weight: bold; margin: 5px 0; }
-        .subtitle { font-size: 14px; color: #666; }
-        .client { margin: 10px 0; }
-        .items { margin: 15px 0; }
-        .item { display: flex; justify-content: space-between; margin: 5px 0; }
-        .total { border-top: 1px solid #000; padding-top: 10px; margin-top: 15px; }
-        .total-line { display: flex; justify-content: space-between; margin: 5px 0; }
-        .final { font-weight: bold; font-size: 16px; }
-        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-        @media print { body { margin: 0; } }
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          margin: 0;
+          padding: 20px;
+          background: white;
+          color: #333;
+        }
+        .receipt {
+          max-width: 400px;
+          margin: 0 auto;
+          border: 2px solid #1F2D3D;
+          border-radius: 12px;
+          padding: 20px;
+          background: white;
+        }
+        .receipt-header {
+          text-align: center;
+          border-bottom: 2px solid #1F2D3D;
+          padding-bottom: 15px;
+          margin-bottom: 20px;
+        }
+        .receipt-logo {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          margin-bottom: 10px;
+        }
+        .receipt-logo img {
+          width: 40px;
+          height: 40px;
+          border-radius: 8px;
+        }
+        .receipt-logo h3 {
+          margin: 0;
+          color: #1F2D3D;
+          font-size: 1.5rem;
+        }
+        .receipt-info {
+          text-align: center;
+        }
+        .receipt-title {
+          font-weight: bold;
+          font-size: 1.1rem;
+          color: #1F2D3D;
+          margin-bottom: 5px;
+        }
+        .receipt-number, .receipt-date {
+          font-size: 0.9rem;
+          color: #666;
+          margin-bottom: 3px;
+        }
+        .receipt-client {
+          background: #f8f9fa;
+          padding: 10px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          font-size: 0.95rem;
+        }
+        .receipt-client i {
+          margin-right: 5px;
+          color: #1F2D3D;
+        }
+        .receipt-items {
+          margin-bottom: 20px;
+        }
+        .receipt-items-header {
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr 1fr;
+          gap: 10px;
+          padding: 10px 0;
+          border-bottom: 1px solid #ddd;
+          font-weight: bold;
+          font-size: 0.9rem;
+          color: #1F2D3D;
+        }
+        .receipt-item {
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr 1fr;
+          gap: 10px;
+          padding: 8px 0;
+          border-bottom: 1px dashed #eee;
+          font-size: 0.9rem;
+        }
+        .receipt-total {
+          border-top: 2px solid #1F2D3D;
+          padding-top: 15px;
+          margin-bottom: 20px;
+        }
+        .total-line {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 5px;
+        }
+        .total-line.final {
+          font-weight: bold;
+          font-size: 1.2rem;
+          color: #1F2D3D;
+        }
+        .total-amount {
+          font-weight: bold;
+          color: #1F2D3D;
+        }
+        .payment-type {
+          background: #e9ecef;
+          padding: 10px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          font-size: 0.9rem;
+        }
+        .payment-type i {
+          margin-right: 5px;
+          color: #1F2D3D;
+        }
+        .receipt-footer {
+          text-align: center;
+          border-top: 1px solid #ddd;
+          padding-top: 15px;
+        }
+        .footer-message {
+          font-weight: bold;
+          color: #1F2D3D;
+          margin-bottom: 5px;
+        }
+        .footer-message i {
+          color: #dc3545;
+          margin-right: 5px;
+        }
+        .footer-brand small {
+          color: #666;
+          font-size: 0.8rem;
+        }
+        @media print {
+          body { margin: 0; }
+          .receipt { border: none; }
+        }
       </style>
     </head>
     <body>
       <div class="receipt">
-        <div class="header">
-          <div class="title">TillUp POS</div>
-          <div class="subtitle">COMPROBANTE DE POLLOS</div>
-          <div class="subtitle">#${sale.id}</div>
-          <div class="subtitle">${fecha}</div>
+        <div class="receipt-header">
+          <div class="receipt-logo">
+            <img src="TillUp.png" alt="TillUp">
+            <h3>TillUp POS</h3>
+          </div>
+          <div class="receipt-info">
+            <div class="receipt-title">COMPROBANTE DE VENTA DE POLLOS</div>
+            <div class="receipt-number">Venta #${sale.id}</div>
+            <div class="receipt-date">${new Date(sale.date).toLocaleDateString()} ${sale.time}</div>
+          </div>
         </div>
         
-        <div class="client">
+        <div class="receipt-client">
+          <i class="bi bi-person"></i>
           <strong>Cliente:</strong> ${sale.clientName}
         </div>
         
-        <div class="items">
-          <div class="item">
-            <span>Pollo Entero (${sale.quantity})</span>
-            <span>${sale.weight} lbs</span>
+        <div class="receipt-items">
+          <div class="receipt-items-header">
+            <div>Descripción</div>
+            <div>Cant.</div>
+            <div>Precio/Lb</div>
+            <div>Subtotal</div>
           </div>
-          <div class="item">
-            <span>Precio por libra:</span>
-            <span>$${sale.pricePerPound.toFixed(2)}</span>
-          </div>
-        </div>
-        
-        <div class="total">
-          <div class="total-line">
-            <span>Total:</span>
-            <span class="final">$${sale.total.toFixed(2)}</span>
-          </div>
-          ${sale.paymentType === 'credit' && sale.abono > 0 ? `
-            <div class="total-line">
-              <span>Abono:</span>
-              <span>-$${sale.abono.toFixed(2)}</span>
-            </div>
-            <div class="total-line">
-              <span>Pendiente:</span>
-              <span>$${sale.remainingAmount.toFixed(2)}</span>
-            </div>
-          ` : ''}
-          <div class="total-line">
-            <span>Forma de pago:</span>
-            <span>${getPaymentText(sale.paymentType)}</span>
+          
+          <div class="receipt-item">
+            <div>Pollo(s) - ${sale.weight} lbs</div>
+            <div>${sale.quantity}</div>
+            <div>$${sale.pricePerPound.toFixed(2)}</div>
+            <div>$${sale.total.toFixed(2)}</div>
           </div>
         </div>
         
-        <div class="footer">
-          ¡Gracias por su compra!<br>
-          Generado por TillUp POS
+        <div class="receipt-total">
+          <div class="total-line final">
+            <span>TOTAL:</span>
+            <span class="total-amount">$${sale.total.toFixed(2)}</span>
+          </div>
+        </div>
+        
+        <div class="payment-type">
+          <i class="bi bi-${getPaymentIcon(sale.paymentType)}"></i>
+          <strong>Método de pago:</strong> ${getPaymentText(sale.paymentType)}
+          ${sale.paymentType === 'credit' && sale.abono > 0 ? `<br><small>Abono inicial: $${sale.abono.toFixed(2)}</small>` : ''}
+        </div>
+        
+        <div class="receipt-footer">
+          <div class="footer-message">
+            <i class="bi bi-heart"></i>
+            ¡Gracias por su compra!
+          </div>
+          <div class="footer-brand">
+            <small>TillUp POS - Gestión de Ventas</small>
+          </div>
         </div>
       </div>
     </body>
     </html>
-  `);
+  `;
   
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(printContent);
   printWindow.document.close();
+  printWindow.focus();
   printWindow.print();
+  printWindow.close();
 }
 
-// Descargar PDF de comprobante de pollos
+// Descargar comprobante de pollos en PDF
 function downloadChickenReceiptPDF(sale) {
   // Verificar si jsPDF está disponible
   if (typeof window.jspdf === 'undefined') {
@@ -1121,7 +1313,7 @@ function downloadChickenReceiptPDF(sale) {
   
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
-  doc.text("COMPROBANTE DE POLLOS", 14, 20);
+  doc.text("COMPROBANTE DE VENTA DE POLLOS", 14, 20);
   
   // Información de la venta
   doc.setTextColor(...primaryColor);
@@ -1130,20 +1322,27 @@ function downloadChickenReceiptPDF(sale) {
   doc.text(`Fecha: ${fecha}`, 14, 40);
   doc.text(`Cliente: ${sale.clientName}`, 14, 45);
   
-  // Detalle del producto
+  // Items
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text("Detalle de Producto", 14, 60);
+  doc.text("Detalle de Venta", 14, 60);
   
   const items = [
-    ['Producto', 'Cantidad', 'Peso', 'Precio/lb', 'Subtotal'],
-    ['Pollo Entero', sale.quantity.toString(), `${sale.weight} lbs`, `$${sale.pricePerPound.toFixed(2)}`, `$${sale.total.toFixed(2)}`]
+    ['Descripción', 'Cant.', 'Peso (lbs)', 'Precio/Lb', 'Subtotal']
   ];
+  
+  items.push([
+    'Pollo(s)',
+    sale.quantity.toString(),
+    sale.weight.toString(),
+    `$${sale.pricePerPound.toFixed(2)}`,
+    `$${sale.total.toFixed(2)}`
+  ]);
   
   doc.autoTable({
     startY: 65,
     head: [items[0]],
-    body: [items[1]],
+    body: items.slice(1),
     theme: 'grid',
     styles: { 
       fontSize: 9,
@@ -1164,51 +1363,42 @@ function downloadChickenReceiptPDF(sale) {
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Peso total: ${sale.weight} lbs`, 14, finalY + 10);
-  doc.text(`Precio por libra: $${sale.pricePerPound.toFixed(2)}`, 14, finalY + 15);
-  
-  if (sale.paymentType === 'credit' && sale.abono > 0) {
-    doc.text(`Abono: -$${sale.abono.toFixed(2)}`, 14, finalY + 20);
-    doc.text(`Pendiente: $${sale.remainingAmount.toFixed(2)}`, 14, finalY + 25);
-  }
-  
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`TOTAL: $${sale.total.toFixed(2)}`, 14, finalY + 35);
+  doc.text(`Total: $${sale.total.toFixed(2)}`, 14, finalY + 10);
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Método de pago: ${getPaymentText(sale.paymentType)}`, 14, finalY + 45);
+  doc.text(`Método de pago: ${getPaymentText(sale.paymentType)}`, 14, finalY + 20);
+  
+  if (sale.paymentType === 'credit' && sale.abono > 0) {
+    doc.text(`Abono inicial: $${sale.abono.toFixed(2)}`, 14, finalY + 25);
+  }
   
   // Footer
   doc.setFontSize(8);
   doc.setTextColor(128, 128, 128);
-  doc.text("¡Gracias por su compra!", 14, finalY + 60);
-  doc.text("Generado por TillUp POS - Especializado en venta de pollos", 14, finalY + 65);
+  doc.text("¡Gracias por su compra!", 14, finalY + 40);
+  doc.text("Generado por TillUp POS - Gestión de Ventas", 14, finalY + 45);
   
   doc.save(`Comprobante_Pollos_${sale.id}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 // Actualizar estadísticas de pollos
-function updateChickenStats() {
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+function updateChickenStats(opts = {}) {
+  let todayStr;
+  if (opts && opts.fecha) {
+    todayStr = opts.fecha;
+  } else {
+    const today = new Date();
+    todayStr = today.toISOString().split('T')[0];
+  }
   
   // Verificar que chickenSales sea un array válido
   if (!chickenSales || !Array.isArray(chickenSales)) {
-    const totalChickensElement = document.getElementById('totalChickensSold');
-    const totalWeightElement = document.getElementById('totalWeightSold');
-    const totalRevenueElement = document.getElementById('totalRevenue');
-    const avgWeightElement = document.getElementById('avgWeight');
-    
-    if (totalChickensElement) totalChickensElement.textContent = '0';
-    if (totalWeightElement) totalWeightElement.textContent = '0.0';
-    if (totalRevenueElement) totalRevenueElement.textContent = '$0.00';
-    if (avgWeightElement) avgWeightElement.textContent = '0.0';
+    resetChickenStats();
     return;
   }
   
-  // Filtrar ventas de hoy
+  // Filtrar ventas de la fecha seleccionada
   const todaySales = chickenSales.filter(sale => 
     sale && sale.date && sale.date.startsWith(todayStr)
   );
@@ -1217,8 +1407,13 @@ function updateChickenStats() {
   const totalChickens = todaySales.reduce((sum, sale) => sum + (sale.quantity || 0), 0);
   const totalWeight = todaySales.reduce((sum, sale) => sum + (sale.weight || 0), 0);
   const totalRevenue = todaySales.reduce((sum, sale) => sum + (sale.total || 0), 0);
-  const totalProfit = todaySales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
   const avgWeight = totalChickens > 0 ? totalWeight / totalChickens : 0;
+  
+  // Calcular ganancias (asumiendo un margen del 20% por defecto)
+  const profitMargin = 0.20; // 20%
+  const totalProfit = totalRevenue * profitMargin;
+  const profitPerChicken = totalChickens > 0 ? totalProfit / totalChickens : 0;
+  const profitPercentage = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
   
   // Actualizar elementos en el DOM
   const totalChickensElement = document.getElementById('totalChickensSold');
@@ -1226,12 +1421,108 @@ function updateChickenStats() {
   const totalRevenueElement = document.getElementById('totalRevenue');
   const avgWeightElement = document.getElementById('avgWeight');
   const totalProfitElement = document.getElementById('totalProfit');
+  const profitMarginElement = document.getElementById('profitMargin');
+  const profitPerChickenElement = document.getElementById('profitPerChicken');
   
   if (totalChickensElement) totalChickensElement.textContent = totalChickens;
   if (totalWeightElement) totalWeightElement.textContent = totalWeight.toFixed(1);
   if (totalRevenueElement) totalRevenueElement.textContent = `$${totalRevenue.toFixed(2)}`;
   if (avgWeightElement) avgWeightElement.textContent = avgWeight.toFixed(1);
   if (totalProfitElement) totalProfitElement.textContent = `$${totalProfit.toFixed(2)}`;
+  if (profitMarginElement) profitMarginElement.textContent = `${profitPercentage.toFixed(1)}%`;
+  if (profitPerChickenElement) profitPerChickenElement.textContent = `$${profitPerChicken.toFixed(2)}`;
+}
+
+// Función para resetear estadísticas de pollos
+function resetChickenStats() {
+  const elements = [
+    'totalChickensSold', 'totalWeightSold', 'totalRevenue', 'avgWeight',
+    'totalProfit', 'profitMargin', 'profitPerChicken'
+  ];
+  
+  elements.forEach(id => {
+    const element = document.getElementById(id);
+    if (element) {
+      if (id.includes('Profit') || id.includes('Margin')) {
+        element.textContent = id.includes('Margin') ? '0%' : '$0.00';
+      } else if (id.includes('Weight') || id.includes('Chickens')) {
+        element.textContent = '0';
+      } else if (id.includes('avgWeight')) {
+        element.textContent = '0.0';
+      } else {
+        element.textContent = '$0.00';
+      }
+    }
+  });
+}
+
+// Función para mostrar/ocultar estadísticas de ganancias
+function toggleProfitStats() {
+  const profitSection = document.getElementById('profitStatsSection');
+  const toggleBtn = document.getElementById('toggleProfitStats');
+  const icon = document.getElementById('profitStatsIcon');
+  const text = document.getElementById('profitStatsText');
+  
+  if (profitSection.style.display === 'none') {
+    profitSection.style.display = 'block';
+    icon.className = 'bi bi-eye-slash';
+    text.textContent = 'Ocultar Ganancias';
+  } else {
+    profitSection.style.display = 'none';
+    icon.className = 'bi bi-eye';
+    text.textContent = 'Mostrar Ganancias';
+  }
+}
+
+// Actualizar cálculo automático de pollos
+function updateChickenCalculation() {
+  const weight = parseFloat(document.getElementById('chickenWeight')?.value) || 0;
+  const pricePerPound = parseFloat(document.getElementById('pricePerPound')?.value) || 0;
+  
+  const total = weight * pricePerPound;
+  
+  // Actualizar display
+  const displayPrice = document.getElementById('displayPricePerPound');
+  const displayTotal = document.getElementById('displayTotalAmount');
+  
+  if (displayPrice) displayPrice.textContent = `$${pricePerPound.toFixed(2)}`;
+  if (displayTotal) displayTotal.textContent = `$${total.toFixed(2)}`;
+}
+
+// Configurar eventos del formulario de pollos
+function setupChickenEventListeners() {
+  // Eventos para cálculo automático
+  const weightInput = document.getElementById('chickenWeight');
+  const priceInput = document.getElementById('pricePerPound');
+  
+  if (weightInput) {
+    weightInput.addEventListener('input', updateChickenCalculation);
+  }
+  if (priceInput) {
+    priceInput.addEventListener('input', updateChickenCalculation);
+  }
+  
+  // Evento para método de pago
+  const paymentRadios = document.querySelectorAll('input[name="chickenPayment"]');
+  const abonoSection = document.getElementById('chickenAbonoSection');
+  
+  paymentRadios.forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (abonoSection) {
+        abonoSection.style.display = this.value === 'credit' ? 'block' : 'none';
+      }
+    });
+  });
+  
+  // Establecer fecha por defecto (hoy)
+  const dateInput = document.getElementById('chickenSaleDate');
+  if (dateInput) {
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
+  }
+  
+  // Inicializar cálculo
+  updateChickenCalculation();
 }
 
 // Actualizar selector de clientes para pollos
@@ -1255,7 +1546,7 @@ function updateChickenClientSelector() {
 }
 
 // Actualizar lista de ventas de pollos
-function updateChickenSalesList() {
+function updateChickenSalesList(opts = {}) {
   const container = document.getElementById('chickenSalesList');
   const countElement = document.getElementById('chickenSalesCount');
   
@@ -1275,27 +1566,47 @@ function updateChickenSalesList() {
     return;
   }
   
+  // Filtrar por fecha si se especifica
+  let filteredSales = [...chickenSales];
+  if (opts && opts.fecha) {
+    filteredSales = chickenSales.filter(sale => 
+      sale && sale.date && sale.date.startsWith(opts.fecha)
+    );
+  } else {
+    // Por defecto, mostrar solo ventas de hoy
+    const today = new Date().toISOString().split('T')[0];
+    filteredSales = chickenSales.filter(sale => 
+      sale && sale.date && sale.date.startsWith(today)
+    );
+  }
+  
   // Ordenar por fecha más reciente
-  const sortedSales = [...chickenSales].sort((a, b) => {
+  filteredSales.sort((a, b) => {
     if (!a || !b || !a.date || !b.date) return 0;
     return new Date(b.date) - new Date(a.date);
   });
   
   if (countElement) {
-    countElement.textContent = `${sortedSales.length} ventas`;
+    const periodText = opts && opts.fecha ? 
+      `del ${new Date(opts.fecha).toLocaleDateString()}` : 
+      'de hoy';
+    countElement.textContent = `${filteredSales.length} ventas ${periodText}`;
   }
   
-  if (sortedSales.length === 0) {
+  if (filteredSales.length === 0) {
+    const periodText = opts && opts.fecha ? 
+      `del ${new Date(opts.fecha).toLocaleDateString()}` : 
+      'hoy';
     container.innerHTML = `
       <div class="text-center py-4">
         <i class="bi bi-egg-fried" style="font-size: 3rem; color: #ccc;"></i>
-        <p class="text-muted mt-2">No hay ventas de pollos registradas</p>
+        <p class="text-muted mt-2">No hay ventas de pollos ${periodText}</p>
       </div>
     `;
     return;
   }
   
-  container.innerHTML = sortedSales.map(sale => `
+  container.innerHTML = filteredSales.map(sale => `
     <div class="chicken-sale-item-treinta">
       <div class="chicken-sale-header-treinta">
         <div class="chicken-sale-client-treinta">
@@ -1423,40 +1734,18 @@ function closeSidebar() {
 
 // === Configuración de tema (global) ===
 function setTheme(mode) {
-  // Remover clases activas de todos los botones
-  document.querySelectorAll('.sidebar-action-btn').forEach(btn => {
-    btn.classList.remove('active');
-  });
-  
-  // Activar el botón seleccionado
-  document.getElementById(`theme-${mode}`).classList.add('active');
-  
-  if (mode === 'auto') {
-    // Detectar automáticamente
-    detectDarkMode();
-  } else if (mode === 'dark') {
-    document.documentElement.classList.add('dark-mode');
-  } else {
-    document.documentElement.classList.remove('dark-mode');
-  }
-  
-  // Guardar preferencia
-  localStorage.setItem('theme', mode);
-  
-  // Mostrar notificación
-  const themeNames = {
-    light: 'Modo Claro',
-    dark: 'Modo Oscuro',
-    auto: 'Automático'
-  };
-  
-  Swal.fire({
-    icon: 'success',
-    title: 'Tema cambiado',
-    text: `Cambiado a ${themeNames[mode]}`,
-    timer: 1500,
-    showConfirmButton: false
-  });
+  // Siempre forzar modo claro
+  document.documentElement.classList.remove('dark-mode');
+  document.body.classList.remove('dark-mode');
+  document.documentElement.classList.add('light-mode');
+  document.body.classList.add('light-mode');
+  // Actualizar botones visualmente si existen
+  document.querySelectorAll('.sidebar-action-btn').forEach(btn => btn.classList.remove('active'));
+  const btnLight = document.getElementById('theme-light');
+  if (btnLight) btnLight.classList.add('active');
+  // Guardar preferencia SIEMPRE como 'light'
+  localStorage.setItem('theme', 'light');
+  // No mostrar ningún mensaje ni alerta
 }
 
 // === Funciones de instalación PWA ===
@@ -1840,38 +2129,33 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // === Detección de actualizaciones del Service Worker ===
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', event => {
-      if (event.data && event.data.type === 'SW_UPDATED') {
-        console.log('Service Worker actualizado:', event.data.cacheName);
-        
-        // Recargar automáticamente después de 3 segundos
-        setTimeout(() => {
-          console.log('Recargando aplicación para aplicar actualizaciones...');
-          window.location.reload();
-        }, 3000);
-        
-        // Mostrar notificación de actualización
-        Swal.fire({
-          icon: 'info',
-          title: '¡Nueva versión disponible!',
-          text: 'Se han descargado mejoras. La aplicación se recargará automáticamente en 3 segundos.',
-          timer: 3000,
-          timerProgressBar: true,
-          showConfirmButton: false
-        });
-      }
-    });
-
-    // Verificar actualizaciones periódicamente
-    setInterval(() => {
-      navigator.serviceWorker.getRegistration().then(registration => {
-        if (registration) {
-          registration.update();
-        }
-      });
-    }, 30000); // Verificar cada 30 segundos para ser más proactivo
-  }
+  // Desactivado en desarrollo: no mostrar notificaciones ni recargar automáticamente
+  // if ('serviceWorker' in navigator) {
+  //   navigator.serviceWorker.addEventListener('message', event => {
+  //     if (event.data && event.data.type === 'SW_UPDATED') {
+  //       console.log('Service Worker actualizado:', event.data.cacheName);
+  //       setTimeout(() => {
+  //         console.log('Recargando aplicación para aplicar actualizaciones...');
+  //         window.location.reload();
+  //       }, 3000);
+  //       Swal.fire({
+  //         icon: 'info',
+  //         title: '¡Nueva versión disponible!',
+  //         text: 'Se han descargado mejoras. La aplicación se recargará automáticamente en 3 segundos.',
+  //         timer: 3000,
+  //         timerProgressBar: true,
+  //         showConfirmButton: false
+  //       });
+  //     }
+  //   });
+  //   setInterval(() => {
+  //     navigator.serviceWorker.getRegistration().then(registration => {
+  //       if (registration) {
+  //         registration.update();
+  //       }
+  //     });
+  //   }, 30000);
+  // }
 
   // Captura de ubicación en formulario de cliente
   const btnGetLocation = document.getElementById('btnGetLocation');
@@ -2051,22 +2335,62 @@ async function addProduct(e) {
     }
   }
 
-  const saveProduct = (imageData) => {
-    if (window.editingProductId) {
-      // Editar producto existente
-      const productIndex = products.findIndex(p => p.id === window.editingProductId);
-      if (productIndex !== -1) {
-        products[productIndex] = {
-          ...products[productIndex],
+  const saveProduct = async (imageData) => {
+    try {
+      if (window.editingProductId) {
+        // Editar producto existente
+        const productIndex = products.findIndex(p => p.id === window.editingProductId);
+        if (productIndex !== -1) {
+          products[productIndex] = {
+            ...products[productIndex],
+            name,
+            cost,
+            price,
+            category,
+            stock,
+            image: imageData || products[productIndex].image
+          };
+          
+          await saveToStorage('products', products);
+          renderInventory();
+          renderSalesProducts();
+          
+          // Limpiar formulario y cerrar modal
+          document.getElementById('formProduct').reset();
+          document.getElementById('imagePreview').innerHTML = '';
+          const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
+          if (modal) modal.hide();
+          
+          // Restaurar botón
+          const submitBtn = document.querySelector('#modalProduct .btn-primary');
+          if (submitBtn) {
+            submitBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar Producto';
+          }
+          
+          Swal.fire({
+            icon: 'success',
+            title: 'Producto actualizado',
+            text: 'Producto actualizado correctamente.',
+            confirmButtonText: 'Aceptar'
+          }).then(() => {
+            window.editingProductId = null;
+          });
+        }
+      } else {
+        // Agregar nuevo producto
+        const newProduct = {
+          id: generateId('product'),
           name,
           cost,
           price,
           category,
           stock,
-          image: imageData || products[productIndex].image
+          image: imageData,
+          createdAt: new Date().toISOString()
         };
         
-        saveToStorage('products', products);
+        products.push(newProduct);
+        await saveToStorage('products', products);
         renderInventory();
         renderSalesProducts();
         
@@ -2076,48 +2400,19 @@ async function addProduct(e) {
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
         if (modal) modal.hide();
         
-        // Restaurar botón
-        const submitBtn = document.querySelector('#modalProduct .btn-primary');
-        if (submitBtn) {
-          submitBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar Producto';
-        }
-        
         Swal.fire({
           icon: 'success',
-          title: 'Producto actualizado',
-          text: 'Producto actualizado correctamente.',
+          title: 'Producto agregado',
+          text: 'Producto agregado correctamente.',
           confirmButtonText: 'Aceptar'
-        }).then(() => {
-          window.editingProductId = null;
         });
       }
-    } else {
-      // Agregar nuevo producto
-      const newProduct = {
-        id: generateId('product'),
-        name,
-        cost,
-        price,
-        category,
-        stock,
-        image: imageData
-      };
-      
-      products.push(newProduct);
-      saveToStorage('products', products);
-      renderInventory();
-      renderSalesProducts();
-      
-      // Limpiar formulario y cerrar modal
-      document.getElementById('formProduct').reset();
-      document.getElementById('imagePreview').innerHTML = '';
-      const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
-      if (modal) modal.hide();
-      
+    } catch (error) {
+      console.error('Error guardando producto:', error);
       Swal.fire({
-        icon: 'success',
-        title: 'Producto agregado',
-        text: 'Producto agregado correctamente.',
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo guardar el producto. Inténtalo de nuevo.',
         confirmButtonText: 'Aceptar'
       });
     }
@@ -2443,7 +2738,7 @@ function clearCart() {
 }
 
 // === Finalizar venta con comprobante tipo Treinta.co ===
-function finalizeSale() {
+async function finalizeSale() {
   if (cart.length === 0) {
     Swal.fire({
       icon: 'warning',
@@ -2535,7 +2830,7 @@ function finalizeSale() {
       
       return { discount, paymentType };
     }
-  }).then((result) => {
+  }).then(async (result) => {
     if (result.isConfirmed) {
       // Venta pagada
       const { discount, paymentType } = result.value;
@@ -2570,8 +2865,19 @@ function finalizeSale() {
         sales = [];
       }
       sales.push(sale);
-      saveToStorage('sales', sales);
-      saveToStorage('products', products);
+      try {
+        await saveToStorage('sales', sales);
+        await saveToStorage('products', products);
+      } catch (error) {
+        console.error('Error guardando venta:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo guardar la venta. Inténtalo de nuevo.',
+          confirmButtonText: 'Aceptar'
+        });
+        return;
+      }
       
       // Limpiar carrito
       clearCart();
@@ -2589,258 +2895,6 @@ function finalizeSale() {
     }
   });
 }
-
-// Función para mostrar selector de cliente al finalizar venta
-function showClientSelectorForSale() {
-  if (!clients || !Array.isArray(clients) || clients.length === 0) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'No hay clientes',
-      text: 'Debes registrar al menos un cliente para continuar.',
-      confirmButtonText: 'Aceptar'
-    });
-    return;
-  }
-
-  Swal.fire({
-    title: 'Seleccionar Cliente',
-    input: 'select',
-    inputOptions: clients.reduce((options, client) => {
-      options[client.id] = `${client.name}${client.debt > 0 ? ` (Deuda: $${client.debt.toFixed(2)})` : ''}`;
-      return options;
-    }, {}),
-    inputPlaceholder: 'Selecciona un cliente',
-    showCancelButton: true,
-    confirmButtonText: 'Continuar',
-    cancelButtonText: 'Cancelar',
-    inputValidator: (value) => {
-      if (!value) {
-        return 'Debes seleccionar un cliente';
-      }
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      currentClientId = result.value;
-      finalizeSale(); // Continuar con la venta
-    }
-  });
-}
-
-// Función para mostrar modal de venta a crédito
-function showCreditSaleModal(total, cost, client) {
-  Swal.fire({
-    title: 'Venta a Crédito',
-    html: `
-      <div class="credit-sale-treinta">
-        <div class="alert alert-warning">
-          <i class="bi bi-exclamation-triangle"></i>
-          <strong>Venta a Crédito</strong><br>
-          Cliente: ${client.name}<br>
-          Total: $${total.toFixed(2)}
-        </div>
-        <div class="form-group">
-          <label class="form-label">Motivo del crédito:</label>
-          <input type="text" id="creditReason" class="form-control" placeholder="Ej: Pago en cuotas" value="Venta a crédito">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Abono inicial (opcional):</label>
-          <div class="input-group">
-            <span class="input-group-text">$</span>
-            <input type="number" id="creditAbono" class="form-control" placeholder="0.00" min="0" max="${total}" step="0.01">
-          </div>
-        </div>
-      </div>
-    `,
-    showCancelButton: true,
-    confirmButtonText: 'Registrar Crédito',
-    cancelButtonText: 'Cancelar',
-    preConfirm: () => {
-      const reason = document.getElementById('creditReason').value;
-      const abono = parseFloat(document.getElementById('creditAbono').value) || 0;
-      
-      if (!reason.trim()) {
-        Swal.showValidationMessage('Debe especificar un motivo');
-        return false;
-      }
-      
-      if (abono > total) {
-        Swal.showValidationMessage('El abono no puede ser mayor al total');
-        return false;
-      }
-      
-      return { reason, abono };
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const { reason, abono } = result.value;
-      const remainingAmount = total - abono;
-      
-      // Actualizar stock
-      cart.forEach(item => {
-        const product = products.find(p => p.id === item.id);
-        if (product) {
-          product.stock -= item.qty;
-          if (product.stock < 0) product.stock = 0;
-        }
-      });
-      
-      // Registrar venta
-      const sale = {
-        id: generateId('sale'),
-        clientId: client.id,
-        clientName: client.name,
-        items: cart,
-        total: total,
-        cost,
-        profit: total - cost,
-        paymentType: 'credit',
-        date: new Date().toISOString(),
-        time: new Date().toLocaleTimeString()
-      };
-      
-      if (!sales || !Array.isArray(sales)) {
-        sales = [];
-      }
-      sales.push(sale);
-      saveToStorage('sales', sales);
-      saveToStorage('products', products);
-      
-      // Registrar deuda
-      if (remainingAmount > 0) {
-        const debt = {
-          id: generateId('debt'),
-          clientId: client.id,
-          clientName: client.name,
-          amount: remainingAmount,
-          total: total,
-          abono: abono,
-          reason: reason,
-          date: new Date().toISOString(),
-          saleId: sale.id
-        };
-        
-        if (!debts || !Array.isArray(debts)) {
-          debts = [];
-        }
-        debts.push(debt);
-        saveToStorage('debts', debts);
-        
-        // Actualizar deuda del cliente
-        client.debt = (client.debt || 0) + remainingAmount;
-        saveToStorage('clients', clients);
-      }
-      
-      // Limpiar carrito
-      clearCart();
-      
-      // Actualizar vistas
-      renderClients();
-      renderDebts();
-      updateBalanceUI();
-      renderBalanceGrid(); // Actualizar movimientos en tiempo real
-      
-      // Mostrar comprobante de venta a crédito
-      showReceipt(sale);
-    }
-  });
-}
-
-// Función para mostrar comprobante
-function showReceipt(sale) {
-  const fecha = new Date().toLocaleString();
-  
-  let detalle = `
-    <div class="receipt-treinta">
-      <div class="receipt-header">
-        <div class="receipt-logo">
-          <img src="TillUp.png" alt="TillUp" style="width: 60px; height: 60px; object-fit: contain;">
-          <h3>TillUp POS</h3>
-        </div>
-        <div class="receipt-info">
-          <div class="receipt-title">COMPROBANTE DE VENTA</div>
-          <div class="receipt-number">#${sale.id}</div>
-          <div class="receipt-date">${fecha}</div>
-        </div>
-      </div>
-      
-      <div class="receipt-client">
-        <i class="bi bi-person-circle"></i>
-        <span><strong>Cliente:</strong> ${sale.clientName}</span>
-      </div>
-      
-      <div class="receipt-items">
-        <div class="receipt-items-header">
-          <span>Producto</span>
-          <span>Cant.</span>
-          <span>Precio</span>
-          <span>Subtotal</span>
-        </div>
-        ${sale.items.map(item => `
-          <div class="receipt-item">
-            <span class="item-name">${item.name}</span>
-            <span class="item-qty">${item.qty}</span>
-            <span class="item-price">$${item.price.toFixed(2)}</span>
-            <span class="item-subtotal">$${(item.price * item.qty).toFixed(2)}</span>
-          </div>
-        `).join('')}
-      </div>
-      
-      <div class="receipt-total">
-        <div class="total-line">
-          <span>Subtotal:</span>
-          <span>$${(sale.originalTotal || sale.total).toFixed(2)}</span>
-        </div>
-        ${(sale.discount || 0) > 0 ? `
-          <div class="total-line discount">
-            <span>Descuento:</span>
-            <span>-$${sale.discount.toFixed(2)}</span>
-          </div>
-        ` : ''}
-        <div class="total-line final">
-          <span>Total:</span>
-          <span class="total-amount">$${sale.total.toFixed(2)}</span>
-        </div>
-        <div class="payment-type">
-          <i class="bi bi-${getPaymentIcon(sale.paymentType)}"></i>
-          ${getPaymentText(sale.paymentType)}
-        </div>
-      </div>
-      
-      <div class="receipt-footer">
-        <div class="footer-message">
-          <i class="bi bi-heart"></i>
-          <span>¡Gracias por su compra!</span>
-        </div>
-        <div class="footer-brand">
-          <span>Generado por TillUp POS</span>
-          <small>Diseño inspirado en Treinta.co</small>
-        </div>
-      </div>
-    </div>
-  `;
-
-  Swal.fire({
-    title: '',
-    html: detalle,
-    showConfirmButton: true,
-    confirmButtonText: '<i class="bi bi-printer"></i> Imprimir',
-    showDenyButton: true,
-    denyButtonText: '<i class="bi bi-download"></i> PDF',
-    showCancelButton: true,
-    cancelButtonText: 'Cerrar',
-    customClass: { 
-      popup: 'swal2-receipt-treinta'
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      printReceipt(sale);
-    } else if (result.isDenied) {
-      downloadReceiptPDF(sale);
-    }
-  });
-}
-
-
 
 // === Agregar/Editar cliente con validación mejorada ===
 async function addClient(e) {
@@ -2903,57 +2957,72 @@ async function addClient(e) {
     }
   }
 
-  const saveClient = (photo) => {
-    const clientData = {
-      name,
-      phone,
-      address,
-      location,
-      photo: photo || (window.editingClientId ? clients.find(c => c.id === window.editingClientId)?.photo : '')
-    };
+  const saveClient = async (photo) => {
+    try {
+      const clientData = {
+        name,
+        phone,
+        address,
+        location,
+        photo: photo || (window.editingClientId ? clients.find(c => c.id === window.editingClientId)?.photo : '')
+      };
 
-    if (window.editingClientId) {
-      const clientIndex = clients.findIndex(c => c.id === window.editingClientId);
-      if (clientIndex !== -1) {
-        clients[clientIndex] = { ...clients[clientIndex], ...clientData };
-      }
-    } else {
-      clients.push({ id: generateId('client'), ...clientData, debt: 0 });
-    }
-
-    saveToStorage('clients', clients);
-    renderClients();
-    updateClientSelector();
-
-    // Limpiar formulario
-    if (document.getElementById('formClient')) {
-      document.getElementById('formClient').reset();
-    }
-    if (document.getElementById('clientImagePreview')) {
-      document.getElementById('clientImagePreview').innerHTML = '';
-    }
-    if (locationStatus) {
-      locationStatus.textContent = '';
-    }
-
-    // Cerrar modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('modalClient'));
-    if (modal) modal.hide();
-
-    Swal.fire({
-      icon: 'success',
-      title: window.editingClientId ? 'Cliente actualizado' : 'Cliente agregado',
-      text: `El cliente "${name}" se ha guardado correctamente.`,
-      confirmButtonText: 'Aceptar'
-    }).then(() => {
       if (window.editingClientId) {
-        delete window.editingClientId;
-        const submitBtn = document.querySelector('#modalClient .btn-primary');
-        if (submitBtn) {
-          submitBtn.innerHTML = '<i class="bi bi-person-plus"></i> Agregar Cliente';
+        const clientIndex = clients.findIndex(c => c.id === window.editingClientId);
+        if (clientIndex !== -1) {
+          clients[clientIndex] = { ...clients[clientIndex], ...clientData };
         }
+      } else {
+        clients.push({ 
+          id: generateId('client'), 
+          ...clientData, 
+          debt: 0,
+          createdAt: new Date().toISOString()
+        });
       }
-    });
+
+      await saveToStorage('clients', clients);
+      renderClients();
+      updateClientSelector();
+
+      // Limpiar formulario
+      if (document.getElementById('formClient')) {
+        document.getElementById('formClient').reset();
+      }
+      if (document.getElementById('clientImagePreview')) {
+        document.getElementById('clientImagePreview').innerHTML = '';
+      }
+      if (locationStatus) {
+        locationStatus.textContent = '';
+      }
+
+      // Cerrar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalClient'));
+      if (modal) modal.hide();
+
+      Swal.fire({
+        icon: 'success',
+        title: window.editingClientId ? 'Cliente actualizado' : 'Cliente agregado',
+        text: `El cliente "${name}" se ha guardado correctamente.`,
+        confirmButtonText: 'Aceptar'
+      }).then(() => {
+        if (window.editingClientId) {
+          delete window.editingClientId;
+          const submitBtn = document.querySelector('#modalClient .btn-primary');
+          if (submitBtn) {
+            submitBtn.innerHTML = '<i class="bi bi-person-plus"></i> Agregar Cliente';
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error guardando cliente:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo guardar el cliente. Inténtalo de nuevo.',
+        confirmButtonText: 'Aceptar'
+      });
+    }
   };
 
   // Procesar foto si existe
@@ -3440,10 +3509,17 @@ function removeFromCart(productId) {
 }
 
 // === Renderizar balance con diseño tipo Treinta.co ===
-function renderBalanceGrid() {
-  const currentPeriod = document.querySelector('input[name="periodFilter"]:checked').value;
-  const data = calculateBalanceData(currentPeriod);
-  const movements = getRecentMovements(currentPeriod);
+function renderBalanceGrid(opts = {}) {
+  let currentPeriod = document.querySelector('input[name="periodFilter"]:checked')?.value || 'day';
+  let data, movements;
+  if (opts && opts.fecha) {
+    // Si se pasa una fecha, filtrar solo ese día
+    data = calculateBalanceData('custom', opts.fecha);
+    movements = getRecentMovements('custom', opts.fecha);
+  } else {
+    data = calculateBalanceData(currentPeriod);
+    movements = getRecentMovements(currentPeriod);
+  }
   
   // Renderizar tarjetas de balance
   const cardsContainer = document.getElementById('balanceCards');
@@ -3572,7 +3648,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-function calculateBalanceData(period) {
+function calculateBalanceData(period, customDate) {
   const now = new Date();
   const isSameDay = (d1, d2) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
   const isSameWeek = (d1, d2) => {
@@ -3587,7 +3663,13 @@ function calculateBalanceData(period) {
   const isSameMonth = (d1, d2) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
   const isSameYear = (d1, d2) => d1.getFullYear() === d2.getFullYear();
   
-  const checkPeriod = period === 'day' ? isSameDay : period === 'week' ? isSameWeek : period === 'month' ? isSameMonth : isSameYear;
+  let checkPeriod;
+  if (period === 'custom' && customDate) {
+    const custom = new Date(customDate);
+    checkPeriod = (d) => isSameDay(d, custom);
+  } else {
+    checkPeriod = period === 'day' ? (d) => isSameDay(d, now) : period === 'week' ? (d) => isSameWeek(d, now) : period === 'month' ? (d) => isSameMonth(d, now) : (d) => isSameYear(d, now);
+  }
   
   let income = 0, expenses = 0, profit = 0;
   
@@ -3596,7 +3678,7 @@ function calculateBalanceData(period) {
     sales.forEach(s => {
       if (s && s.date && s.total !== undefined) {
         const fecha = new Date(s.date);
-        if (checkPeriod(fecha, now)) {
+        if (checkPeriod(fecha)) {
           income += s.total || 0;
           profit += s.profit || 0;
         }
@@ -3609,7 +3691,7 @@ function calculateBalanceData(period) {
     chickenSales.forEach(s => {
       if (s && s.date && s.total !== undefined) {
         const fecha = new Date(s.date);
-        if (checkPeriod(fecha, now)) {
+        if (checkPeriod(fecha)) {
           income += s.total || 0;
           profit += s.total || 0; // Para pollos, el total es la utilidad
         }
@@ -3623,26 +3705,29 @@ function calculateBalanceData(period) {
   return { income, expenses, profit };
 }
 
-function getRecentMovements(period) {
+function getRecentMovements(period, customDate) {
   const movements = [];
   const now = new Date();
   let startDate;
-  
-  switch(period) {
-    case 'day':
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      break;
-    case 'week':
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
-      break;
-    case 'month':
-      startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-      break;
-    case 'year':
-      startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-      break;
-    default:
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (period === 'custom' && customDate) {
+    startDate = new Date(customDate);
+  } else {
+    switch(period) {
+      case 'day':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'week':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+        break;
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+        break;
+      case 'year':
+        startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    }
   }
   
   // Verificar que sales sea un array válido y agregar ventas del periodo
@@ -3797,7 +3882,12 @@ function showView(viewName) {
       }
       break;
     case 'chickens':
-      showChickenView();
+      // Inicializar datos de pollos y actualizar estadísticas
+      initializeChickenData();
+      updateChickenStats();
+      updateChickenClientSelector();
+      updateChickenSalesList();
+      setupChickenEventListeners();
       break;
   }
   
@@ -5710,6 +5800,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // Inicializar mejoras para experiencia nativa
   initializeNativeEnhancements();
   
+  // Inicializar funciones de pollos
+  updateChickenStats();
+  updateChickenClientSelector();
+  updateChickenSalesList();
+  setupChickenEventListeners();
+  
   // Mostrar botón de instalación si es necesario
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
@@ -5800,3 +5896,498 @@ window.showAppStatus = showAppStatus;
 window.exportAllData = exportAllData;
 window.importData = importData;
 window.showCredits = showCredits;
+
+function showReceipt(sale) {
+  // ... definición de la función ...
+}
+window.showReceipt = showReceipt;
+// ... código posterior ...
+
+// Inicializar botón de acciones rápidas cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+  initializeQuickActions();
+});
+
+// Función para inicializar el botón de acciones rápidas
+function initializeQuickActions() {
+  const quickActionsBtn = document.getElementById('quickActionsBtn');
+  if (quickActionsBtn) {
+    // Agregar tooltip
+    quickActionsBtn.title = 'Acciones Rápidas';
+    
+    // Agregar efecto hover
+    quickActionsBtn.addEventListener('mouseenter', () => {
+      quickActionsBtn.style.transform = 'scale(1.05)';
+    });
+    
+    quickActionsBtn.addEventListener('mouseleave', () => {
+      quickActionsBtn.style.transform = 'scale(1)';
+    });
+    
+    // Agregar efecto click
+    quickActionsBtn.addEventListener('click', () => {
+      quickActionsBtn.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        quickActionsBtn.style.transform = 'scale(1)';
+      }, 150);
+    });
+  }
+}
+
+// Función global para filtrar balance y pollos por fecha
+function filtrarPorFecha(fechaStr) {
+  // Filtrar Balance
+  renderBalanceGrid({ fecha: fechaStr });
+  // Filtrar Pollos
+  updateChickenStats({ fecha: fechaStr });
+  updateChickenSalesList({ fecha: fechaStr });
+  // Cambiar a la vista de balance por defecto
+  showView('balance');
+  // Mostrar mensaje de éxito
+  Swal.fire({
+    icon: 'success',
+    title: 'Filtrado por fecha',
+    text: `Mostrando registros del ${new Date(fechaStr).toLocaleDateString()}`,
+    timer: 1800,
+    showConfirmButton: false,
+    customClass: { popup: 'swal2-sale-treinta' }
+  });
+}
+
+// Hacer funciones disponibles globalmente
+window.toggleProfitStats = toggleProfitStats;
+window.updateChickenCalculation = updateChickenCalculation;
+window.filtrarPorFecha = filtrarPorFecha;
+window.updateChickenClientSelector = updateChickenClientSelector;
+window.updateChickenStats = updateChickenStats;
+window.updateChickenSalesList = updateChickenSalesList;
+window.setupChickenEventListeners = setupChickenEventListeners;
+window.initializeChickenData = initializeChickenData;
+window.handleChickenSale = handleChickenSale;
+
+// Hacer funciones de comprobante de pollos disponibles globalmente
+window.showChickenReceipt = showChickenReceipt;
+window.printChickenReceipt = printChickenReceipt;
+window.downloadChickenReceiptPDF = downloadChickenReceiptPDF;
+
+// --- Drawer/cortina carrito Temu ---
+function toggleCartDrawer() {
+  const drawer = document.getElementById('cartDrawer');
+  const overlay = document.getElementById('cartDrawerOverlay');
+  const quickActions = document.querySelector('.quick-actions-fixed');
+  if (!drawer || !overlay) return;
+  const isOpen = drawer.classList.contains('open');
+  if (isOpen) {
+    drawer.classList.remove('open');
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+    if (quickActions) quickActions.style.zIndex = '';
+  } else {
+    renderCartDrawer();
+    drawer.classList.add('open');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (quickActions) quickActions.style.zIndex = '1000'; // detrás del drawer
+  }
+}
+// --- FIN Drawer/cortina carrito Temu ---
+
+// === Renderizar productos en ventas con diseño tipo Temu ===
+function renderSalesProducts() {
+  const container = document.getElementById('salesProductsGrid');
+  if (!container) return;
+
+  // Verificar que products sea un array válido
+  if (!products || !Array.isArray(products)) {
+    container.innerHTML = `
+      <div class="text-center py-4" style="grid-column: 1 / -1;">
+        <i class="bi bi-box-seam" style="font-size: 3rem; color: #ccc;"></i>
+        <p class="text-muted mt-2">No hay productos en el inventario</p>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalProduct">
+          <i class="bi bi-plus-circle"></i> Agregar Producto
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  // Filtrar productos por búsqueda si existe el input
+  const searchTerm = document.getElementById('productSearch')?.value?.toLowerCase() || '';
+  const filteredProducts = products.filter(product => 
+    product.name.toLowerCase().includes(searchTerm) ||
+    product.description?.toLowerCase().includes(searchTerm)
+  );
+
+  if (filteredProducts.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-4" style="grid-column: 1 / -1;">
+        <i class="bi bi-search" style="font-size: 3rem; color: #ccc;"></i>
+        <p class="text-muted mt-2">No se encontraron productos</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filteredProducts.map(product => `
+    <div class="product-card-temu">
+      <img src="${product.image || 'icons/descarga.png'}" class="product-image-treinta" alt="${product.name}" onerror="this.src='icons/descarga.png'">
+      <div class="product-name">${product.name}</div>
+      <div class="product-price">$${product.price.toFixed(2)}</div>
+      <div class="product-stock">Stock: ${product.stock}</div>
+      <button class="add-to-cart-btn" onclick="addToCart('${product.id}'); event.stopPropagation();">
+        <i class="bi bi-plus"></i> Agregar
+      </button>
+    </div>
+  `).join('');
+}
+
+// --- Drawer/cortina carrito Temu ---
+function renderCartDrawer() {
+  const container = document.getElementById('cartListDrawer');
+  const totalElement = document.getElementById('cartTotalDrawer');
+  const badge = document.getElementById('cartCountBadge');
+  if (!container || !totalElement || !badge) return;
+
+  if (!cart || !Array.isArray(cart) || cart.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-4">
+        <i class="bi bi-cart-x" style="font-size: 2.5rem; color: #ccc;"></i>
+        <p class="text-muted mt-2">Carrito vacío</p>
+        <small class="text-muted">Selecciona productos para comenzar</small>
+      </div>
+    `;
+    totalElement.textContent = '$0.00';
+    badge.textContent = '0';
+    return;
+  }
+
+  // Renderizar productos en el drawer
+  container.innerHTML = cart.map(item => `
+    <div class="cart-item-treinta d-flex align-items-center justify-content-between mb-2">
+      <div class="d-flex align-items-center gap-2">
+        <img src="${item.image || 'icons/descarga.png'}" alt="${item.name}" style="width:38px;height:38px;object-fit:cover;border-radius:8px;">
+        <div>
+          <div class="cart-item-name-treinta">${item.name}</div>
+          <div class="cart-item-price-treinta">$${item.price.toFixed(2)} x${item.qty}</div>
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-1">
+        <button class="btn btn-sm btn-outline-secondary" onclick="changeCartQty('${item.id}', -1)">-</button>
+        <span class="qty-display">${item.qty}</span>
+        <button class="btn btn-sm btn-outline-secondary" onclick="changeCartQty('${item.id}', 1)">+</button>
+        <button class="btn btn-sm btn-outline-danger ms-2" onclick="removeFromCart('${item.id}')"><i class="bi bi-trash"></i></button>
+      </div>
+    </div>
+  `).join('');
+
+  // Calcular total y cantidad
+  const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  totalElement.textContent = `$${total.toFixed(2)}`;
+  const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
+  badge.textContent = totalQty;
+}
+
+// Sobrescribir addToCart para actualizar el drawer y badge
+function addToCart(productId) {
+  if (!products || !Array.isArray(products)) return;
+  const product = products.find(p => p.id == productId);
+  if (!product) return;
+  if (product.stock <= 0) {
+    Swal.fire({ icon: 'warning', title: 'Sin stock', text: 'Este producto no tiene stock disponible.', timer: 1200, showConfirmButton: false });
+    return;
+  }
+  const existing = cart.find(item => item.id === productId);
+  if (existing) {
+    existing.qty += 1;
+  } else {
+    cart.push({ ...product, qty: 1 });
+  }
+  renderCartDrawer();
+  Swal.fire({ icon: 'success', title: 'Agregado', text: `${product.name} agregado al carrito`, timer: 800, showConfirmButton: false });
+}
+
+// Sobrescribir changeCartQty y removeFromCart para drawer
+function changeCartQty(productId, delta) {
+  const idx = cart.findIndex(item => item.id === productId);
+  if (idx === -1) return;
+  cart[idx].qty += delta;
+  if (cart[idx].qty < 1) cart[idx].qty = 1;
+  renderCartDrawer();
+}
+function removeFromCart(productId) {
+  const idx = cart.findIndex(item => item.id === productId);
+  if (idx !== -1) {
+    cart.splice(idx, 1);
+    renderCartDrawer();
+  }
+}
+
+// Inicializar renderizado del drawer y badge al cargar
+if (document.readyState !== 'loading') {
+  renderCartDrawer();
+} else {
+  document.addEventListener('DOMContentLoaded', renderCartDrawer);
+}
+
+// Finalizar venta desde el drawer Temu
+async function finalizeSaleDrawer() {
+  if (!cart || cart.length === 0) {
+    Swal.fire({ icon: 'warning', title: 'Carrito vacío', text: 'Agrega productos al carrito para continuar.', timer: 1200, showConfirmButton: false });
+    return;
+  }
+  const clientSelect = document.getElementById('saleClientDrawer');
+  const dateInput = document.getElementById('saleDateDrawer');
+  const clientId = clientSelect ? clientSelect.value : '';
+  const client = clients.find(c => c.id === clientId);
+  const saleDate = dateInput && dateInput.value ? new Date(dateInput.value) : new Date();
+  if (!client) {
+    Swal.fire({ icon: 'warning', title: 'Cliente requerido', text: 'Selecciona un cliente para la venta.', timer: 1200, showConfirmButton: false });
+    return;
+  }
+  // Calcular totales
+  const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const cost = cart.reduce((sum, item) => sum + (item.cost * item.qty), 0);
+  const profit = total - cost;
+  // Crear objeto de venta
+  const sale = {
+    id: Date.now().toString(36),
+    clientId: client.id,
+    clientName: client.name,
+    items: cart.map(item => ({ id: item.id, name: item.name, price: item.price, qty: item.qty })),
+    total,
+    cost,
+    profit,
+    paymentType: 'cash', // Por ahora solo contado
+    date: saleDate.toISOString(),
+    createdAt: new Date().toISOString(),
+  };
+  sales.push(sale);
+  await saveToStorage('sales', sales);
+  cart = [];
+  renderCartDrawer();
+  toggleCartDrawer();
+  Swal.fire({ icon: 'success', title: 'Venta realizada', text: 'La venta se ha registrado correctamente.', timer: 1200, showConfirmButton: false });
+  // Mostrar comprobante
+  showReceipt(sale);
+  renderSalesProducts();
+  updateBalanceUI && updateBalanceUI();
+}
+window.finalizeSaleDrawer = finalizeSaleDrawer;
+
+// Actualizar selector de clientes en el drawer
+function updateDrawerClientSelector() {
+  const select = document.getElementById('saleClientDrawer');
+  if (!select) return;
+  select.innerHTML = '<option value="">Seleccionar cliente...</option>' +
+    clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+// Actualizar fecha por defecto en el drawer
+function updateDrawerDate() {
+  const dateInput = document.getElementById('saleDateDrawer');
+  if (dateInput) {
+    const today = new Date();
+    dateInput.value = today.toISOString().slice(0,10);
+  }
+}
+// Inicializar selectores al cargar
+if (document.readyState !== 'loading') {
+  updateDrawerClientSelector();
+  updateDrawerDate();
+} else {
+  document.addEventListener('DOMContentLoaded', () => {
+    updateDrawerClientSelector();
+    updateDrawerDate();
+  });
+}
+// Actualizar selectores cada vez que se abre el drawer
+const cartDrawerBtn = document.getElementById('floatingCartBtn');
+if (cartDrawerBtn) {
+  cartDrawerBtn.addEventListener('click', () => {
+    updateDrawerClientSelector();
+    updateDrawerDate();
+  });
+}
+
+// --- Comprobante de venta normal igual al de pollos ---
+function showReceipt(sale) {
+  // Determinar fecha y hora
+  let fechaVenta = sale.date ? new Date(sale.date) : new Date();
+  let fechaStr = fechaVenta.toLocaleDateString();
+  let horaStr = fechaVenta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // Si la venta tiene time, úsalo
+  if (sale.time) horaStr = sale.time;
+
+  const receiptHtml = `
+    <div class="receipt-treinta">
+      <div class="receipt-header">
+        <div class="receipt-logo">
+          <img src="TillUp.png" alt="TillUp" style="width: 40px; height: 40px; border-radius: 8px;">
+          <h3>TillUp POS</h3>
+        </div>
+        <div class="receipt-info">
+          <div class="receipt-title">COMPROBANTE DE VENTA</div>
+          <div class="receipt-number">Venta #${sale.id}</div>
+          <div class="receipt-date">${fechaStr} ${horaStr}</div>
+        </div>
+      </div>
+      <div class="receipt-client">
+        <i class="bi bi-person"></i>
+        <strong>Cliente:</strong> ${sale.clientName}
+      </div>
+      <div class="receipt-items">
+        <div class="receipt-items-header">
+          <div class="item-name">Producto</div>
+          <div class="item-qty">Cant.</div>
+          <div class="item-price">Precio</div>
+          <div class="item-subtotal">Subtotal</div>
+        </div>
+        ${sale.items.map(item => `
+          <div class="receipt-item">
+            <div class="item-name">${item.name}</div>
+            <div class="item-qty">${item.qty}</div>
+            <div class="item-price">$${item.price.toFixed(2)}</div>
+            <div class="item-subtotal">$${(item.price * item.qty).toFixed(2)}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="receipt-total">
+        <div class="total-line">
+          <span>Subtotal:</span>
+          <span>$${(sale.originalTotal || sale.total).toFixed(2)}</span>
+        </div>
+        ${(sale.discount || 0) > 0 ? `
+          <div class="total-line">
+            <span>Descuento:</span>
+            <span>-$${sale.discount.toFixed(2)}</span>
+          </div>
+        ` : ''}
+        <div class="total-line final">
+          <span>TOTAL:</span>
+          <span class="total-amount">$${sale.total.toFixed(2)}</span>
+        </div>
+      </div>
+      <div class="payment-type">
+        <i class="bi bi-${getPaymentIcon(sale.paymentType)}"></i>
+        <strong>Método de pago:</strong> ${getPaymentText(sale.paymentType)}
+        ${(sale.paymentType === 'credit' && sale.abono > 0) ? `<br><small>Abono inicial: $${sale.abono.toFixed(2)}</small>` : ''}
+      </div>
+      <div class="receipt-footer">
+        <div class="footer-message">
+          <i class="bi bi-heart"></i>
+          ¡Gracias por su compra!
+        </div>
+        <div class="footer-brand">
+          <small>TillUp POS - Gestión de Ventas</small>
+        </div>
+      </div>
+    </div>
+  `;
+  Swal.fire({
+    title: 'Venta Completada',
+    html: receiptHtml,
+    showCancelButton: true,
+    confirmButtonText: 'Imprimir',
+    cancelButtonText: 'Cerrar',
+    showDenyButton: true,
+    denyButtonText: 'Descargar PDF',
+    width: 500,
+    customClass: {
+      popup: 'swal2-receipt-treinta',
+      confirmButton: 'btn btn-primary',
+      cancelButton: 'btn btn-secondary',
+      denyButton: 'btn btn-outline-primary'
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      printReceipt(sale);
+    } else if (result.isDenied) {
+      downloadReceiptPDF(sale);
+    }
+  });
+}
+window.showReceipt = showReceipt;
+
+// --- Corregir fecha y abono en finalizeSaleDrawer y finalizeSale ---
+async function finalizeSaleDrawer() {
+  if (!cart || cart.length === 0) {
+    Swal.fire({ icon: 'warning', title: 'Carrito vacío', text: 'Agrega productos al carrito para continuar.', timer: 1200, showConfirmButton: false });
+    return;
+  }
+  const clientSelect = document.getElementById('saleClientDrawer');
+  const dateInput = document.getElementById('saleDateDrawer');
+  const clientId = clientSelect ? clientSelect.value : '';
+  const client = clients.find(c => c.id === clientId);
+  const saleDate = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().slice(0,10);
+  if (!client) {
+    Swal.fire({ icon: 'warning', title: 'Cliente requerido', text: 'Selecciona un cliente para la venta.', timer: 1200, showConfirmButton: false });
+    return;
+  }
+  // Mostrar opciones de pago y abono
+  const { value: paymentData } = await Swal.fire({
+    title: 'Método de pago',
+    html: `
+      <div class="mb-2">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="drawerPaymentType" id="drawerPaymentCash" value="cash" checked>
+          <label class="form-check-label" for="drawerPaymentCash"><i class="bi bi-cash-coin"></i> Contado</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="drawerPaymentType" id="drawerPaymentCredit" value="credit">
+          <label class="form-check-label" for="drawerPaymentCredit"><i class="bi bi-clock-history"></i> Crédito</label>
+        </div>
+      </div>
+      <div id="drawerAbonoSection" style="display:none;">
+        <label for="drawerAbono" class="form-label"><i class="bi bi-cash"></i> Abono inicial</label>
+        <div class="input-group">
+          <span class="input-group-text">$</span>
+          <input type="number" id="drawerAbono" class="form-control" min="0" step="0.01" placeholder="0.00" />
+        </div>
+      </div>
+      <script>
+        document.getElementById('drawerPaymentCredit').addEventListener('change', function() {
+          document.getElementById('drawerAbonoSection').style.display = 'block';
+        });
+        document.getElementById('drawerPaymentCash').addEventListener('change', function() {
+          document.getElementById('drawerAbonoSection').style.display = 'none';
+        });
+      <\/script>
+    `,
+    focusConfirm: false,
+    preConfirm: () => {
+      const paymentType = document.querySelector('input[name="drawerPaymentType"]:checked').value;
+      let abono = 0;
+      if (paymentType === 'credit') {
+        abono = parseFloat(document.getElementById('drawerAbono').value) || 0;
+      }
+      return { paymentType, abono };
+    }
+  });
+  // Calcular totales
+  const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const cost = cart.reduce((sum, item) => sum + (item.cost * item.qty), 0);
+  const profit = total - cost;
+  // Crear objeto de venta
+  const sale = {
+    id: Date.now().toString(36),
+    clientId: client.id,
+    clientName: client.name,
+    items: cart.map(item => ({ id: item.id, name: item.name, price: item.price, qty: item.qty })),
+    total,
+    cost,
+    profit,
+    paymentType: paymentData.paymentType,
+    abono: paymentData.abono,
+    date: saleDate + 'T' + new Date().toTimeString().slice(0,8),
+    createdAt: new Date().toISOString(),
+  };
+  sales.push(sale);
+  await saveToStorage('sales', sales);
+  cart = [];
+  renderCartDrawer();
+  toggleCartDrawer();
+  Swal.fire({ icon: 'success', title: 'Venta realizada', text: 'La venta se ha registrado correctamente.', timer: 1200, showConfirmButton: false });
+  showReceipt(sale);
+  renderSalesProducts();
+  updateBalanceUI && updateBalanceUI();
+}
+window.finalizeSaleDrawer = finalizeSaleDrawer;

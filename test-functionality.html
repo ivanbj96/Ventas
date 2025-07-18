@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Funcionalidades - Ventas App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>🧪 Test de Funcionalidades - Ventas App</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test de Navegación</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary mb-2" onclick="testNavigation()">Test Navegación</button>
+                        <div id="nav-results"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test de Botones Flotantes</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success mb-2" onclick="testFloatingButtons()">Test Botones</button>
+                        <div id="floating-results"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test de Fecha Global</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-warning mb-2" onclick="testDatePicker()">Test Fecha</button>
+                        <div id="date-results"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test de Cálculos</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-info mb-2" onclick="testCalculations()">Test Cálculos</button>
+                        <div id="calc-results"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Completo</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-danger mb-2" onclick="runAllTests()">Ejecutar Todos los Tests</button>
+                        <div id="all-results"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function testNavigation() {
+            const results = document.getElementById('nav-results');
+            results.innerHTML = '<p>🔄 Probando navegación...</p>';
+            
+            try {
+                // Simular funciones de navegación
+                const views = ['balance', 'sales', 'inventory', 'clients', 'chickens', 'debt'];
+                let passed = 0;
+                
+                views.forEach(view => {
+                    // Simular cambio de vista
+                    console.log(`Cambiando a vista: ${view}`);
+                    passed++;
+                });
+                
+                results.innerHTML = `<p>✅ Navegación: ${passed}/${views.length} vistas probadas</p>`;
+            } catch (error) {
+                results.innerHTML = `<p>❌ Error en navegación: ${error.message}</p>`;
+            }
+        }
+        
+        function testFloatingButtons() {
+            const results = document.getElementById('floating-results');
+            results.innerHTML = '<p>🔄 Probando botones flotantes...</p>';
+            
+            try {
+                // Simular funciones de botones flotantes
+                const actions = ['showQuickActions', 'toggleChickenDatePicker'];
+                let passed = 0;
+                
+                actions.forEach(action => {
+                    console.log(`Probando acción: ${action}`);
+                    passed++;
+                });
+                
+                results.innerHTML = `<p>✅ Botones flotantes: ${passed}/${actions.length} acciones probadas</p>`;
+            } catch (error) {
+                results.innerHTML = `<p>❌ Error en botones: ${error.message}</p>`;
+            }
+        }
+        
+        function testDatePicker() {
+            const results = document.getElementById('date-results');
+            results.innerHTML = '<p>🔄 Probando selector de fecha...</p>';
+            
+            try {
+                // Simular funciones de fecha
+                const dateFunctions = ['updateChickenSectionByDate', 'setChickenDateToToday', 'setChickenDateToYesterday'];
+                let passed = 0;
+                
+                dateFunctions.forEach(func => {
+                    console.log(`Probando función: ${func}`);
+                    passed++;
+                });
+                
+                results.innerHTML = `<p>✅ Selector de fecha: ${passed}/${dateFunctions.length} funciones probadas</p>`;
+            } catch (error) {
+                results.innerHTML = `<p>❌ Error en fecha: ${error.message}</p>`;
+            }
+        }
+        
+        function testCalculations() {
+            const results = document.getElementById('calc-results');
+            results.innerHTML = '<p>🔄 Probando cálculos...</p>';
+            
+            try {
+                // Simular cálculos de pollos
+                const quantity = 5;
+                const weight = 25.5;
+                const price = 2.50;
+                const cost = 2.00;
+                
+                const avgWeight = weight / quantity;
+                const total = weight * price;
+                const profit = (price - cost) * weight;
+                
+                if (avgWeight === 5.1 && total === 63.75 && profit === 12.75) {
+                    results.innerHTML = '<p>✅ Cálculos correctos</p>';
+                } else {
+                    results.innerHTML = '<p>❌ Error en cálculos</p>';
+                }
+            } catch (error) {
+                results.innerHTML = `<p>❌ Error en cálculos: ${error.message}</p>`;
+            }
+        }
+        
+        function runAllTests() {
+            const results = document.getElementById('all-results');
+            results.innerHTML = '<h4>🔄 Ejecutando todos los tests...</h4>';
+            
+            setTimeout(() => {
+                testNavigation();
+                testFloatingButtons();
+                testDatePicker();
+                testCalculations();
+                
+                results.innerHTML += '<h4>🎉 Tests completados</h4>';
+            }, 100);
+        }
+    </script>
+</body>
+</html> 

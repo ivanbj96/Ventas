@@ -1,5 +1,15 @@
 // === UTILIDADES GLOBALES DE TILLUP PWA ===
-// Versión: 1.3.1 - Optimizado para móviles
+// Versión: 1.4.0 - Sistema de persistencia mejorado
+
+// === Configuración de persistencia ===
+const STORAGE_CONFIG = {
+  // Datos críticos que deben persistir siempre
+  CRITICAL_DATA: ['sales', 'clients', 'products', 'debts', 'chickenSales'],
+  // Configuraciones que pueden usar localStorage
+  SETTINGS: ['theme', 'viewModes', 'pricePerPound', 'costPerPound'],
+  // Backup automático cada 5 minutos
+  BACKUP_INTERVAL: 5 * 60 * 1000
+};
 
 // === Formatear moneda (con soporte a centavos y localización) ===
 function formatCurrency(value) {
@@ -20,32 +30,160 @@ function formatCurrency(value) {
   }
 }
 
-// === Guardar y cargar desde localStorage de forma segura ===
-function saveToStorage(key, data) {
+// === Sistema de persistencia híbrido (localStorage + IndexedDB) ===
+async function saveToStorage(key, data) {
   try {
-    if (key && data !== null && data !== undefined) {
+    if (!key || data === null || data === undefined) {
+      return false;
+    }
+
+    // Guardar en localStorage (rápido)
+    const jsonData = JSON.stringify(data);
+    localStorage.setItem(key, jsonData);
+    
+    // Guardar en IndexedDB como respaldo (más confiable)
+    if (window.localforage && STORAGE_CONFIG.CRITICAL_DATA.includes(key)) {
+      await localforage.setItem(key, data);
+    }
+    
+    // Registrar la operación para debugging
+    console.debug(`Datos guardados: ${key}`, { size: jsonData.length, timestamp: new Date().toISOString() });
+    
+    return true;
+  } catch (error) {
+    console.error(`Error guardando datos (${key}):`, error);
+    
+    // Intentar guardar solo en localStorage como fallback
+    try {
       localStorage.setItem(key, JSON.stringify(data));
       return true;
+    } catch (fallbackError) {
+      console.error(`Error en fallback localStorage (${key}):`, fallbackError);
+      return false;
     }
-    return false;
+  }
+}
+
+async function loadFromStorage(key) {
+  try {
+    if (!key) return null;
+    
+    // Intentar cargar desde localStorage primero (más rápido)
+    const localData = localStorage.getItem(key);
+    if (localData) {
+      const parsed = JSON.parse(localData);
+      return parsed;
+    }
+    
+    // Si no está en localStorage, intentar desde IndexedDB
+    if (window.localforage && STORAGE_CONFIG.CRITICAL_DATA.includes(key)) {
+      const indexedData = await localforage.getItem(key);
+      if (indexedData !== null) {
+        // Restaurar en localStorage para futuras cargas rápidas
+        localStorage.setItem(key, JSON.stringify(indexedData));
+        return indexedData;
+      }
+    }
+    
+    return null;
   } catch (error) {
-    console.error(`Error guardando en localStorage (${key}):`, error);
+    console.error(`Error cargando datos (${key}):`, error);
+    return null;
+  }
+}
+
+// === Función para guardar todos los datos críticos ===
+async function saveAllCriticalData() {
+  try {
+    const criticalData = {
+      products: window.products || [],
+      clients: window.clients || [],
+      sales: window.sales || [],
+      debts: window.debts || [],
+      chickenSales: window.chickenSales || []
+    };
+    
+    const savePromises = Object.entries(criticalData).map(([key, data]) => 
+      saveToStorage(key, data)
+    );
+    
+    const results = await Promise.allSettled(savePromises);
+    const successCount = results.filter(r => r.status === 'fulfilled' && r.value).length;
+    
+    console.log(`Datos críticos guardados: ${successCount}/${Object.keys(criticalData).length} exitosos`);
+    
+    return successCount === Object.keys(criticalData).length;
+  } catch (error) {
+    console.error('Error guardando datos críticos:', error);
     return false;
   }
 }
 
-function loadFromStorage(key) {
+// === Función para cargar todos los datos críticos ===
+async function loadAllCriticalData() {
   try {
-    if (!key) return null;
+    const data = {};
     
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
+    for (const key of STORAGE_CONFIG.CRITICAL_DATA) {
+      data[key] = await loadFromStorage(key) || [];
+    }
     
-    const parsed = JSON.parse(raw);
-    return parsed;
+    // Cargar configuraciones
+    data.pricePerPound = parseFloat(localStorage.getItem('pricePerPound')) || 2.50;
+    data.costPerPound = parseFloat(localStorage.getItem('costPerPound')) || 0;
+    data.theme = localStorage.getItem('theme') || 'light';
+    
+    console.log('Datos críticos cargados:', {
+      products: data.products.length,
+      clients: data.clients.length,
+      sales: data.sales.length,
+      debts: data.debts.length,
+      chickenSales: data.chickenSales.length
+    });
+    
+    return data;
   } catch (error) {
-    console.error(`Error cargando de localStorage (${key}):`, error);
-    return null;
+    console.error('Error cargando datos críticos:', error);
+    return {
+      products: [],
+      clients: [],
+      sales: [],
+      debts: [],
+      chickenSales: [],
+      pricePerPound: 2.50,
+      costPerPound: 0,
+      theme: 'light'
+    };
+  }
+}
+
+// === Sistema de backup automático ===
+let backupInterval = null;
+
+function startAutoBackup() {
+  if (backupInterval) {
+    clearInterval(backupInterval);
+  }
+  
+  backupInterval = setInterval(async () => {
+    try {
+      const success = await saveAllCriticalData();
+      if (success) {
+        console.debug('Backup automático completado');
+      }
+    } catch (error) {
+      console.error('Error en backup automático:', error);
+    }
+  }, STORAGE_CONFIG.BACKUP_INTERVAL);
+  
+  console.log('Backup automático iniciado');
+}
+
+function stopAutoBackup() {
+  if (backupInterval) {
+    clearInterval(backupInterval);
+    backupInterval = null;
+    console.log('Backup automático detenido');
   }
 }
 
@@ -326,87 +464,168 @@ function deleteProforma(clientId) {
   }
 }
 
-// === Funciones de limpieza y mantenimiento ===
-function cleanLocalStorage() {
+// === Función para verificar integridad de datos ===
+function validateDataIntegrity() {
   try {
-    const keysToKeep = [
-      'products', 'clients', 'sales', 'debts', 'cart', 'chickenSales',
-      'currentClientId', 'chickenConfig', 'proformas', 'appVersion',
-      'theme', 'inventoryViewMode', 'clientsViewMode', 'salesViewMode'
-    ];
+    const issues = [];
     
-    const allKeys = Object.keys(localStorage);
-    const keysToRemove = allKeys.filter(key => !keysToKeep.includes(key));
+    // Verificar que todos los arrays críticos existan y sean arrays
+    for (const key of STORAGE_CONFIG.CRITICAL_DATA) {
+      const data = loadFromStorage(key);
+      if (!Array.isArray(data)) {
+        issues.push(`${key}: no es un array válido`);
+      }
+    }
     
-    keysToRemove.forEach(key => {
-      localStorage.removeItem(key);
-    });
+    // Verificar ventas
+    const sales = loadFromStorage('sales') || [];
+    for (let i = 0; i < sales.length; i++) {
+      const sale = sales[i];
+      if (!sale.id || !sale.date || !sale.total) {
+        issues.push(`Venta ${i}: datos incompletos`);
+      }
+    }
     
-    console.log(`Limpieza completada. Eliminadas ${keysToRemove.length} claves.`);
-    return true;
+    // Verificar clientes
+    const clients = loadFromStorage('clients') || [];
+    for (let i = 0; i < clients.length; i++) {
+      const client = clients[i];
+      if (!client.id || !client.name) {
+        issues.push(`Cliente ${i}: datos incompletos`);
+      }
+    }
+    
+    // Verificar productos
+    const products = loadFromStorage('products') || [];
+    for (let i = 0; i < products.length; i++) {
+      const product = products[i];
+      if (!product.id || !product.name || !product.price) {
+        issues.push(`Producto ${i}: datos incompletos`);
+      }
+    }
+    
+    if (issues.length > 0) {
+      console.warn('Problemas de integridad detectados:', issues);
+      return { valid: false, issues };
+    }
+    
+    return { valid: true, issues: [] };
   } catch (error) {
-    console.error('Error limpiando localStorage:', error);
-    return false;
+    console.error('Error validando integridad:', error);
+    return { valid: false, issues: ['Error en validación'] };
   }
 }
 
-function exportData() {
+// === Función para limpiar datos corruptos ===
+function cleanCorruptedData() {
   try {
-    const data = {
-      products: loadFromStorage('products') || [],
-      clients: loadFromStorage('clients') || [],
-      sales: loadFromStorage('sales') || [],
-      debts: loadFromStorage('debts') || [],
-      chickenSales: loadFromStorage('chickenSales') || [],
-      chickenConfig: loadFromStorage('chickenConfig') || {},
-      proformas: loadFromStorage('proformas') || {},
-      exportDate: new Date().toISOString(),
-      version: '1.3.1'
+    let cleanedCount = 0;
+    
+    for (const key of STORAGE_CONFIG.CRITICAL_DATA) {
+      const data = loadFromStorage(key);
+      if (data && Array.isArray(data)) {
+        // Filtrar elementos corruptos
+        const cleanData = data.filter(item => {
+          if (!item || typeof item !== 'object') return false;
+          
+          switch (key) {
+            case 'sales':
+              return item.id && item.date && typeof item.total === 'number';
+            case 'clients':
+              return item.id && item.name;
+            case 'products':
+              return item.id && item.name && typeof item.price === 'number';
+            case 'debts':
+              return item.id && item.clientId && typeof item.amount === 'number';
+            case 'chickenSales':
+              return item.id && item.date && typeof item.total === 'number';
+            default:
+              return true;
+          }
+        });
+        
+        if (cleanData.length !== data.length) {
+          saveToStorage(key, cleanData);
+          cleanedCount += (data.length - cleanData.length);
+        }
+      }
+    }
+    
+    if (cleanedCount > 0) {
+      console.log(`Datos corruptos limpiados: ${cleanedCount} elementos`);
+    }
+    
+    return cleanedCount;
+  } catch (error) {
+    console.error('Error limpiando datos corruptos:', error);
+    return 0;
+  }
+}
+
+// === Función para exportar todos los datos ===
+function exportAllData() {
+  try {
+    const exportData = {};
+    
+    // Exportar datos críticos
+    for (const key of STORAGE_CONFIG.CRITICAL_DATA) {
+      exportData[key] = loadFromStorage(key) || [];
+    }
+    
+    // Exportar configuraciones
+    exportData.settings = {
+      pricePerPound: parseFloat(localStorage.getItem('pricePerPound')) || 2.50,
+      costPerPound: parseFloat(localStorage.getItem('costPerPound')) || 0,
+      theme: localStorage.getItem('theme') || 'light',
+      inventoryViewMode: localStorage.getItem('inventoryViewMode') || 'grid',
+      clientsViewMode: localStorage.getItem('clientsViewMode') || 'grid'
     };
     
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+    // Agregar metadatos
+    exportData.metadata = {
+      exportDate: new Date().toISOString(),
+      version: '1.4.0',
+      totalRecords: Object.values(exportData).reduce((sum, data) => 
+        Array.isArray(data) ? sum + data.length : sum, 0
+      )
+    };
     
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `tillup_backup_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    return true;
+    return exportData;
   } catch (error) {
     console.error('Error exportando datos:', error);
-    return false;
+    return null;
   }
 }
 
-function importData(jsonData) {
+// === Función para importar datos ===
+async function importData(jsonData) {
   try {
     if (!jsonData || typeof jsonData !== 'object') {
-      throw new Error('Datos inválidos');
+      throw new Error('Datos de importación inválidos');
     }
     
-    const requiredKeys = ['products', 'clients', 'sales', 'debts'];
-    const missingKeys = requiredKeys.filter(key => !jsonData[key]);
+    let importedCount = 0;
     
-    if (missingKeys.length > 0) {
-      throw new Error(`Datos incompletos. Faltan: ${missingKeys.join(', ')}`);
-    }
-    
-    // Guardar datos importados
-    Object.entries(jsonData).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        saveToStorage(key, value);
+    // Importar datos críticos
+    for (const key of STORAGE_CONFIG.CRITICAL_DATA) {
+      if (jsonData[key] && Array.isArray(jsonData[key])) {
+        await saveToStorage(key, jsonData[key]);
+        importedCount += jsonData[key].length;
       }
-    });
+    }
     
-    console.log('Datos importados correctamente');
-    return true;
+    // Importar configuraciones
+    if (jsonData.settings) {
+      Object.entries(jsonData.settings).forEach(([key, value]) => {
+        localStorage.setItem(key, JSON.stringify(value));
+      });
+    }
+    
+    console.log(`Datos importados: ${importedCount} registros`);
+    return { success: true, count: importedCount };
   } catch (error) {
     console.error('Error importando datos:', error);
-    return false;
+    return { success: false, error: error.message };
   }
 }
 
@@ -461,45 +680,37 @@ function copyToClipboard(text) {
   }
 }
 
-// === Funciones de validación de datos ===
-function validateDataIntegrity() {
+// === Funciones de utilidad para UI ===
+function getStorageStats() {
   try {
-    const issues = [];
-    
-    // Verificar productos
-    const products = loadFromStorage('products') || [];
-    products.forEach((product, index) => {
-      if (!product.id || !product.name || !product.price) {
-        issues.push(`Producto ${index + 1}: datos incompletos`);
-      }
-    });
-    
-    // Verificar clientes
-    const clients = loadFromStorage('clients') || [];
-    clients.forEach((client, index) => {
-      if (!client.id || !client.name) {
-        issues.push(`Cliente ${index + 1}: datos incompletos`);
-      }
-    });
-    
-    // Verificar ventas
-    const sales = loadFromStorage('sales') || [];
-    sales.forEach((sale, index) => {
-      if (!sale.id || !sale.total || !sale.date) {
-        issues.push(`Venta ${index + 1}: datos incompletos`);
-      }
-    });
-    
-    return {
-      isValid: issues.length === 0,
-      issues: issues
+    const stats = {
+      localStorage: {
+        used: 0,
+        available: 0
+      },
+      criticalData: {}
     };
+    
+    // Calcular uso de localStorage
+    let totalSize = 0;
+    for (const key of STORAGE_CONFIG.CRITICAL_DATA) {
+      const data = localStorage.getItem(key);
+      if (data) {
+        totalSize += data.length;
+        stats.criticalData[key] = {
+          size: data.length,
+          records: JSON.parse(data).length
+        };
+      }
+    }
+    
+    stats.localStorage.used = totalSize;
+    stats.localStorage.available = 5 * 1024 * 1024; // 5MB típico
+    
+    return stats;
   } catch (error) {
-    console.error('Error validando integridad de datos:', error);
-    return {
-      isValid: false,
-      issues: ['Error en validación']
-    };
+    console.error('Error obteniendo estadísticas:', error);
+    return null;
   }
 }
 
@@ -525,12 +736,13 @@ window.groupBy = groupBy;
 window.saveProforma = saveProforma;
 window.loadProforma = loadProforma;
 window.deleteProforma = deleteProforma;
-window.cleanLocalStorage = cleanLocalStorage;
-window.exportData = exportData;
+window.cleanLocalStorage = cleanCorruptedData; // Renamed to reflect new functionality
+window.exportData = exportAllData; // Renamed to reflect new functionality
 window.importData = importData;
 window.debounce = debounce;
 window.throttle = throttle;
 window.copyToClipboard = copyToClipboard;
 window.validateDataIntegrity = validateDataIntegrity;
+window.getStorageStats = getStorageStats; // Added new function to window
 
 console.log('✅ Utilidades globales cargadas correctamente');
