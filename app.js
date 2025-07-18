@@ -6132,7 +6132,12 @@ if (document.readyState !== 'loading') {
 // Finalizar venta desde el drawer Temu
 async function finalizeSaleDrawer() {
   if (!cart || cart.length === 0) {
-    Swal.fire({ icon: 'warning', title: 'Carrito vacío', text: 'Agrega productos al carrito para continuar.', timer: 1200, showConfirmButton: false });
+    Swal.fire({
+      icon: 'warning',
+      title: 'Carrito vacío',
+      text: 'Agrega productos al carrito para continuar.',
+      confirmButtonText: 'Aceptar'
+    });
     return;
   }
   const clientSelect = document.getElementById('saleClientDrawer');
@@ -6323,24 +6328,24 @@ async function finalizeSaleDrawer() {
     return;
   }
   // Mostrar opciones de pago y abono
-  const { value: paymentData } = await Swal.fire({
+  await Swal.fire({
     title: 'Método de pago',
     html: `
-      <div class="mb-2">
-        <div class="form-check">
-          <input class="form-check-input" type="radio" name="drawerPaymentType" id="drawerPaymentCash" value="cash" checked>
-          <label class="form-check-label" for="drawerPaymentCash"><i class="bi bi-cash-coin"></i> Contado</label>
+      <div class=\"mb-2\">
+        <div class=\"form-check\">
+          <input class=\"form-check-input\" type=\"radio\" name=\"drawerPaymentType\" id=\"drawerPaymentCash\" value=\"cash\" checked>
+          <label class=\"form-check-label\" for=\"drawerPaymentCash\"><i class=\"bi bi-cash-coin\"></i> Contado</label>
         </div>
-        <div class="form-check">
-          <input class="form-check-input" type="radio" name="drawerPaymentType" id="drawerPaymentCredit" value="credit">
-          <label class="form-check-label" for="drawerPaymentCredit"><i class="bi bi-clock-history"></i> Crédito</label>
+        <div class=\"form-check\">
+          <input class=\"form-check-input\" type=\"radio\" name=\"drawerPaymentType\" id=\"drawerPaymentCredit\" value=\"credit\">
+          <label class=\"form-check-label\" for=\"drawerPaymentCredit\"><i class=\"bi bi-clock-history\"></i> Crédito</label>
         </div>
       </div>
-      <div id="drawerAbonoSection" style="display:none;">
-        <label for="drawerAbono" class="form-label"><i class="bi bi-cash"></i> Abono inicial</label>
-        <div class="input-group">
-          <span class="input-group-text">$</span>
-          <input type="number" id="drawerAbono" class="form-control" min="0" step="0.01" placeholder="0.00" />
+      <div id=\"drawerAbonoSection\" style=\"display:none;\">
+        <label for=\"drawerAbono\" class=\"form-label\"><i class=\"bi bi-cash\"></i> Abono inicial</label>
+        <div class=\"input-group\">
+          <span class=\"input-group-text\">$</span>
+          <input type=\"number\" id=\"drawerAbono\" class=\"form-control\" min=\"0\" step=\"0.01\" placeholder=\"0.00\" />
         </div>
       </div>
       <script>
@@ -6354,40 +6359,141 @@ async function finalizeSaleDrawer() {
     `,
     focusConfirm: false,
     preConfirm: () => {
-      const paymentType = document.querySelector('input[name="drawerPaymentType"]:checked').value;
+      const paymentType = document.querySelector('input[name=\"drawerPaymentType\"]:checked').value;
       let abono = 0;
       if (paymentType === 'credit') {
         abono = parseFloat(document.getElementById('drawerAbono').value) || 0;
       }
       return { paymentType, abono };
     }
+  }).then(async (result) => {
+    if (!result.isConfirmed) return;
+    const paymentData = result.value;
+    // Calcular totales
+    const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const cost = cart.reduce((sum, item) => sum + (item.cost * item.qty), 0);
+    const profit = total - cost;
+    // Crear objeto de venta
+    const sale = {
+      id: Date.now().toString(36),
+      clientId: client.id,
+      clientName: client.name,
+      items: cart.map(item => ({ id: item.id, name: item.name, price: item.price, qty: item.qty })),
+      total,
+      cost,
+      profit,
+      paymentType: paymentData.paymentType,
+      abono: paymentData.abono,
+      date: saleDate + 'T' + new Date().toTimeString().slice(0,8),
+      createdAt: new Date().toISOString(),
+    };
+    sales.push(sale);
+    await saveToStorage('sales', sales);
+    // --- Lógica de venta a crédito ---
+    if (paymentData.paymentType === 'credit') {
+      // Crear deuda
+      const saldo = total - (paymentData.abono || 0);
+      const debt = {
+        id: 'debt_' + Date.now().toString(36),
+        clientId: client.id,
+        clientName: client.name,
+        amount: saldo,
+        abono: paymentData.abono || 0,
+        total: total,
+        date: saleDate + 'T' + new Date().toTimeString().slice(0,8),
+        createdAt: new Date().toISOString(),
+        reason: 'Venta a crédito',
+        payments: []
+      };
+      if (!debts || !Array.isArray(debts)) debts = [];
+      debts.push(debt);
+      await saveToStorage('debts', debts);
+      // Actualizar deuda del cliente
+      client.debt = (client.debt || 0) + saldo;
+      await saveToStorage('clients', clients);
+      renderDebts && renderDebts();
+    }
+    cart = [];
+    renderCartDrawer();
+    toggleCartDrawer();
+    Swal.fire({ icon: 'success', title: 'Venta realizada', text: 'La venta se ha registrado correctamente.', timer: 1200, showConfirmButton: false });
+    showReceipt(sale);
+    renderSalesProducts();
+    renderBalanceGrid && renderBalanceGrid();
+    updateBalanceUI && updateBalanceUI();
   });
-  // Calcular totales
-  const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-  const cost = cart.reduce((sum, item) => sum + (item.cost * item.qty), 0);
-  const profit = total - cost;
-  // Crear objeto de venta
-  const sale = {
-    id: Date.now().toString(36),
-    clientId: client.id,
-    clientName: client.name,
-    items: cart.map(item => ({ id: item.id, name: item.name, price: item.price, qty: item.qty })),
-    total,
-    cost,
-    profit,
-    paymentType: paymentData.paymentType,
-    abono: paymentData.abono,
-    date: saleDate + 'T' + new Date().toTimeString().slice(0,8),
-    createdAt: new Date().toISOString(),
-  };
-  sales.push(sale);
-  await saveToStorage('sales', sales);
-  cart = [];
-  renderCartDrawer();
-  toggleCartDrawer();
-  Swal.fire({ icon: 'success', title: 'Venta realizada', text: 'La venta se ha registrado correctamente.', timer: 1200, showConfirmButton: false });
-  showReceipt(sale);
-  renderSalesProducts();
-  updateBalanceUI && updateBalanceUI();
 }
 window.finalizeSaleDrawer = finalizeSaleDrawer;
+
+// Adapta showCreditSaleModal para Temu:
+function showCreditSaleModal(total, cost, client, cartOverride, saleDateOverride) {
+  Swal.fire({
+    title: 'Venta a Crédito',
+    html: `
+      <div class="mb-2">Cliente: <strong>${client.name}</strong></div>
+      <div class="mb-2">Total: <strong>$${total.toFixed(2)}</strong></div>
+      <div class="mb-2">Abono inicial:</div>
+      <input id="abonoInputTemu" type="number" min="0" max="${total}" class="form-control" placeholder="Abono" />
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Registrar Venta a Crédito',
+    cancelButtonText: 'Cancelar',
+    preConfirm: () => {
+      const abono = parseFloat(document.getElementById('abonoInputTemu').value) || 0;
+      if (abono < 0 || abono > total) {
+        Swal.showValidationMessage('El abono debe ser entre 0 y el total');
+        return false;
+      }
+      return abono;
+    }
+  }).then(async (result) => {
+    if (!result.isConfirmed) return;
+    const abono = result.value;
+    const saldo = total - abono;
+    const sale = {
+      id: generateId('sale'),
+      clientId: client.id,
+      clientName: client.name,
+      items: (cartOverride || cart).map(item => ({ id: item.id, name: item.name, price: item.price, qty: item.qty })),
+      total,
+      originalTotal: total,
+      discount: 0,
+      cost,
+      profit: total - cost,
+      paymentType: 'credit',
+      abono,
+      date: (saleDateOverride || new Date().toISOString().slice(0,10)) + 'T' + new Date().toTimeString().slice(0,8),
+      time: new Date().toLocaleTimeString(),
+      createdAt: new Date().toISOString(),
+    };
+    if (!sales || !Array.isArray(sales)) sales = [];
+    sales.push(sale);
+    // Registrar deuda
+    const debt = {
+      id: 'debt_' + Date.now().toString(36),
+      clientId: client.id,
+      clientName: client.name,
+      amount: saldo,
+      abono: abono,
+      total: total,
+      date: sale.date,
+      createdAt: new Date().toISOString(),
+      reason: 'Venta a crédito',
+      payments: []
+    };
+    if (!debts || !Array.isArray(debts)) debts = [];
+    debts.push(debt);
+    client.debt = (client.debt || 0) + saldo;
+    await saveToStorage('sales', sales);
+    await saveToStorage('debts', debts);
+    await saveToStorage('clients', clients);
+    cart = [];
+    renderCartDrawer();
+    toggleCartDrawer();
+    updateBalanceUI();
+    renderBalanceGrid();
+    renderDebts && renderDebts();
+    showReceipt(sale);
+  });
+}
+// ... código existente ...
