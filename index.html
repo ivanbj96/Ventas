@@ -463,222 +463,279 @@
 </section>
 
       <!-- Nueva sección de facturación de pollos tipo checkout profesional -->
-      <section id="view-chickens" class="app-view d-none">
-        <div class="container-chicken-checkout">
-          <!-- Cabecera y estadísticas -->
-          <div class="row g-4 align-items-stretch mb-4">
-            <div class="col-lg-7">
-              <div class="checkout-header-treinta mb-3">
-                <div class="d-flex align-items-center gap-3">
-                  <div class="checkout-icon-treinta">
-                    <i class="bi bi-egg-fried"></i>
-                  </div>
-                  <div>
-                    <h2 class="mb-0">Facturación de Pollos</h2>
-                    <div class="checkout-subtitle-treinta">Sistema profesional de ventas</div>
-                  </div>
-                </div>
-              </div>
-              <!-- Estadísticas -->
-              <div class="row g-2 mb-2 chicken-stats-treinta">
-                <div class="col-6 col-md-3">
-                  <div class="stat-card-treinta">
-                    <div class="stat-icon"><i class="bi bi-egg-fried"></i></div>
-                    <div class="stat-content">
-                      <div class="stat-value" id="totalChickensSold">0</div>
-                      <div class="stat-label">Vendidos Hoy</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3">
-                  <div class="stat-card-treinta">
-                    <div class="stat-icon"><i class="bi bi-scale"></i></div>
-                    <div class="stat-content">
-                      <div class="stat-value" id="totalWeightSold">0.0</div>
-                      <div class="stat-label">Libras Hoy</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3">
-                  <div class="stat-card-treinta">
-                    <div class="stat-icon"><i class="bi bi-currency-dollar"></i></div>
-                    <div class="stat-content">
-                      <div class="stat-value" id="totalRevenue">$0.00</div>
-                      <div class="stat-label">Ingresos Hoy</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3">
-                  <div class="stat-card-treinta">
-                    <div class="stat-icon"><i class="bi bi-graph-up"></i></div>
-                    <div class="stat-content">
-                      <div class="stat-value" id="avgWeight">0.0</div>
-                      <div class="stat-label">Peso Promedio</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <!-- Botón para mostrar/ocultar ganancias -->
-              <div class="text-end mb-2">
-                <button class="btn btn-outline-primary btn-sm" id="toggleProfitStats" onclick="toggleProfitStats()">
-                  <i class="bi bi-eye" id="profitStatsIcon"></i>
-                  <span id="profitStatsText">Mostrar Ganancias</span>
-                </button>
-              </div>
-              <!-- Estadísticas de ganancias (ocultas por defecto) -->
-              <div class="row g-2 mb-3" id="profitStatsSection" style="display: none;">
-                <div class="col-md-4">
-                  <div class="stat-card-treinta profit">
-                    <div class="stat-icon"><i class="bi bi-cash-coin"></i></div>
-                    <div class="stat-content">
-                      <div class="stat-value" id="totalProfit">$0.00</div>
-                      <div class="stat-label">Ganancias Totales</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="stat-card-treinta profit">
-                    <div class="stat-icon"><i class="bi bi-percent"></i></div>
-                    <div class="stat-content">
-                      <div class="stat-value" id="profitMargin">0%</div>
-                      <div class="stat-label">Margen de Ganancia</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="stat-card-treinta profit">
-                    <div class="stat-icon"><i class="bi bi-coin"></i></div>
-                    <div class="stat-content">
-                      <div class="stat-value" id="profitPerChicken">$0.00</div>
-                      <div class="stat-label">Ganancia por Pollo</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+      <!-- Vista: Pollos -->
+<section id="view-chickens" class="app-view d-none">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">
+      <i class="bi bi-egg-fried"></i> Gestión de Pollos
+    </h2>
+    <div class="d-flex gap-2">
+      <button onclick="generatePDF('chickens')" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-download"></i> Exportar PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Configuración de precio por libra -->
+  <div class="chicken-config-treinta mb-4">
+    <div class="card card-custom">
+      <div class="card-body">
+        <h5 class="card-title">
+          <i class="bi bi-gear"></i> Configuración de Precio
+        </h5>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="pricePerPound" class="form-label">
+              <i class="bi bi-currency-dollar"></i> Precio por Libra (PVP)
+            </label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" id="pricePerPound" class="form-control form-control-treinta" 
+                     step="0.01" placeholder="0.00" value="2.50" />
             </div>
-            <!-- Panel de resumen de venta -->
-            <div class="col-lg-5">
-              <div class="checkout-summary-treinta">
-                <div class="summary-header-treinta">
-                  <i class="bi bi-receipt"></i> Resumen de Venta
+            <div class="form-text">Precio actual por libra de pollo</div>
+          </div>
+          <div class="col-md-6">
+            <label for="costPerPound" class="form-label">
+              <i class="bi bi-cash"></i> Costo por Libra
+            </label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" id="costPerPound" class="form-control form-control-treinta" 
+                     step="0.01" placeholder="0.00" value="2.00" />
+            </div>
+            <div class="form-text">Costo actual por libra de pollo</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">&nbsp;</label>
+            <button onclick="updatePricePerPound()" class="btn btn-primary btn-treinta w-100">
+              <i class="bi bi-check-circle"></i> Actualizar Precio
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estadísticas de pollos -->
+  <div class="chicken-stats-treinta mb-4">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <div class="stat-card-treinta">
+          <div class="stat-icon">
+            <i class="bi bi-egg-fried"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value" id="totalChickensSold">0</div>
+            <div class="stat-label">Pollos Vendidos Hoy</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card-treinta">
+          <div class="stat-icon">
+            <i class="bi bi-scale"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value" id="totalWeightSold">0.0</div>
+            <div class="stat-label">Libras Vendidas Hoy</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card-treinta">
+          <div class="stat-icon">
+            <i class="bi bi-currency-dollar"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value" id="totalRevenue">$0.00</div>
+            <div class="stat-label">Ingresos Hoy</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card-treinta">
+          <div class="stat-icon">
+            <i class="bi bi-graph-up"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value" id="avgWeight">0.0</div>
+            <div class="stat-label">Peso Promedio</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card-treinta" id="profitStatsCard">
+          <div class="stat-icon">
+            <i class="bi bi-cash-stack"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value blur-profit" id="totalProfit">$0.00</div>
+            <div class="stat-label">Ganancias Hoy</div>
+          </div>
+          <button id="toggleProfitStatsBtn" class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2" title="Mostrar/Ocultar Ganancias">
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Sección de ganancias oculta por defecto -->
+    <div id="profitStatsSection" class="row g-3 mt-3" style="display: none;">
+      <div class="col-md-6">
+        <div class="stat-card-treinta stat-card-profit">
+          <div class="stat-icon">
+            <i class="bi bi-graph-up-arrow"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value" id="totalProfitToday">$0.00</div>
+            <div class="stat-label">Ganancias Totales Hoy</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="stat-card-treinta stat-card-profit">
+          <div class="stat-icon">
+            <i class="bi bi-percent"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value" id="profitMargin">0%</div>
+            <div class="stat-label">Margen de Ganancia</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nueva venta de pollos -->
+  <div class="chicken-sale-treinta mb-4">
+    <div class="card card-custom">
+      <div class="card-body">
+        <h5 class="card-title">
+          <i class="bi bi-plus-circle"></i> Nueva Venta de Pollos
+        </h5>
+        <form id="chickenSaleForm" class="form-treinta">
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label for="chickenSaleDate" class="form-label"><i class="bi bi-calendar-event"></i> Fecha de facturación</label>
+              <input type="date" id="chickenSaleDate" class="form-control form-control-treinta" />
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="chickenClient" class="form-label">
+                <i class="bi bi-person"></i> Seleccionar Cliente
+              </label>
+              <select id="chickenClient" class="form-select form-select-treinta" required>
+                <option value="">Seleccionar cliente...</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="chickenQuantity" class="form-label">
+                <i class="bi bi-hash"></i> Cantidad de Pollos
+              </label>
+              <input type="number" id="chickenQuantity" class="form-control form-control-treinta" 
+                     min="1" value="1" required />
+            </div>
+            <div class="col-md-3">
+              <label for="chickenWeight" class="form-label">
+                <i class="bi bi-scale"></i> Peso Total (lbs)
+              </label>
+              <input type="number" id="chickenWeight" class="form-control form-control-treinta" 
+                     step="0.1" min="0.1" placeholder="0.0" required />
+            </div>
+          </div>
+          
+          <div class="row g-3 mt-3">
+            <div class="col-md-6">
+              <label class="form-label">
+                <i class="bi bi-calculator"></i> Cálculo Automático
+              </label>
+              <div class="calculation-display-treinta">
+                <div class="calculation-item">
+                  <span>Precio por libra:</span>
+                  <span id="displayPricePerPound">$0.00</span>
                 </div>
-                <div class="summary-body-treinta">
-                  <div class="summary-row-treinta">
-                    <span>Cliente:</span>
-                    <span id="summaryChickenClient">-</span>
-                  </div>
-                  <div class="summary-row-treinta">
-                    <span>Fecha:</span>
-                    <span id="summaryChickenDate">-</span>
-                  </div>
-                  <div class="summary-row-treinta">
-                    <span>Cantidad:</span>
-                    <span id="summaryChickenQuantity">-</span>
-                  </div>
-                  <div class="summary-row-treinta">
-                    <span>Peso total:</span>
-                    <span id="summaryChickenWeight">-</span>
-                  </div>
-                  <div class="summary-row-treinta">
-                    <span>Precio x libra:</span>
-                    <span id="summaryChickenPVP">-</span>
-                  </div>
-                  <div class="summary-row-treinta total">
-                    <span>Total a pagar:</span>
-                    <span id="summaryChickenTotal">$0.00</span>
-                  </div>
-                  <div class="summary-row-treinta">
-                    <span>Forma de pago:</span>
-                    <span id="summaryChickenPayment">-</span>
-                  </div>
-                  <div class="summary-row-treinta" id="summaryChickenAbonoRow" style="display:none;">
-                    <span>Abono inicial:</span>
-                    <span id="summaryChickenAbono">-</span>
-                  </div>
+                <div class="calculation-item">
+                  <span>Costo por libra:</span>
+                  <span id="displayCostPerPound">$0.00</span>
                 </div>
-                <div class="summary-footer-treinta">
-                  <button type="button" class="btn btn-primary w-100" onclick="finalizeChickenSale()">
-                    <i class="bi bi-check-circle"></i> Finalizar Venta de Pollos
+                <div class="calculation-item">
+                  <span>Ganancia por libra:</span>
+                  <span id="displayProfitPerPound" class="profit-amount blur-profit">$0.00</span>
+                  <button id="toggleProfitPerPoundBtn" class="btn btn-sm btn-outline-secondary ms-2" title="Mostrar/Ocultar Ganancia">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
+                <div class="calculation-item">
+                  <span>Total a pagar:</span>
+                  <span id="displayTotalAmount" class="total-amount">$0.00</span>
+                </div>
+                <div class="calculation-item">
+                  <span>Ganancia total:</span>
+                  <span id="displayTotalProfit" class="profit-amount blur-profit">$0.00</span>
+                  <button id="toggleTotalProfitBtn" class="btn btn-sm btn-outline-secondary ms-2" title="Mostrar/Ocultar Ganancia">
+                    <i class="bi bi-eye"></i>
                   </button>
                 </div>
               </div>
             </div>
-          </div>
-
-          <!-- Formulario de venta tipo checkout -->
-          <div class="checkout-form-treinta mb-4">
-            <form id="chickenSaleForm" class="form-treinta row g-4 align-items-end" onsubmit="handleChickenSale(event)">
-              <div class="col-md-3">
-                <label for="chickenSaleDate" class="form-label"><i class="bi bi-calendar-event"></i> Fecha</label>
-                <input type="date" id="chickenSaleDate" class="form-control form-control-treinta" required />
-              </div>
-              <div class="col-md-3">
-                <label for="chickenClient" class="form-label"><i class="bi bi-person"></i> Cliente</label>
-                <select id="chickenClient" class="form-select form-select-treinta" required>
-                  <option value="">Seleccionar cliente...</option>
-                </select>
-              </div>
-              <div class="col-md-2">
-                <label for="chickenQuantity" class="form-label"><i class="bi bi-hash"></i> Cantidad</label>
-                <input type="number" id="chickenQuantity" class="form-control form-control-treinta" min="1" value="1" required />
-              </div>
-              <div class="col-md-2">
-                <label for="chickenWeight" class="form-label"><i class="bi bi-scale"></i> Peso (lbs)</label>
-                <input type="number" id="chickenWeight" class="form-control form-control-treinta" step="0.1" min="0.1" placeholder="0.0" required />
-              </div>
-              <div class="col-md-2">
-                <label for="pricePerPound" class="form-label"><i class="bi bi-currency-dollar"></i> PVP/lb</label>
-                <input type="number" id="pricePerPound" class="form-control form-control-treinta" step="0.01" placeholder="0.00" value="2.50" />
-              </div>
-              <div class="col-md-3">
-                <label class="form-label"><i class="bi bi-credit-card"></i> Pago</label>
-                <div class="payment-options-treinta d-flex gap-2">
-                  <div class="form-check">
-                    <input class="form-check-input" type="radio" name="chickenPayment" id="chickenCash" value="cash" checked>
-                    <label class="form-check-label" for="chickenCash"><i class="bi bi-cash-coin"></i> Contado</label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="radio" name="chickenPayment" id="chickenCredit" value="credit">
-                    <label class="form-check-label" for="chickenCredit"><i class="bi bi-credit-card"></i> Crédito</label>
-                  </div>
+            <div class="col-md-6">
+              <label class="form-label">
+                <i class="bi bi-credit-card"></i> Forma de Pago
+              </label>
+              <div class="payment-options-treinta">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="chickenPayment" id="chickenCash" value="cash" checked>
+                  <label class="form-check-label" for="chickenCash">
+                    <i class="bi bi-cash-coin"></i> Al Contado
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="chickenPayment" id="chickenCredit" value="credit">
+                  <label class="form-check-label" for="chickenCredit">
+                    <i class="bi bi-credit-card"></i> A Crédito
+                  </label>
                 </div>
               </div>
-              <div class="col-md-3" id="chickenAbonoSection" style="display: none;">
-                <label for="chickenAbono" class="form-label"><i class="bi bi-cash"></i> Abono Inicial</label>
+              
+              <!-- Abono inicial (solo para crédito) -->
+              <div id="chickenAbonoSection" class="mt-3" style="display: none;">
+                <label for="chickenAbono" class="form-label">
+                  <i class="bi bi-cash"></i> Abono Inicial
+                </label>
                 <div class="input-group">
                   <span class="input-group-text">$</span>
-                  <input type="number" id="chickenAbono" class="form-control form-control-treinta" step="0.01" min="0" placeholder="0.00" />
+                  <input type="number" id="chickenAbono" class="form-control form-control-treinta" 
+                         step="0.01" min="0" placeholder="0.00" />
                 </div>
               </div>
-              <div class="col-md-3">
-                <label class="form-label"><i class="bi bi-calculator"></i> Total</label>
-                <div class="calculation-display-treinta">
-                  <div class="calculation-item">
-                    <span>Total a pagar:</span>
-                    <span id="displayTotalAmount" class="total-amount">$0.00</span>
-                  </div>
-                </div>
-              </div>
-              <div class="col-12 d-md-none mt-3">
-                <button type="submit" class="btn btn-primary btn-treinta w-100">
-                  <i class="bi bi-check-circle"></i> Finalizar Venta de Pollos
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
+          
+          <div class="d-grid gap-2 mt-4">
+            <button type="submit" class="btn btn-primary btn-treinta">
+              <i class="bi bi-check-circle"></i> Finalizar Venta de Pollos
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
-          <!-- Historial de ventas de pollos -->
-          <div class="chicken-history-treinta mt-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="mb-0"><i class="bi bi-clock-history"></i> Historial de Ventas de Pollos</h5>
-              <span class="badge bg-secondary" id="chickenSalesCount">0 ventas</span>
-            </div>
-            <div id="chickenSalesList" class="chicken-sales-list-treinta">
-              <!-- Historial generado por JS -->
-            </div>
-          </div>
-        </div>
-      </section>
+  <!-- Historial de ventas de pollos -->
+  <div class="chicken-history-treinta">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">
+        <i class="bi bi-clock-history"></i> Historial de Ventas de Pollos
+      </h5>
+      <span class="badge bg-secondary" id="chickenSalesCount">0 ventas</span>
+    </div>
+    <div id="chickenSalesList" class="chicken-sales-list-treinta">
+      <!-- Historial generado por JS -->
+    </div>
+  </div>
+</section>
 
 <!-- Vista: Movimientos por Rango de Fecha -->
 <section id="view-movements" class="app-view d-none">

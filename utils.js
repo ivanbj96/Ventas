@@ -4,7 +4,7 @@
 // === Configuración de persistencia ===
 const STORAGE_CONFIG = {
   // Datos críticos que deben persistir siempre
-  CRITICAL_DATA: ['sales', 'clients', 'products', 'debts', 'chickenSales'],
+  CRITICAL_DATA: ['sales', 'clients', 'products', 'debts', 'movements', 'chickenSales'],
   // Configuraciones que pueden usar localStorage
   SETTINGS: ['theme', 'viewModes', 'pricePerPound', 'costPerPound'],
   // Backup automático cada 5 minutos
@@ -138,6 +138,7 @@ async function loadAllCriticalData() {
       clients: data.clients.length,
       sales: data.sales.length,
       debts: data.debts.length,
+      movements: data.movements.length,
       chickenSales: data.chickenSales.length
     });
     
@@ -149,6 +150,7 @@ async function loadAllCriticalData() {
       clients: [],
       sales: [],
       debts: [],
+      movements: [],
       chickenSales: [],
       pricePerPound: 2.50,
       costPerPound: 0,

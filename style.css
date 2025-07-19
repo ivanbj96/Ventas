@@ -5503,3 +5503,80 @@ button:active {
 .swal2-container, .swal2-popup, .swal2-modal, .swal2-shown {
   z-index: 2000 !important;
 }
+
+/* Estilos para tarjetas de ganancias */
+.stat-card-profit {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  border: 1px solid #c3e6cb;
+}
+
+.stat-card-profit .stat-icon {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.stat-card-profit .stat-value {
+  color: #155724;
+}
+
+.stat-card-profit .stat-label {
+  color: #155724;
+}
+
+/* Estilos para el cálculo automático con ganancias */
+.profit-amount {
+  color: #28a745;
+  font-weight: 600;
+}
+
+/* Efecto borroso traslúcido para ganancias */
+.blur-profit {
+  filter: blur(3px);
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.blur-profit.revealed {
+  filter: blur(0);
+  opacity: 1;
+}
+
+/* Estilos para botones de mostrar/ocultar */
+.btn-outline-secondary {
+  border-color: #6c757d;
+  color: #6c757d;
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: white;
+}
+
+.btn-outline-secondary:focus {
+  box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25);
+}
+
+/* Transición suave para elementos con efecto borroso */
+.blur-profit {
+  transition: all 0.3s ease;
+}
+
+/* Modo oscuro para tarjetas de ganancias */
+.dark-mode .stat-card-profit {
+  background: linear-gradient(135deg, #1e4d2b 0%, #2d5a3d 100%);
+  border-color: #2d5a3d;
+}
+
+.dark-mode .stat-card-profit .stat-value {
+  color: #d4edda;
+}
+
+.dark-mode .stat-card-profit .stat-label {
+  color: #c3e6cb;
+}
+
+.dark-mode .profit-amount {
+  color: #20c997;
+}
