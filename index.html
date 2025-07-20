@@ -16,6 +16,9 @@
 <!-- jsPDF AutoTable 3.5.28 -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
 
+<!-- Chart.js 4.4.0 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+
   <!-- 🌓 Soporte para ícono y PWA -->
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icons/icon-192.png" type="image/png" />
@@ -548,8 +551,8 @@
             <i class="bi bi-currency-dollar"></i>
           </div>
           <div class="stat-content">
-            <div class="stat-value" id="totalRevenue">$0.00</div>
-            <div class="stat-label">Ingresos Hoy</div>
+            <div class="stat-value" id="chickenTotalRevenue">$0.00</div>
+            <div class="stat-label">Ganancias Hoy</div>
           </div>
         </div>
       </div>
@@ -737,56 +740,154 @@
   </div>
 </section>
 
-<!-- Vista: Movimientos por Rango de Fecha -->
+<!-- Vista: Movimientos y Estadísticas Avanzadas -->
 <section id="view-movements" class="app-view d-none">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Movimientos por Fecha</h2>
-    <div class="d-flex gap-2">
-      <button onclick="generatePDF('movements')" class="btn btn-outline-primary btn-sm">
-        <i class="bi bi-download"></i> Exportar PDF
-      </button>
-    </div>
-  </div>
-
-  <!-- Filtros de fecha -->
-  <div class="date-filters-treinta mb-4">
-    <div class="row g-3">
-      <div class="col-md-4">
-        <label for="startDate" class="form-label">
-          <i class="bi bi-calendar-start"></i> Fecha Inicio
-        </label>
-        <input type="date" id="startDate" class="form-control form-control-treinta" />
+  <!-- Header minimalista -->
+  <div class="movements-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="header-title">Movimientos</h1>
+        <p class="header-subtitle" id="periodDisplay">Hoy</p>
       </div>
-      <div class="col-md-4">
-        <label for="endDate" class="form-label">
-          <i class="bi bi-calendar-end"></i> Fecha Fin
-        </label>
-        <input type="date" id="endDate" class="form-control form-control-treinta" />
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">&nbsp;</label>
-        <button onclick="filterMovementsByDate()" class="btn btn-primary btn-treinta w-100">
-          <i class="bi bi-search"></i> Filtrar
+      <div class="header-actions">
+        <button id="btnClearFilters" class="btn-clear-filters" onclick="clearMovementFilters()" style="display: none;">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+        <button onclick="generatePDF('movements')" class="btn-export">
+          <i class="bi bi-download"></i>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Resumen del período -->
-  <div id="periodSummary" class="period-summary-treinta mb-4">
-    <!-- Resumen generado por JS -->
+  <!-- Filtros superiores minimalistas -->
+  <div class="period-filters">
+    <div class="filter-tabs">
+      <button class="filter-tab active" data-period="today" onclick="setPeriodFilter('today')">
+        <span class="tab-label">Hoy</span>
+      </button>
+      <button class="filter-tab" data-period="week" onclick="setPeriodFilter('week')">
+        <span class="tab-label">Semana</span>
+      </button>
+      <button class="filter-tab" data-period="month" onclick="setPeriodFilter('month')">
+        <span class="tab-label">Mes</span>
+      </button>
+      <button class="filter-tab" data-period="year" onclick="setPeriodFilter('year')">
+        <span class="tab-label">Año</span>
+      </button>
+      <button class="filter-tab" data-period="custom" onclick="setPeriodFilter('custom')">
+        <span class="tab-label">Personalizado</span>
+      </button>
+    </div>
   </div>
 
-  <!-- Lista de movimientos -->
-  <div class="movements-section-treinta">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h5 class="mb-0">
-        <i class="bi bi-clock-history"></i> Movimientos del Período
-      </h5>
-      <span class="badge bg-secondary" id="filteredMovementsCount">0 movimientos</span>
+  <!-- Selector de fechas personalizadas -->
+  <div id="customDateSelector" class="custom-date-selector" style="display: none;">
+    <div class="date-inputs">
+      <div class="date-input-group">
+        <label for="startDate">Desde</label>
+        <input type="date" id="startDate" class="date-input" />
+      </div>
+      <div class="date-input-group">
+        <label for="endDate">Hasta</label>
+        <input type="date" id="endDate" class="date-input" />
+      </div>
+      <button onclick="applyCustomFilter()" class="btn-apply-filter">
+        <i class="bi bi-check"></i>
+      </button>
     </div>
-    <div id="filteredMovementsList" class="movements-list-treinta">
-      <!-- Movimientos filtrados generados por JS -->
+  </div>
+
+  <!-- Métricas principales -->
+  <div class="metrics-overview">
+    <div class="metric-card primary">
+      <div class="metric-icon">
+        <i class="bi bi-graph-up"></i>
+      </div>
+      <div class="metric-content">
+        <div class="metric-value" id="totalRevenue">$0.00</div>
+        <div class="metric-label">Ingresos Totales</div>
+        <div class="metric-subtitle">Ganancias reales (PVP - Costo)</div>
+      </div>
+      <button class="metric-toggle" id="toggleRevenue" onclick="toggleRevenueVisibility()" title="Mostrar/Ocultar ganancias">
+        <i class="bi bi-eye" id="revenueEyeIcon"></i>
+      </button>
+    </div>
+    
+    <div class="metric-card">
+      <div class="metric-icon">
+        <i class="bi bi-cart-check"></i>
+      </div>
+      <div class="metric-content">
+        <div class="metric-value" id="totalSales">0</div>
+        <div class="metric-label">Ventas Normales</div>
+        <div class="metric-amount" id="totalSalesAmount">$0.00</div>
+      </div>
+    </div>
+    
+    <div class="metric-card">
+      <div class="metric-icon">
+        <i class="bi bi-egg-fried"></i>
+      </div>
+      <div class="metric-content">
+        <div class="metric-value" id="totalChickenSales">0</div>
+        <div class="metric-label">Ventas de Pollos</div>
+        <div class="metric-amount" id="totalChickenAmount">$0.00</div>
+      </div>
+    </div>
+    
+    <div class="metric-card">
+      <div class="metric-icon">
+        <i class="bi bi-cash-stack"></i>
+      </div>
+      <div class="metric-content">
+        <div class="metric-value" id="totalDebts">0</div>
+        <div class="metric-label">Deudas</div>
+        <div class="metric-amount" id="totalDebtsAmount">$0.00</div>
+      </div>
+    </div>
+    
+    <div class="metric-card">
+      <div class="metric-icon">
+        <i class="bi bi-cash-coin"></i>
+      </div>
+      <div class="metric-content">
+        <div class="metric-value" id="totalPayments">0</div>
+        <div class="metric-label">Pagos</div>
+        <div class="metric-subtitle">Abonos a deudas</div>
+        <div class="metric-amount" id="totalPaymentsAmount">$0.00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráficas -->
+  <div class="charts-section">
+    <div class="chart-container">
+      <div class="chart-header">
+        <h3 class="chart-title">Tendencias de Ventas</h3>
+        <div class="chart-controls">
+          <button class="chart-control active" data-chart="trend" onclick="showChart('trend')">
+            <i class="bi bi-graph-up"></i>
+          </button>
+          <button class="chart-control" data-chart="distribution" onclick="showChart('distribution')">
+            <i class="bi bi-pie-chart"></i>
+          </button>
+        </div>
+      </div>
+      <div class="chart-content">
+        <canvas id="mainChart" width="800" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline de movimientos -->
+  <div class="movements-timeline">
+    <div class="timeline-header">
+      <h3 class="timeline-title">Movimientos Recientes</h3>
+      <div class="timeline-count" id="filteredMovementsCount">0 movimientos</div>
+    </div>
+    <div id="filteredMovementsList" class="timeline-content">
+      <!-- Movimientos generados por JS -->
     </div>
   </div>
 </section>

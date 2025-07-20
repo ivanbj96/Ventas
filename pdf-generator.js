@@ -378,18 +378,51 @@ window.generatePDFFromFile = async function(type) {
 
     doc.save(`Reporte_Pollos_${new Date().toISOString().split('T')[0]}.pdf`);
   } else if (type === 'movements') {
-    // Generar reporte de movimientos por rango de fecha
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
+    // Generar reporte de movimientos avanzados
+    let movements = [];
+    let summary = {};
+    let periodInfo = '';
     
-    if (!startDate || !endDate) {
-      throw new Error('Fechas no seleccionadas');
+    // Obtener el filtro actual y los movimientos correspondientes
+    const currentFilter = window.currentMovementFilter || 'today';
+    
+    if (currentFilter === 'custom') {
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      
+      if (!startDate || !endDate) {
+        throw new Error('Fechas no seleccionadas');
+      }
+      
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      periodInfo = `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+      
+      // Usar las nuevas funciones de movimientos avanzados
+      movements = window.getAllMovementsInRange ? window.getAllMovementsInRange(start, end) : [];
+    } else {
+      // Usar las funciones de filtro rápido
+      const { startDate, endDate } = window.getDateRangeFromFilter ? window.getDateRangeFromFilter(currentFilter) : { startDate: new Date(), endDate: new Date() };
+      periodInfo = `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
+      
+      movements = window.getAllMovementsInRange ? window.getAllMovementsInRange(startDate, endDate) : [];
     }
     
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const movements = getMovementsByDateRange(start, end);
-    const summary = calculatePeriodSummary(movements);
+    // Calcular resumen usando la función avanzada si está disponible
+    if (window.calculatePeriodSummary) {
+      summary = window.calculatePeriodSummary(movements);
+    } else {
+      // Fallback al cálculo básico
+      summary = {
+        totalMovements: movements.length,
+        totalIncome: movements.filter(m => m.type === 'sale' || m.type === 'chicken').reduce((sum, m) => sum + m.amount, 0),
+        totalDebts: movements.filter(m => m.type === 'debt').reduce((sum, m) => sum + m.amount, 0),
+        totalPayments: movements.filter(m => m.type === 'payment').reduce((sum, m) => sum + m.amount, 0),
+        sales: movements.filter(m => m.type === 'sale').length,
+        debts: movements.filter(m => m.type === 'debt').length,
+        payments: movements.filter(m => m.type === 'payment').length
+      };
+    }
 
     // Header con logo y título
     doc.setFillColor(...primaryColor);
@@ -408,7 +441,7 @@ window.generatePDFFromFile = async function(type) {
     doc.setTextColor(...primaryColor);
     doc.setFontSize(10);
     doc.text(`Generado el: ${date}`, 14, 40);
-    doc.text(`Período: ${start.toLocaleDateString()} - ${end.toLocaleDateString()}`, 14, 45);
+    doc.text(`Período: ${periodInfo}`, 14, 45);
     doc.text(`Total de movimientos: ${movements.length}`, 14, 50);
 
     // Resumen del período
@@ -423,9 +456,10 @@ window.generatePDFFromFile = async function(type) {
       startY: 75,
       head: [['Concepto', 'Cantidad', 'Monto']],
       body: [
-        ['Ventas', summary.sales, formatCurrency(summary.totalIncome)],
-        ['Deudas', summary.debts, formatCurrency(summary.totalDebts)],
-        ['Pagos', summary.payments, formatCurrency(summary.totalPayments)]
+        ['Ventas Normales', summary.sales || 0, formatCurrency(summary.totalIncome || 0)],
+        ['Ventas de Pollos', movements.filter(m => m.type === 'chicken').length, formatCurrency(movements.filter(m => m.type === 'chicken').reduce((sum, m) => sum + m.amount, 0))],
+        ['Deudas', summary.debts || 0, formatCurrency(summary.totalDebts || 0)],
+        ['Pagos', summary.payments || 0, formatCurrency(summary.totalPayments || 0)]
       ],
       theme: 'grid',
       styles: { 
@@ -450,8 +484,11 @@ window.generatePDFFromFile = async function(type) {
     
     const movementRows = movements.map((m, i) => [
       i + 1,
-      m.title,
-      m.subtitle,
+      m.type === 'sale' ? 'Venta Normal' : 
+      m.type === 'chicken' ? 'Venta Pollos' : 
+      m.type === 'debt' ? 'Deuda' : 
+      m.type === 'payment' ? 'Pago' : 'Movimiento',
+      m.subtitle || m.title,
       formatCurrency(m.amount),
       m.date.toLocaleDateString()
     ]);

@@ -13,6 +13,160 @@ let chickenSales = [];
 let pricePerPound = 0;
 let costPerPound = 0;
 
+// Función helper para normalizar fechas
+function normalizeDate(dateInput) {
+  if (!dateInput) return null;
+  
+  if (typeof dateInput === 'string') {
+    // Si ya es formato ISO (contiene 'T'), usar directamente
+    if (dateInput.includes('T')) {
+      return new Date(dateInput);
+    } else {
+      // Si es formato YYYY-MM-DD, agregar tiempo
+      return new Date(dateInput + 'T00:00:00');
+    }
+  } else {
+    // Si es Date object o timestamp
+    return new Date(dateInput);
+  }
+}
+
+// Variables globales para movimientos
+let movementsViewMode = 'list'; // 'list' o 'grid'
+let currentMovementFilter = 'today';
+let currentChartType = 'trend';
+let movementCharts = {};
+let mainChart = null;
+let movementsViewInitialized = false; // Bandera para evitar inicializaciones múltiples
+
+// Función para actualizar el display del período
+function updatePeriodDisplay(period) {
+  const periodDisplay = document.getElementById('periodDisplay');
+  if (!periodDisplay) return;
+  
+  const periodTexts = {
+    'today': 'Hoy',
+    'week': 'Esta Semana',
+    'month': 'Este Mes',
+    'year': 'Este Año',
+    'custom': 'Período Personalizado'
+  };
+  
+  periodDisplay.textContent = periodTexts[period] || 'Hoy';
+}
+
+// Función para actualizar la gráfica principal
+function updateMainChart() {
+  if (!mainChart) return;
+  
+  try {
+    const { startDate, endDate } = getDateRangeFromFilter(currentMovementFilter);
+    const movements = getAllMovementsInRange(startDate, endDate);
+    
+    if (currentChartType === 'trend') {
+      const trendData = getTrendChartData(movements, startDate, endDate);
+      mainChart.data = trendData;
+      if (mainChart.options.scales && mainChart.options.scales.y) {
+        mainChart.options.scales.y.beginAtZero = true;
+        mainChart.options.scales.y.ticks.callback = function(value) {
+          return '$' + (value || 0).toFixed(2);
+        };
+      }
+    } else {
+      const distributionData = getDistributionChartData(movements);
+      mainChart.data = distributionData;
+      if (mainChart.options.scales && mainChart.options.scales.y) {
+        mainChart.options.scales.y.beginAtZero = true;
+        mainChart.options.scales.y.ticks.callback = function(value) {
+          return '$' + (value || 0).toFixed(2);
+        };
+      }
+    }
+    
+    mainChart.update('active');
+  } catch (error) {
+    console.error('Error actualizando gráfica principal:', error);
+  }
+}
+
+// Función para obtener datos de gráfica de tendencias
+function getTrendChartData(movements, startDate, endDate) {
+  const labels = [];
+  const salesData = [];
+  const chickenData = [];
+  const debtsData = [];
+  const paymentsData = [];
+  
+  const currentDate = new Date(startDate);
+  while (currentDate <= endDate) {
+    labels.push(currentDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }));
+    
+    const dayMovements = movements.filter(m => {
+      const mDate = new Date(m.date);
+      return mDate.toDateString() === currentDate.toDateString();
+    });
+    
+    salesData.push(dayMovements.filter(m => m.type === 'sale').reduce((sum, m) => sum + (m.amount || 0), 0));
+    chickenData.push(dayMovements.filter(m => m.type === 'chicken').reduce((sum, m) => sum + (m.amount || 0), 0));
+    debtsData.push(dayMovements.filter(m => m.type === 'debt').reduce((sum, m) => sum + (m.amount || 0), 0));
+    paymentsData.push(dayMovements.filter(m => m.type === 'payment').reduce((sum, m) => sum + (m.amount || 0), 0));
+    
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return {
+    labels: labels,
+    datasets: [
+      {
+        label: 'Ventas Normales',
+        data: salesData,
+        borderColor: '#4CAF50',
+        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+        tension: 0.4
+      },
+      {
+        label: 'Ventas de Pollos',
+        data: chickenData,
+        borderColor: '#FF9800',
+        backgroundColor: 'rgba(255, 152, 0, 0.1)',
+        tension: 0.4
+      },
+      {
+        label: 'Deudas',
+        data: debtsData,
+        borderColor: '#F44336',
+        backgroundColor: 'rgba(244, 67, 54, 0.1)',
+        tension: 0.4
+      },
+      {
+        label: 'Pagos',
+        data: paymentsData,
+        borderColor: '#2196F3',
+        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+        tension: 0.4
+      }
+    ]
+  };
+}
+
+// Función para obtener datos de gráfica de distribución
+function getDistributionChartData(movements) {
+  const salesTotal = movements.filter(m => m.type === 'sale').reduce((sum, m) => sum + (m.amount || 0), 0);
+  const chickenTotal = movements.filter(m => m.type === 'chicken').reduce((sum, m) => sum + (m.amount || 0), 0);
+  const debtsTotal = movements.filter(m => m.type === 'debt').reduce((sum, m) => sum + (m.amount || 0), 0);
+  const paymentsTotal = movements.filter(m => m.type === 'payment').reduce((sum, m) => sum + (m.amount || 0), 0);
+  
+  return {
+    labels: ['Ventas Normales', 'Ventas de Pollos', 'Deudas', 'Pagos'],
+    datasets: [{
+      data: [salesTotal, chickenTotal, debtsTotal, paymentsTotal],
+      backgroundColor: ['#4CAF50', '#FF9800', '#F44336', '#2196F3'],
+      borderWidth: 2,
+      borderColor: '#fff'
+    }]
+  };
+}
+
 // === FUNCIÓN DE CARGA DE DATOS MEJORADA ===
 async function loadData() {
   try {
@@ -169,14 +323,16 @@ function setupPullToRefresh(container, onRefresh) {
   let startY = 0;
   let currentY = 0;
   let pullDistance = 0;
-  const threshold = 150; // Aumentado el umbral para hacer más difícil activar el refresh
+  const threshold = 200; // Aumentado significativamente el umbral para hacer más difícil activar el refresh
   let isPulling = false;
   let isScrolled = false;
+  let hasMoved = false;
 
   container.addEventListener('touchstart', (e) => {
     startY = e.touches[0].clientY;
     isScrolled = container.scrollTop > 0;
     isPulling = !isScrolled; // Solo permitir pull si estamos en la parte superior
+    hasMoved = false;
   });
 
   container.addEventListener('touchmove', (e) => {
@@ -185,18 +341,27 @@ function setupPullToRefresh(container, onRefresh) {
     currentY = e.touches[0].clientY;
     pullDistance = currentY - startY;
     
-    if (pullDistance > 0 && container.scrollTop === 0) {
+    // Solo activar si el movimiento es significativamente hacia abajo
+    if (pullDistance > 50) {
+      hasMoved = true;
+    }
+    
+    if (pullDistance > 0 && container.scrollTop === 0 && hasMoved) {
       if (pullDistance < threshold) {
         e.preventDefault();
-        container.style.transform = `translateY(${Math.min(pullDistance * 0.3, threshold)}px)`;
+        container.style.transform = `translateY(${Math.min(pullDistance * 0.2, threshold)}px)`; // Reducido el factor de multiplicación
       }
     }
   });
 
   container.addEventListener('touchend', () => {
-    if (isPulling && pullDistance > threshold && !isScrolled) {
-      onRefresh();
-      hapticFeedback('success');
+    // Solo activar refresh si se cumplen todas las condiciones
+    if (isPulling && pullDistance > threshold && !isScrolled && hasMoved) {
+      // Agregar un pequeño delay para evitar activaciones accidentales
+      setTimeout(() => {
+        onRefresh();
+        hapticFeedback('success');
+      }, 100);
     }
     
     container.style.transform = '';
@@ -207,6 +372,54 @@ function setupPullToRefresh(container, onRefresh) {
     
     isPulling = false;
     pullDistance = 0;
+    hasMoved = false;
+  });
+}
+
+// Función para detectar dispositivos móviles
+function isMobileDevice() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+         (window.innerWidth <= 768);
+}
+
+// Función para prevenir recargas accidentales en móviles
+function preventMobileReload() {
+  // Solo aplicar en dispositivos móviles
+  if (!isMobileDevice()) return;
+  
+  // Prevenir el comportamiento de pull-to-refresh nativo del navegador
+  document.addEventListener('touchmove', (e) => {
+    // Solo prevenir en el body principal, no en elementos con scroll
+    if (e.target === document.body || e.target === document.documentElement) {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      if (scrollTop <= 0 && e.touches[0].clientY > 0) {
+        // Permitir un pequeño margen para gestos naturales
+        if (e.touches[0].clientY > 50) {
+          e.preventDefault();
+        }
+      }
+    }
+  }, { passive: false });
+  
+  // Prevenir recarga con gestos de swipe
+  let startX = 0;
+  let startY = 0;
+  
+  document.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  });
+  
+  document.addEventListener('touchend', (e) => {
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const deltaX = Math.abs(endX - startX);
+    const deltaY = Math.abs(endY - startY);
+    
+    // Prevenir gestos de swipe que podrían recargar la página
+    if (deltaX > 100 && deltaY < 50) {
+      e.preventDefault();
+    }
   });
 }
 
@@ -215,9 +428,16 @@ function setupSmoothScroll() {
   const scrollElements = document.querySelectorAll('.movements-list-treinta, .products-grid-treinta, .clients-grid');
   
   scrollElements.forEach(element => {
-    element.style.scrollBehavior = 'smooth';
-    element.style.webkitOverflowScrolling = 'touch';
+    // Solo aplicar scroll suave en elementos específicos y no en el body
+    if (element !== document.body && element !== document.documentElement) {
+      element.style.scrollBehavior = 'smooth';
+      element.style.webkitOverflowScrolling = 'touch';
+    }
   });
+  
+  // Prevenir scroll suave en el body para evitar conflictos
+  document.body.style.scrollBehavior = 'auto';
+  document.documentElement.style.scrollBehavior = 'auto';
 }
 
 // Función para mejorar la experiencia de modales
@@ -555,9 +775,19 @@ function initializeNativeEnhancements() {
   const mainContainer = document.getElementById('mainContent');
   if (mainContainer) {
     setupPullToRefresh(mainContainer, () => {
-      location.reload();
+      // En lugar de recargar la página, solo actualizar los datos
+      loadData().then(() => {
+        updateBalanceUI();
+        renderInventory();
+        renderClients();
+        renderDebts();
+        console.log('Datos actualizados sin recargar la página');
+      });
     });
   }
+  
+  // Prevenir recarga accidental en dispositivos móviles
+  preventMobileReload();
   
   // Solicitar permisos de notificación
   requestNotificationPermission();
@@ -670,7 +900,7 @@ function quickAction(action) {
       
     case 'viewBalance':
       showView('balance');
-      updateBalance();
+      updateBalanceUI();
       break;
       
     case 'viewDebts':
@@ -964,6 +1194,10 @@ async function finalizeChickenSale() {
   // Calcular total basado en peso × precio por libra
   const total = weight * pricePerPound;
   
+  // Calcular ganancia real basada en costo por libra
+  const totalCost = weight * costPerPound;
+  const profit = total - totalCost;
+  
   // Crear objeto de venta
   const sale = {
     id: Date.now().toString(),
@@ -972,19 +1206,41 @@ async function finalizeChickenSale() {
     quantity: quantity,
     weight: weight,
     pricePerPound: pricePerPound,
+    costPerPound: costPerPound,
     total: total,
-    date: saleDate,
+    cost: totalCost,
+    profit: profit, // Ganancia real (PVP - Costo)
+    date: saleDate + 'T' + new Date().toTimeString().slice(0,8), // Formato ISO consistente
     time: new Date().toLocaleTimeString(),
     paymentType: paymentType,
     abono: abono,
-    profit: total * 0.20, // 20% de ganancia estimada
     createdAt: new Date().toISOString()
   };
   
   try {
     // Agregar a la lista de ventas
     chickenSales.push(sale);
+    
+    // Agregar movimiento para la sección de movimientos
+    const movement = {
+      type: 'chicken_sale',
+      icon: 'bi-egg-fried',
+      title: `Venta Pollos #${sale.id}`,
+      subtitle: `${client.name} - ${new Date(sale.date).toLocaleDateString()}`,
+      amount: total,
+      amountClass: 'positive',
+      date: new Date(sale.date),
+      data: sale,
+      category: 'pollos'
+    };
+    
+    if (!movements || !Array.isArray(movements)) {
+      movements = [];
+    }
+    movements.push(movement);
+    
     await saveToStorage('chickenSales', chickenSales);
+    await saveToStorage('movements', movements);
     
     // Actualizar estadísticas
     updateChickenStats();
@@ -3009,9 +3265,29 @@ async function finalizeSale() {
         sales = [];
       }
       sales.push(sale);
+      
+      // Agregar movimiento para la sección de movimientos
+      const movement = {
+        type: 'sale',
+        icon: 'bi-cart-check',
+        title: `Venta #${sale.id}`,
+        subtitle: `${client.name} - ${new Date(saleDate).toLocaleDateString()}`,
+        amount: finalTotal,
+        amountClass: 'positive',
+        date: new Date(saleDate),
+        data: sale,
+        category: 'ventas'
+      };
+      
+      if (!movements || !Array.isArray(movements)) {
+        movements = [];
+      }
+      movements.push(movement);
+      
       try {
         await saveToStorage('sales', sales);
         await saveToStorage('products', products);
+        await saveToStorage('movements', movements);
       } catch (error) {
         console.error('Error guardando venta:', error);
         Swal.fire({
@@ -4016,20 +4292,7 @@ function showView(viewName) {
       renderInventory();
       break;
     case 'movements':
-      // Inicializar fechas por defecto (último mes)
-      const today = new Date();
-      const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
-      
-      const startDateInput = document.getElementById('startDate');
-      const endDateInput = document.getElementById('endDate');
-      
-      if (startDateInput && endDateInput) {
-        startDateInput.value = lastMonth.toISOString().split('T')[0];
-        endDateInput.value = today.toISOString().split('T')[0];
-        
-        // Filtrar movimientos automáticamente
-        filterMovementsByDate();
-      }
+      // La inicialización se maneja por el observer
       break;
     case 'chickens':
       // Inicializar datos de pollos y actualizar estadísticas
@@ -4044,6 +4307,11 @@ function showView(viewName) {
   // Cerrar sidebar en móviles
   if (window.innerWidth <= 768) {
     closeSidebar();
+  }
+  
+  // Limpiar recursos de movimientos si se cambia de vista
+  if (viewName !== 'movements') {
+    cleanupMovementsView();
   }
 }
 
@@ -5836,6 +6104,7 @@ function registerDebtPayment(debtId) {
   
   // Pie de página
   doc.setFontSize(10);
+  doc.setTextColor(128, 128, 128);
   doc.text('Generado por TillUp POS', 105, 280, { align: 'center' });
   
   // Descargar PDF
@@ -6579,3 +6848,1353 @@ async function processChickenSale(sale) {
     });
   }
 }
+
+// === FUNCIONES PARA MOVIMIENTOS Y ESTADÍSTICAS AVANZADAS ===
+
+// Función para inicializar la vista de movimientos
+function initializeMovementsView() {
+  // Evitar inicializaciones múltiples
+  if (movementsViewInitialized) return;
+  
+  console.log('Inicializando vista de movimientos...');
+  
+  // Configurar event listeners para filtros
+  setupMovementFilters();
+  
+  // Configurar event listeners para gráficas
+  setupChartControls();
+  
+  // Cargar datos por defecto (hoy)
+  loadMovementData('today');
+  
+  // Inicializar gráficas
+  initializeCharts();
+  
+  // Inicializar el botón del ojo para ingresos totales
+  initializeRevenueToggle();
+  
+  // Forzar recálculo de ingresos totales
+  setTimeout(() => {
+    forceRecalculateRevenue();
+  }, 1000);
+  
+  // Actualizar display del período
+  updatePeriodDisplay('today');
+  
+  // Marcar como inicializada
+  movementsViewInitialized = true;
+  console.log('Vista de movimientos inicializada correctamente');
+}
+
+// Configurar filtros de movimientos
+function setupMovementFilters() {
+  // Filtros de período
+  document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      const period = e.currentTarget.dataset.period;
+      setPeriodFilter(period);
+    });
+  });
+}
+
+// Configurar controles de gráficas
+function setupChartControls() {
+  document.querySelectorAll('.chart-control').forEach(control => {
+    control.addEventListener('click', (e) => {
+      const chartType = e.currentTarget.dataset.chart;
+      showChart(chartType);
+    });
+  });
+}
+
+// Establecer filtro de período
+function setPeriodFilter(period) {
+  // Actualizar estado activo
+  document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  document.querySelector(`[data-period="${period}"]`).classList.add('active');
+  
+  currentMovementFilter = period;
+  
+  // Mostrar/ocultar selector de fechas personalizadas
+  const customDateSelector = document.getElementById('customDateSelector');
+  const btnClearFilters = document.getElementById('btnClearFilters');
+  
+  if (period === 'custom') {
+    customDateSelector.style.display = 'block';
+    btnClearFilters.style.display = 'block';
+  } else {
+    customDateSelector.style.display = 'none';
+    btnClearFilters.style.display = 'none';
+    loadMovementData(period);
+    updatePeriodDisplay(period);
+  }
+}
+
+// Mostrar gráfica específica
+function showChart(chartType) {
+  // Actualizar controles activos
+  document.querySelectorAll('.chart-control').forEach(control => {
+    control.classList.remove('active');
+  });
+  const activeControl = document.querySelector(`[data-chart="${chartType}"]`);
+  if (activeControl) activeControl.classList.add('active');
+  
+  currentChartType = chartType;
+  
+  // Cambiar tipo de gráfica si es necesario
+  if (mainChart) {
+    if (chartType === 'distribution') {
+      mainChart.config.type = 'doughnut';
+      mainChart.options.scales = undefined; // Remover escalas para gráfica de dona
+    } else {
+      mainChart.config.type = 'line';
+      mainChart.options.scales = {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return '$' + value.toFixed(2);
+            }
+          }
+        }
+      };
+    }
+  }
+  
+  updateMainChart();
+}
+
+// Configurar selectores de gráficas
+function setupChartSelectors() {
+  // Los event listeners ya están configurados en setupMovementFilters
+}
+
+// Cargar datos de movimientos según el filtro
+async function loadMovementData(filterType) {
+  console.log('=== DEBUG: loadMovementData ===');
+  console.log('Filtro:', filterType);
+  
+  // Verificar datos almacenados primero
+  await checkStoredData();
+  
+  const { startDate, endDate } = getDateRangeFromFilter(filterType);
+  console.log('Rango de fechas:', {
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+    startDateLocal: startDate.toLocaleDateString(),
+    endDateLocal: endDate.toLocaleDateString()
+  });
+  
+  // Debug: mostrar algunas ventas disponibles
+  console.log('Muestra de ventas normales:', sales?.slice(0, 3).map(s => ({
+    id: s.id,
+    date: s.date,
+    dateType: typeof s.date,
+    normalized: normalizeDate(s.date)?.toISOString()
+  })));
+  
+  console.log('Muestra de ventas de pollos:', chickenSales?.slice(0, 3).map(s => ({
+    id: s.id,
+    date: s.date,
+    dateType: typeof s.date,
+    normalized: normalizeDate(s.date)?.toISOString()
+  })));
+  
+  const movements = getAllMovementsInRange(startDate, endDate);
+  console.log('Movimientos encontrados:', movements.length);
+  
+  // Actualizar estadísticas
+  updateMovementStats(movements);
+  
+  // Actualizar gráficas
+  updateChartsWithData(movements);
+  
+  // Actualizar lista de movimientos
+  renderAdvancedMovements(movements);
+  
+  // Actualizar resumen del período
+  renderPeriodSummaryAdvanced(movements);
+}
+
+// Obtener rango de fechas según el filtro
+function getDateRangeFromFilter(filterType) {
+  const now = new Date();
+  const startDate = new Date();
+  const endDate = new Date();
+  
+  switch (filterType) {
+    case 'today':
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+    case 'week':
+      const dayOfWeek = startDate.getDay();
+      const diff = startDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+      startDate.setDate(diff);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+    case 'month':
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+    case 'year':
+      startDate.setMonth(0, 1);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+    default:
+      // Para filtros personalizados, usar las fechas seleccionadas
+      const startInput = document.getElementById('startDate');
+      const endInput = document.getElementById('endDate');
+      if (startInput.value && endInput.value) {
+        startDate.setTime(new Date(startInput.value).getTime());
+        endDate.setTime(new Date(endInput.value).getTime());
+        endDate.setHours(23, 59, 59, 999);
+      }
+  }
+  
+  return { startDate, endDate };
+}
+
+// Obtener todos los movimientos en un rango de fechas
+function getAllMovementsInRange(startDate, endDate) {
+  const movements = [];
+  
+  console.log('=== DEBUG: getAllMovementsInRange ===');
+  console.log('Ventas normales disponibles:', sales?.length || 0);
+  console.log('Ventas de pollos disponibles:', chickenSales?.length || 0);
+  console.log('Deudas disponibles:', debts?.length || 0);
+  
+  // Agregar ventas normales
+  if (sales && Array.isArray(sales)) {
+    let salesAdded = 0;
+    sales.forEach(sale => {
+      const saleDate = normalizeDate(sale.date);
+      
+      console.log('Venta normal:', {
+        id: sale.id,
+        dateOriginal: sale.date,
+        dateTipo: typeof sale.date,
+        saleDate: saleDate?.toISOString(),
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        total: sale.total,
+        inRange: saleDate && saleDate >= startDate && saleDate <= endDate
+      });
+      
+      if (saleDate && saleDate >= startDate && saleDate <= endDate) {
+        movements.push({
+          type: 'sale',
+          icon: 'bi-cart-check',
+          title: `Venta #${sale.id}`,
+          subtitle: `${sale.clientName || 'Cliente no especificado'} - ${saleDate.toLocaleDateString()}`,
+          amount: sale.total,
+          amountClass: 'positive',
+          date: saleDate,
+          data: sale,
+          category: 'ventas'
+        });
+        salesAdded++;
+      }
+    });
+    console.log('Ventas normales agregadas:', salesAdded);
+  }
+  
+  // Agregar ventas de pollos
+  if (chickenSales && Array.isArray(chickenSales)) {
+    let chickenSalesAdded = 0;
+    chickenSales.forEach(sale => {
+      const saleDate = normalizeDate(sale.date);
+      
+      console.log('Venta de pollos:', {
+        id: sale.id,
+        dateOriginal: sale.date,
+        dateTipo: typeof sale.date,
+        saleDate: saleDate?.toISOString(),
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        total: sale.total,
+        inRange: saleDate && saleDate >= startDate && saleDate <= endDate
+      });
+      
+      if (saleDate && saleDate >= startDate && saleDate <= endDate) {
+        movements.push({
+          type: 'chicken_sale',
+          icon: 'bi-egg-fried',
+          title: `Venta Pollos #${sale.id}`,
+          subtitle: `${sale.clientName || 'Cliente no especificado'} - ${saleDate.toLocaleDateString()}`,
+          amount: sale.total,
+          amountClass: 'positive',
+          date: saleDate,
+          data: sale,
+          category: 'pollos'
+        });
+        chickenSalesAdded++;
+      }
+    });
+    console.log('Ventas de pollos agregadas:', chickenSalesAdded);
+  }
+  
+  // Agregar deudas
+  if (debts && Array.isArray(debts)) {
+    debts.forEach(debt => {
+      const debtDate = new Date(debt.date);
+      if (debtDate >= startDate && debtDate <= endDate) {
+        movements.push({
+          type: 'debt',
+          icon: 'bi-cash-stack',
+          title: `Deuda #${debt.id}`,
+          subtitle: `${debt.clientName} - ${debtDate.toLocaleDateString()}`,
+          amount: debt.amount,
+          amountClass: 'negative',
+          date: debtDate,
+          data: debt,
+          category: 'deudas'
+        });
+      }
+    });
+    
+    // Agregar pagos de deudas
+    debts.forEach(debt => {
+      if (debt.payments && debt.payments.length > 0) {
+        debt.payments.forEach(payment => {
+          const paymentDate = new Date(payment.date);
+          if (paymentDate >= startDate && paymentDate <= endDate) {
+            movements.push({
+              type: 'payment',
+              icon: 'bi-cash-coin',
+              title: `Pago Deuda #${debt.id}`,
+              subtitle: `${debt.clientName} - ${paymentDate.toLocaleDateString()}`,
+              amount: payment.amount,
+              amountClass: 'positive',
+              date: paymentDate,
+              data: { debt, payment },
+              category: 'pagos'
+            });
+          }
+        });
+      }
+    });
+  }
+  
+  // Ordenar por fecha más reciente
+  const sortedMovements = movements.sort((a, b) => b.date - a.date);
+  console.log('Total de movimientos retornados:', sortedMovements.length);
+  console.log('Movimientos finales:', sortedMovements.map(m => ({
+    type: m.type,
+    amount: m.amount,
+    title: m.title
+  })));
+  return sortedMovements;
+}
+
+// Actualizar estadísticas de movimientos
+function updateMovementStats(movements) {
+  const stats = {
+    totalSales: 0,
+    totalSalesAmount: 0,
+    totalChickenSales: 0,
+    totalChickenAmount: 0,
+    totalDebts: 0,
+    totalDebtsAmount: 0,
+    totalPayments: 0,
+    totalPaymentsAmount: 0
+  };
+  
+  movements.forEach(movement => {
+    switch (movement.type) {
+      case 'sale':
+        stats.totalSales++;
+        stats.totalSalesAmount += movement.amount;
+        break;
+      case 'chicken_sale':
+        stats.totalChickenSales++;
+        stats.totalChickenAmount += movement.amount;
+        break;
+      case 'debt':
+        stats.totalDebts++;
+        stats.totalDebtsAmount += movement.amount;
+        break;
+      case 'payment':
+        stats.totalPayments++;
+        stats.totalPaymentsAmount += movement.amount;
+        break;
+    }
+  });
+  
+  // Calcular ganancias reales (PVP - Costo) para cada tipo de venta
+  let totalSalesProfit = 0;
+  let totalChickenProfit = 0;
+  
+  // Calcular ganancias de ventas normales
+  if (sales && Array.isArray(sales)) {
+    totalSalesProfit = sales.reduce((sum, sale) => {
+      const saleDate = normalizeDate(sale.date);
+      if (saleDate && saleDate >= startDate && saleDate <= endDate) {
+        return sum + (sale.profit || 0);
+      }
+      return sum;
+    }, 0);
+  }
+  
+  // Calcular ganancias de ventas de pollos
+  if (chickenSales && Array.isArray(chickenSales)) {
+    totalChickenProfit = chickenSales.reduce((sum, sale) => {
+      const saleDate = normalizeDate(sale.date);
+      if (saleDate && saleDate >= startDate && saleDate <= endDate) {
+        return sum + (sale.profit || 0);
+      }
+      return sum;
+    }, 0);
+  }
+  
+  // Los ingresos totales representan las ganancias netas reales: ganancias de ventas + pagos de deudas
+  const totalRevenue = totalSalesProfit + totalChickenProfit + stats.totalPaymentsAmount;
+  
+  // Debug: mostrar valores calculados
+  console.log('=== DEBUG: updateMovementStats ===');
+  console.log('Estadísticas calculadas:', {
+    ventasNormales: stats.totalSalesAmount,
+    ventasPollos: stats.totalChickenAmount,
+    pagos: stats.totalPaymentsAmount,
+    gananciasVentasNormales: totalSalesProfit,
+    gananciasVentasPollos: totalChickenProfit,
+    ingresosTotales: totalRevenue
+  });
+  
+  // Debug: mostrar movimientos procesados
+  console.log('Movimientos procesados:', movements.map(m => ({
+    type: m.type,
+    amount: m.amount,
+    title: m.title
+  })));
+  
+  // Debug: mostrar datos disponibles
+  console.log('Datos disponibles:', {
+    ventasNormales: sales?.length || 0,
+    ventasPollos: chickenSales?.length || 0,
+    deudas: debts?.length || 0
+  });
+  
+  // Debug: mostrar valores calculados
+  console.log('Estadísticas calculadas:', {
+    ventasNormales: stats.totalSalesAmount,
+    ventasPollos: stats.totalChickenAmount,
+    pagos: stats.totalPaymentsAmount,
+    ingresosTotales: totalRevenue
+  });
+  
+  // Debug: mostrar movimientos procesados
+  console.log('Movimientos procesados:', movements.map(m => ({
+    type: m.type,
+    amount: m.amount,
+    title: m.title
+  })));
+  
+  // Debug: mostrar datos disponibles
+  console.log('Datos disponibles:', {
+    ventasNormales: sales?.length || 0,
+    ventasPollos: chickenSales?.length || 0,
+    deudas: debts?.length || 0
+  });
+  
+  // Actualizar UI con validaciones
+  const elements = {
+    totalSales: document.getElementById('totalSales'),
+    totalSalesAmount: document.getElementById('totalSalesAmount'),
+    totalChickenSales: document.getElementById('totalChickenSales'),
+    totalChickenAmount: document.getElementById('totalChickenAmount'),
+    totalDebts: document.getElementById('totalDebts'),
+    totalDebtsAmount: document.getElementById('totalDebtsAmount'),
+    totalPayments: document.getElementById('totalPayments'),
+    totalPaymentsAmount: document.getElementById('totalPaymentsAmount'),
+    totalRevenue: document.getElementById('totalRevenue'),
+    chickenTotalRevenue: document.getElementById('chickenTotalRevenue')
+  };
+  
+  if (elements.totalSales) elements.totalSales.textContent = stats.totalSales;
+  if (elements.totalSalesAmount) elements.totalSalesAmount.textContent = `$${stats.totalSalesAmount.toFixed(2)}`;
+  if (elements.totalChickenSales) elements.totalChickenSales.textContent = stats.totalChickenSales;
+  if (elements.totalChickenAmount) elements.totalChickenAmount.textContent = `$${stats.totalChickenAmount.toFixed(2)}`;
+  if (elements.totalDebts) elements.totalDebts.textContent = stats.totalDebts;
+  if (elements.totalDebtsAmount) elements.totalDebtsAmount.textContent = `$${stats.totalDebtsAmount.toFixed(2)}`;
+  if (elements.totalPayments) elements.totalPayments.textContent = stats.totalPayments;
+  if (elements.totalPaymentsAmount) elements.totalPaymentsAmount.textContent = `$${stats.totalPaymentsAmount.toFixed(2)}`;
+  
+  // Actualizar ingresos totales (inicialmente ocultos)
+  if (elements.totalRevenue) {
+    const revenueValue = `$${Math.max(0, totalRevenue).toFixed(2)}`;
+    elements.totalRevenue.setAttribute('data-actual-value', revenueValue);
+    
+    // Verificar si ya está visible o no
+    const isCurrentlyHidden = elements.totalRevenue.classList.contains('hidden-revenue');
+    
+    if (isCurrentlyHidden) {
+      // Si está oculto, mantener oculto
+      elements.totalRevenue.classList.add('hidden-revenue');
+      elements.totalRevenue.textContent = '***';
+      
+      // Actualizar icono del ojo
+      const eyeIcon = document.getElementById('revenueEyeIcon');
+      if (eyeIcon) {
+        eyeIcon.classList.remove('bi-eye-slash');
+        eyeIcon.classList.add('bi-eye');
+      }
+    } else {
+      // Si está visible, mantener visible
+      elements.totalRevenue.classList.remove('hidden-revenue');
+      elements.totalRevenue.textContent = revenueValue;
+      
+      // Actualizar icono del ojo
+      const eyeIcon = document.getElementById('revenueEyeIcon');
+      if (eyeIcon) {
+        eyeIcon.classList.remove('bi-eye');
+        eyeIcon.classList.add('bi-eye-slash');
+      }
+    }
+  }
+  
+  // Actualizar también el elemento de la sección de pollos
+  if (elements.chickenTotalRevenue) {
+    const revenueValue = `$${Math.max(0, totalRevenue).toFixed(2)}`;
+    elements.chickenTotalRevenue.textContent = revenueValue;
+  }
+}
+
+// Inicializar gráficas
+function initializeCharts() {
+  // Configuración común para todas las gráficas
+  Chart.defaults.font.family = "'Segoe UI', sans-serif";
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = '#6c757d';
+  
+  // Destruir gráfica anterior si existe
+  if (mainChart) {
+    mainChart.destroy();
+    mainChart = null;
+  }
+  
+  // Destruir todas las gráficas existentes en el canvas
+  const mainChartCtx = document.getElementById('mainChart');
+  if (mainChartCtx) {
+    // Obtener todas las gráficas registradas
+    const existingCharts = Chart.getChart(mainChartCtx);
+    if (existingCharts) {
+      existingCharts.destroy();
+    }
+    
+    // Limpiar el canvas
+    const ctx = mainChartCtx.getContext('2d');
+    ctx.clearRect(0, 0, mainChartCtx.width, mainChartCtx.height);
+    
+    mainChart = new Chart(mainChartCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Ventas Normales',
+          data: [],
+          borderColor: '#4CAF50',
+          backgroundColor: 'rgba(76, 175, 80, 0.1)',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.4
+        }, {
+          label: 'Ventas de Pollos',
+          data: [],
+          borderColor: '#FF9800',
+          backgroundColor: 'rgba(255, 152, 0, 0.1)',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.4
+        }, {
+          label: 'Deudas',
+          data: [],
+          borderColor: '#F44336',
+          backgroundColor: 'rgba(244, 67, 54, 0.1)',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.4
+        }, {
+          label: 'Pagos',
+          data: [],
+          borderColor: '#2196F3',
+          backgroundColor: 'rgba(33, 150, 243, 0.1)',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              padding: 20
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            callbacks: {
+              label: function(context) {
+                const value = context.parsed?.y || context.raw || 0;
+                return `${context.dataset.label}: $${value.toFixed(2)}`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return '$' + (value || 0).toFixed(2);
+              }
+            }
+          }
+        },
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        }
+      }
+    });
+  }
+}
+
+// Actualizar gráficas con datos
+function updateChartsWithData(movements) {
+  try {
+    const { startDate, endDate } = getDateRangeFromFilter(currentMovementFilter);
+    
+    // Calcular datos para gráficas
+    const chartData = calculateChartData(movements, startDate, endDate);
+    
+    // Actualizar gráfica principal
+    if (mainChart) {
+      updateMainChart();
+    }
+    
+    console.log('Datos de gráficas actualizados:', chartData);
+  } catch (error) {
+    console.error('Error actualizando gráficas con datos:', error);
+  }
+}
+
+// Calcular datos para gráficas
+function calculateChartData(movements, startDate, endDate) {
+  const data = {
+    totalSales: 0,
+    totalChickenSales: 0,
+    totalDebts: 0,
+    totalPayments: 0
+  };
+  
+  movements.forEach(movement => {
+    switch (movement.type) {
+      case 'sale':
+        data.totalSales += (movement.amount || 0);
+        break;
+      case 'chicken':
+        data.totalChickenSales += (movement.amount || 0);
+        break;
+      case 'debt':
+        data.totalDebts += (movement.amount || 0);
+        break;
+      case 'payment':
+        data.totalPayments += (movement.amount || 0);
+        break;
+    }
+  });
+  
+  return data;
+}
+
+// Obtener datos de tendencias según el tipo de gráfica
+function getTrendData(startDate, endDate) {
+  const labels = [];
+  const salesData = [];
+  const chickenData = [];
+  
+  switch (currentChartType) {
+    case 'daily':
+      // Datos diarios de la última semana
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        labels.push(date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' }));
+        
+        const daySales = getSalesForDate(date);
+        salesData.push(daySales.normal);
+        chickenData.push(daySales.chicken);
+      }
+      break;
+      
+    case 'weekly':
+      // Datos semanales del último mes
+      for (let i = 3; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - (i * 7));
+        labels.push(`Semana ${4-i}`);
+        
+        const weekSales = getSalesForWeek(date);
+        salesData.push(weekSales.normal);
+        chickenData.push(weekSales.chicken);
+      }
+      break;
+      
+    case 'monthly':
+      // Datos mensuales del último año
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        labels.push(date.toLocaleDateString('es-ES', { month: 'short' }));
+        
+        const monthSales = getSalesForMonth(date);
+        salesData.push(monthSales.normal);
+        chickenData.push(monthSales.chicken);
+      }
+      break;
+      
+    case 'yearly':
+      // Datos anuales (últimos 5 años)
+      for (let i = 4; i >= 0; i--) {
+        const year = new Date().getFullYear() - i;
+        labels.push(year.toString());
+        
+        const yearSales = getSalesForYear(year);
+        salesData.push(yearSales.normal);
+        chickenData.push(yearSales.chicken);
+      }
+      break;
+  }
+  
+  return { labels, salesData, chickenData };
+}
+
+// Funciones auxiliares para obtener datos por período
+function getSalesForDate(date) {
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+  
+  const movements = getAllMovementsInRange(startOfDay, endOfDay);
+  
+  return {
+    normal: movements.filter(m => m.type === 'sale').reduce((sum, m) => sum + (m.amount || 0), 0),
+    chicken: movements.filter(m => m.type === 'chicken').reduce((sum, m) => sum + (m.amount || 0), 0)
+  };
+}
+
+function getSalesForWeek(date) {
+  const startOfWeek = new Date(date);
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(endOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+  
+  const movements = getAllMovementsInRange(startOfWeek, endOfWeek);
+  
+  return {
+    normal: movements.filter(m => m.type === 'sale').reduce((sum, m) => sum + (m.amount || 0), 0),
+    chicken: movements.filter(m => m.type === 'chicken').reduce((sum, m) => sum + (m.amount || 0), 0)
+  };
+}
+
+function getSalesForMonth(date) {
+  const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  endOfMonth.setHours(23, 59, 59, 999);
+  
+  const movements = getAllMovementsInRange(startOfMonth, endOfMonth);
+  
+  return {
+    normal: movements.filter(m => m.type === 'sale').reduce((sum, m) => sum + (m.amount || 0), 0),
+    chicken: movements.filter(m => m.type === 'chicken').reduce((sum, m) => sum + (m.amount || 0), 0)
+  };
+}
+
+function getSalesForYear(year) {
+  const startOfYear = new Date(year, 0, 1);
+  const endOfYear = new Date(year, 11, 31);
+  endOfYear.setHours(23, 59, 59, 999);
+  
+  const movements = getAllMovementsInRange(startOfYear, endOfYear);
+  
+  return {
+    normal: movements.filter(m => m.type === 'sale').reduce((sum, m) => sum + (m.amount || 0), 0),
+    chicken: movements.filter(m => m.type === 'chicken').reduce((sum, m) => sum + (m.amount || 0), 0)
+  };
+}
+
+// Actualizar gráficas
+function updateCharts() {
+  const { startDate, endDate } = getDateRangeFromFilter(currentMovementFilter);
+  const movements = getAllMovementsInRange(startDate, endDate);
+  updateChartsWithData(movements);
+}
+
+// Renderizar movimientos avanzados
+function renderAdvancedMovements(movements) {
+  const container = document.getElementById('filteredMovementsList');
+  const countElement = document.getElementById('filteredMovementsCount');
+  
+  if (!container || !countElement) return;
+  
+  countElement.textContent = `${movements.length} movimientos`;
+  
+  if (movements.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-4">
+        <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+        <p class="text-muted mt-2">Sin movimientos en este período</p>
+      </div>
+    `;
+    return;
+  }
+  
+  const movementsHTML = movements.map((movement, index) => `
+    <div class="movement-item-treinta ${movement.type}" onclick="showMovementDetailAdvanced(${index}, '${movement.type}')">
+      <div class="movement-header-treinta">
+        <div class="movement-type-treinta">
+          <i class="bi ${movement.icon}"></i>
+          <span class="movement-type-badge ${movement.type}">${getMovementTypeText(movement.type)}</span>
+        </div>
+        <div class="movement-date-treinta">
+          ${movement.date.toLocaleDateString('es-ES', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </div>
+      </div>
+      <div class="movement-content-treinta">
+        <div class="movement-info-treinta">
+          <div class="movement-title-treinta">${movement.title}</div>
+          <div class="movement-subtitle-treinta">${movement.subtitle}</div>
+        </div>
+        <div class="movement-amount-treinta ${movement.amountClass}">
+          $${movement.amount.toFixed(2)}
+        </div>
+      </div>
+    </div>
+  `).join('');
+  
+  container.innerHTML = movementsHTML;
+  
+  // Aplicar modo de vista
+  if (movementsViewMode === 'grid') {
+    container.classList.add('grid-view');
+  } else {
+    container.classList.remove('grid-view');
+  }
+}
+
+// Obtener texto del tipo de movimiento
+function getMovementTypeText(type) {
+  switch (type) {
+    case 'sale': return 'Venta';
+    case 'chicken': return 'Pollos';
+    case 'debt': return 'Deuda';
+    case 'payment': return 'Pago';
+    default: return 'Movimiento';
+  }
+}
+
+// Mostrar detalle de movimiento avanzado
+function showMovementDetailAdvanced(index, type) {
+  const { startDate, endDate } = getDateRangeFromFilter(currentMovementFilter);
+  const movements = getAllMovementsInRange(startDate, endDate);
+  const movement = movements[index];
+  
+  if (!movement) return;
+  
+  switch (type) {
+    case 'sale':
+      showReceipt(movement.data);
+      break;
+    case 'chicken':
+      showChickenReceipt(movement.data);
+      break;
+    case 'debt':
+      showDebtDetailModal(movement.data.id);
+      break;
+    case 'payment':
+      showPaymentDetail(movement.data);
+      break;
+  }
+}
+
+// Renderizar resumen del período avanzado
+function renderPeriodSummaryAdvanced(movements) {
+  const container = document.getElementById('periodSummary');
+  
+  if (!container) return;
+  
+  const summary = calculatePeriodSummary(movements);
+  
+  container.innerHTML = `
+    <div class="row g-3">
+      <div class="col-md-3">
+        <div class="summary-card-treinta">
+          <div class="summary-icon">
+            <i class="bi bi-cart-check"></i>
+          </div>
+          <div class="summary-content">
+            <div class="summary-value">${summary.sales}</div>
+            <div class="summary-label">Ventas</div>
+            <div class="summary-amount">$${summary.totalIncome.toFixed(2)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="summary-card-treinta">
+          <div class="summary-icon">
+            <i class="bi bi-egg-fried"></i>
+          </div>
+          <div class="summary-content">
+            <div class="summary-value">${movements.filter(m => m.type === 'chicken').length}</div>
+            <div class="summary-label">Ventas Pollos</div>
+            <div class="summary-amount">$${movements.filter(m => m.type === 'chicken').reduce((sum, m) => sum + m.amount, 0).toFixed(2)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="summary-card-treinta">
+          <div class="summary-icon">
+            <i class="bi bi-cash-stack"></i>
+          </div>
+          <div class="summary-content">
+            <div class="summary-value">${summary.debts}</div>
+            <div class="summary-label">Deudas</div>
+            <div class="summary-amount">$${summary.totalDebts.toFixed(2)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="summary-card-treinta">
+          <div class="summary-icon">
+            <i class="bi bi-cash-coin"></i>
+          </div>
+          <div class="summary-content">
+            <div class="summary-value">${summary.payments}</div>
+            <div class="summary-label">Pagos</div>
+            <div class="summary-amount">$${summary.totalPayments.toFixed(2)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Aplicar filtro personalizado
+function applyCustomFilter() {
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  
+  if (!startDate || !endDate) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Fechas requeridas',
+      text: 'Por favor selecciona fecha de inicio y fin.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+  
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  if (start > end) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Rango inválido',
+      text: 'La fecha de inicio debe ser menor a la fecha de fin.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+  
+  loadMovementData('custom');
+}
+
+// Aplicar filtro de mes
+function applyMonthFilter() {
+  const selectedMonth = document.getElementById('selectedMonth').value;
+  
+  if (!selectedMonth) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Mes requerido',
+      text: 'Por favor selecciona un mes.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+  
+  const [year, month] = selectedMonth.split('-');
+  const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+  const endDate = new Date(parseInt(year), parseInt(month), 0);
+  endDate.setHours(23, 59, 59, 999);
+  
+  // Actualizar inputs de fecha personalizada
+  document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+  document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+  
+  loadMovementData('custom');
+}
+
+// Limpiar filtros
+function clearMovementFilters() {
+  // Resetear filtros rápidos
+  document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  document.querySelector('[data-period="today"]').classList.add('active');
+  currentMovementFilter = 'today';
+  
+  // Ocultar filtros personalizados
+  const customDateSelector = document.getElementById('customDateSelector');
+  const btnClearFilters = document.getElementById('btnClearFilters');
+  if (customDateSelector) customDateSelector.style.display = 'none';
+  if (btnClearFilters) btnClearFilters.style.display = 'none';
+  
+  // Limpiar inputs
+  const startDate = document.getElementById('startDate');
+  const endDate = document.getElementById('endDate');
+  if (startDate) startDate.value = '';
+  if (endDate) endDate.value = '';
+  
+  // Cargar datos por defecto
+  loadMovementData('today');
+  updatePeriodDisplay('today');
+}
+
+// Cambiar vista de movimientos
+function toggleMovementsView() {
+  const container = document.getElementById('filteredMovementsList');
+  const textElement = document.getElementById('movementsViewText');
+  
+  if (movementsViewMode === 'list') {
+    movementsViewMode = 'grid';
+    textElement.textContent = 'Lista';
+    container.classList.add('grid-view');
+  } else {
+    movementsViewMode = 'list';
+    textElement.textContent = 'Cuadrícula';
+    container.classList.remove('grid-view');
+  }
+}
+
+// Función para actualizar la vista de movimientos cuando se muestra
+function updateMovementsView() {
+  const movementsView = document.getElementById('view-movements');
+  if (movementsView && !movementsView.classList.contains('d-none')) {
+    // Solo inicializar si no se ha hecho antes
+    if (!movementsViewInitialized) {
+      initializeMovementsView();
+    } else {
+      // Si ya está inicializada, solo actualizar datos
+      loadMovementData(currentMovementFilter);
+    }
+  }
+}
+
+// Función para limpiar recursos de movimientos
+function cleanupMovementsView() {
+  // Destruir gráfica principal
+  if (mainChart) {
+    mainChart.destroy();
+    mainChart = null;
+  }
+  
+  // Destruir cualquier gráfica que pueda estar en el canvas
+  const mainChartCtx = document.getElementById('mainChart');
+  if (mainChartCtx) {
+    const existingCharts = Chart.getChart(mainChartCtx);
+    if (existingCharts) {
+      existingCharts.destroy();
+    }
+    
+    // Limpiar el canvas
+    const ctx = mainChartCtx.getContext('2d');
+    ctx.clearRect(0, 0, mainChartCtx.width, mainChartCtx.height);
+  }
+  
+  // Resetear bandera
+  movementsViewInitialized = false;
+}
+
+// Función para mostrar/ocultar ingresos totales (ganancias)
+function toggleRevenueVisibility() {
+  const revenueElement = document.getElementById('totalRevenue');
+  const eyeIcon = document.getElementById('revenueEyeIcon');
+  
+  if (revenueElement && eyeIcon) {
+    const isHidden = revenueElement.classList.contains('hidden-revenue');
+    
+    if (isHidden) {
+      // Mostrar ganancias
+      revenueElement.classList.remove('hidden-revenue');
+      eyeIcon.classList.remove('bi-eye');
+      eyeIcon.classList.add('bi-eye-slash');
+      revenueElement.textContent = revenueElement.getAttribute('data-actual-value') || '$0.00';
+    } else {
+      // Ocultar ganancias
+      revenueElement.classList.add('hidden-revenue');
+      eyeIcon.classList.remove('bi-eye-slash');
+      eyeIcon.classList.add('bi-eye');
+      revenueElement.textContent = '***';
+    }
+  }
+}
+
+// Función para inicializar el estado del botón del ojo
+function initializeRevenueToggle() {
+  const revenueElement = document.getElementById('totalRevenue');
+  const eyeIcon = document.getElementById('revenueEyeIcon');
+  
+  if (revenueElement && eyeIcon) {
+    // Por defecto, ocultar los ingresos totales
+    revenueElement.classList.add('hidden-revenue');
+    revenueElement.textContent = '***';
+    eyeIcon.classList.remove('bi-eye-slash');
+    eyeIcon.classList.add('bi-eye');
+  }
+}
+
+// Función para verificar datos almacenados
+async function checkStoredData() {
+  console.log('=== VERIFICANDO DATOS ALMACENADOS ===');
+  
+  try {
+    const sales = await loadFromStorage('sales') || [];
+    const chickenSales = await loadFromStorage('chickenSales') || [];
+    const movements = await loadFromStorage('movements') || [];
+    
+    console.log('Ventas normales almacenadas:', sales.length);
+    console.log('Ventas de pollos almacenadas:', chickenSales.length);
+    console.log('Movimientos almacenados:', movements.length);
+    
+    if (sales.length > 0) {
+      console.log('Muestra de ventas normales:', sales.slice(0, 3).map(s => ({
+        id: s.id,
+        date: s.date,
+        total: s.total
+      })));
+    }
+    
+    if (chickenSales.length > 0) {
+      console.log('Muestra de ventas de pollos:', chickenSales.slice(0, 3).map(s => ({
+        id: s.id,
+        date: s.date,
+        total: s.total
+      })));
+    }
+    
+    if (movements.length > 0) {
+      console.log('Muestra de movimientos:', movements.slice(0, 3).map(m => ({
+        type: m.type,
+        amount: m.amount,
+        title: m.title
+      })));
+    }
+    
+    return { sales, chickenSales, movements };
+  } catch (error) {
+    console.error('Error verificando datos:', error);
+    return { sales: [], chickenSales: [], movements: [] };
+  }
+}
+
+// Función de emergencia para recalcular ingresos totales
+function forceRecalculateRevenue() {
+  console.log('=== FORZANDO RECÁLCULO DE INGRESOS ===');
+  
+  // Calcular ganancias reales (PVP - Costo) desde las ventas
+  let totalSalesProfit = 0;
+  let totalChickenProfit = 0;
+  let totalSalesAmount = 0;
+  let totalChickenAmount = 0;
+  
+  if (sales && Array.isArray(sales)) {
+    totalSalesAmount = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+    totalSalesProfit = sales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+    console.log('Total ventas normales:', totalSalesAmount);
+    console.log('Ganancias ventas normales:', totalSalesProfit);
+  }
+  
+  if (chickenSales && Array.isArray(chickenSales)) {
+    totalChickenAmount = chickenSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+    totalChickenProfit = chickenSales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+    console.log('Total ventas de pollos:', totalChickenAmount);
+    console.log('Ganancias ventas de pollos:', totalChickenProfit);
+  }
+  
+  const totalRevenue = totalSalesProfit + totalChickenProfit;
+  console.log('Ingresos totales (ganancias reales):', totalRevenue);
+  
+  // Actualizar el elemento en el DOM
+  const revenueElement = document.getElementById('totalRevenue');
+  const chickenRevenueElement = document.getElementById('chickenTotalRevenue');
+  
+  if (revenueElement) {
+    const revenueValue = `$${Math.max(0, totalRevenue).toFixed(2)}`;
+    revenueElement.setAttribute('data-actual-value', revenueValue);
+    
+    // Si está oculto, mantener oculto pero actualizar el valor
+    if (revenueElement.classList.contains('hidden-revenue')) {
+      revenueElement.textContent = '***';
+    } else {
+      revenueElement.textContent = revenueValue;
+    }
+    
+    console.log('Elemento de ingresos (movimientos) actualizado con valor:', revenueValue);
+  } else {
+    console.warn('Elemento totalRevenue no encontrado en el DOM');
+  }
+  
+  if (chickenRevenueElement) {
+    const revenueValue = `$${Math.max(0, totalRevenue).toFixed(2)}`;
+    chickenRevenueElement.textContent = revenueValue;
+    console.log('Elemento de ingresos (pollos) actualizado con valor:', revenueValue);
+  } else {
+    console.warn('Elemento chickenTotalRevenue no encontrado en el DOM');
+  }
+  
+  return totalRevenue;
+}
+
+// Función para verificar elementos del DOM
+function checkRevenueElements() {
+  console.log('=== VERIFICANDO ELEMENTOS DE INGRESOS ===');
+  
+  const revenueElement = document.getElementById('totalRevenue');
+  const chickenRevenueElement = document.getElementById('chickenTotalRevenue');
+  
+  console.log('Elemento totalRevenue encontrado:', !!revenueElement);
+  console.log('Elemento chickenTotalRevenue encontrado:', !!chickenRevenueElement);
+  
+  if (revenueElement) {
+    console.log('totalRevenue - Texto actual:', revenueElement.textContent);
+    console.log('totalRevenue - Valor data-actual-value:', revenueElement.getAttribute('data-actual-value'));
+    console.log('totalRevenue - Clase hidden-revenue:', revenueElement.classList.contains('hidden-revenue'));
+  }
+  
+  if (chickenRevenueElement) {
+    console.log('chickenTotalRevenue - Texto actual:', chickenRevenueElement.textContent);
+  }
+  
+  return { revenueElement, chickenRevenueElement };
+}
+
+// Función para verificar cálculos de ganancias
+function checkProfitCalculations() {
+  console.log('=== VERIFICANDO CÁLCULOS DE GANANCIAS ===');
+  
+  if (sales && Array.isArray(sales)) {
+    console.log('Ventas normales disponibles:', sales.length);
+    if (sales.length > 0) {
+      const sampleSale = sales[0];
+      console.log('Muestra de venta normal:', {
+        id: sampleSale.id,
+        total: sampleSale.total,
+        cost: sampleSale.cost,
+        profit: sampleSale.profit,
+        profitCalculated: sampleSale.total - sampleSale.cost
+      });
+    }
+  }
+  
+  if (chickenSales && Array.isArray(chickenSales)) {
+    console.log('Ventas de pollos disponibles:', chickenSales.length);
+    if (chickenSales.length > 0) {
+      const sampleChickenSale = chickenSales[0];
+      console.log('Muestra de venta de pollos:', {
+        id: sampleChickenSale.id,
+        total: sampleChickenSale.total,
+        cost: sampleChickenSale.cost,
+        profit: sampleChickenSale.profit,
+        weight: sampleChickenSale.weight,
+        pricePerPound: sampleChickenSale.pricePerPound,
+        costPerPound: sampleChickenSale.costPerPound
+      });
+    }
+  }
+  
+  // Calcular ganancias totales
+  let totalSalesProfit = 0;
+  let totalChickenProfit = 0;
+  
+  if (sales && Array.isArray(sales)) {
+    totalSalesProfit = sales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+  }
+  
+  if (chickenSales && Array.isArray(chickenSales)) {
+    totalChickenProfit = chickenSales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+  }
+  
+  console.log('Ganancias totales calculadas:', {
+    ventasNormales: totalSalesProfit,
+    ventasPollos: totalChickenProfit,
+    total: totalSalesProfit + totalChickenProfit
+  });
+  
+  return { totalSalesProfit, totalChickenProfit };
+}
+
+// Hacer disponibles las funciones de movimientos avanzados globalmente
+window.currentMovementFilter = currentMovementFilter;
+window.getAllMovementsInRange = getAllMovementsInRange;
+window.getDateRangeFromFilter = getDateRangeFromFilter;
+window.calculatePeriodSummary = calculatePeriodSummary;
+window.toggleRevenueVisibility = toggleRevenueVisibility;
+window.initializeRevenueToggle = initializeRevenueToggle;
+window.checkStoredData = checkStoredData;
+window.forceRecalculateRevenue = forceRecalculateRevenue;
+window.checkRevenueElements = checkRevenueElements;
+window.checkProfitCalculations = checkProfitCalculations;
+
+// Event listener para inicializar la vista de movimientos cuando se muestra
+document.addEventListener('DOMContentLoaded', () => {
+  // Observer para detectar cambios en la visibilidad de la vista de movimientos
+  const movementsView = document.getElementById('view-movements');
+  if (movementsView) {
+    let isInitializing = false; // Evitar múltiples inicializaciones simultáneas
+    
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          if (!movementsView.classList.contains('d-none') && !isInitializing && !movementsViewInitialized) {
+            // La vista de movimientos se ha mostrado
+            isInitializing = true;
+            console.log('Observer detectó que se mostró la vista de movimientos');
+            setTimeout(() => {
+              updateMovementsView();
+              isInitializing = false;
+            }, 300);
+          }
+        }
+      });
+    });
+    
+    observer.observe(movementsView, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+  }
+});
