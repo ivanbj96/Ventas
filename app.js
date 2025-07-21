@@ -3750,19 +3750,16 @@ window.addEventListener('beforeinstallprompt', e => {
 });
 
 // === Detectar modo oscuro del sistema ===
-function detectDarkMode() {
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.documentElement.classList.add('dark-mode');
-  } else {
-    document.documentElement.classList.remove('dark-mode');
-  }
-}
+// function detectDarkMode() {
+//   if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+//     document.documentElement.classList.add('dark-mode');
+//   } else {
+//     document.documentElement.classList.remove('dark-mode');
+//   }
+// }
 
-// Escuchar cambios en el sistema
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectDarkMode);
-
-// Ejecutar al iniciar
-detectDarkMode();
+// window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectDarkMode);
+// detectDarkMode();
 
 // === Registrar Service Worker ===
 if ('serviceWorker' in navigator) {
