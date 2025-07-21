@@ -37,6 +37,19 @@ async function saveToStorage(key, data) {
       return false;
     }
 
+    // Protección: No sobrescribir datos críticos con arrays vacíos si antes había datos
+    if (STORAGE_CONFIG.CRITICAL_DATA.includes(key) && Array.isArray(data) && data.length === 0) {
+      const prev = localStorage.getItem(key);
+      if (prev) {
+        const prevParsed = JSON.parse(prev);
+        if (Array.isArray(prevParsed) && prevParsed.length > 0) {
+          // Solo mensaje en consola, sin alerta visual
+          console.warn(`Protección de datos: Se intentó guardar datos vacíos en "${key}". La operación fue bloqueada para evitar pérdida de información.`);
+          return false;
+        }
+      }
+    }
+
     // Guardar en localStorage (rápido)
     const jsonData = JSON.stringify(data);
     localStorage.setItem(key, jsonData);
@@ -52,7 +65,6 @@ async function saveToStorage(key, data) {
     return true;
   } catch (error) {
     console.error(`Error guardando datos (${key}):`, error);
-    
     // Intentar guardar solo en localStorage como fallback
     try {
       localStorage.setItem(key, JSON.stringify(data));
@@ -746,5 +758,35 @@ window.throttle = throttle;
 window.copyToClipboard = copyToClipboard;
 window.validateDataIntegrity = validateDataIntegrity;
 window.getStorageStats = getStorageStats; // Added new function to window
+window.restoreBackupIfLossDetected = function() {
+  try {
+    const backup = localStorage.getItem('tillup_backup');
+    if (!backup) return false;
+    const backupData = JSON.parse(backup);
+    let restored = false;
+    for (const key of STORAGE_CONFIG.CRITICAL_DATA) {
+      const current = localStorage.getItem(key);
+      const currentArr = current ? JSON.parse(current) : [];
+      const backupArr = backupData[key] || [];
+      if (Array.isArray(currentArr) && currentArr.length === 0 && Array.isArray(backupArr) && backupArr.length > 0) {
+        localStorage.setItem(key, JSON.stringify(backupArr));
+        restored = true;
+      }
+    }
+    if (restored && window.Swal) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Backup restaurado',
+        text: 'Se detectó pérdida de datos y se restauró el backup más reciente.',
+        confirmButtonText: 'Aceptar',
+        customClass: { popup: 'swal2-sale-treinta' }
+      });
+    }
+    return restored;
+  } catch (e) {
+    console.error('Error restaurando backup:', e);
+    return false;
+  }
+};
 
 console.log('✅ Utilidades globales cargadas correctamente');
