@@ -3749,18 +3749,6 @@ window.addEventListener('beforeinstallprompt', e => {
   console.log("App puede instalarse. Ejecuta deferredPrompt.prompt() para instalar.");
 });
 
-// === Detectar modo oscuro del sistema ===
-// function detectDarkMode() {
-//   if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-//     document.documentElement.classList.add('dark-mode');
-//   } else {
-//     document.documentElement.classList.remove('dark-mode');
-//   }
-// }
-
-// window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectDarkMode);
-// detectDarkMode();
-
 // === Registrar Service Worker ===
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js')
@@ -6263,9 +6251,6 @@ document.addEventListener('DOMContentLoaded', function() {
   updateDateTime();
   setInterval(updateDateTime, 1000);
   
-  // Detectar modo oscuro
-  detectDarkMode();
-  
   // Inicializar mejoras para experiencia nativa
   initializeNativeEnhancements();
   
@@ -6818,7 +6803,6 @@ function showCreditSaleModal(total, cost, client, cartOverride, saleDateOverride
     showReceipt(sale);
   });
 }
-// ... código existente ...
 
 // Elimina la función finalizeSaleDrawer y haz que el botón del drawer llame a finalizeSale
 window.finalizeSaleDrawer = function() {
