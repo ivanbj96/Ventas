@@ -1325,7 +1325,16 @@ function editChickenSale(index) {
 }
 
 // Modificar updateChickenSalesList para agregar botón de editar
-// ... existing code ...
+function updateChickenSalesList() {
+  const container = document.getElementById('chickenSalesList');
+  if (!container) return;
+  
+  const filteredSales = chickenSales.filter(sale => {
+    const clientName = sale.clientName.toLowerCase();
+    const searchTerm = document.getElementById('chickenSearch').value.toLowerCase();
+    return clientName.includes(searchTerm);
+  });
+  
   container.innerHTML = filteredSales.map((sale, idx) => `
     <div class="chicken-sale-item-treinta">
       <div class="chicken-sale-header-treinta">
@@ -1367,7 +1376,7 @@ function editChickenSale(index) {
       </div>
     </div>
   `).join('');
-// ... existing code ...
+}
 
 // Exponer la función globalmente
 window.editChickenSale = editChickenSale;
@@ -1747,13 +1756,15 @@ function printChickenReceipt(sale) {
           <div class="receipt-items-header">
             <div>Descripción</div>
             <div>Cant.</div>
+            <div>Peso (lbs)</div>
             <div>Precio/Lb</div>
             <div>Subtotal</div>
           </div>
           
           <div class="receipt-item">
-            <div>Pollo(s) - ${sale.weight} lbs</div>
+            <div>Pollo(s)</div>
             <div>${sale.quantity}</div>
+            <div>${sale.weight}</div>
             <div>$${sale.pricePerPound.toFixed(2)}</div>
             <div>$${sale.total.toFixed(2)}</div>
           </div>
