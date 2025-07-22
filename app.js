@@ -1233,7 +1233,144 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+// === Edición de ventas de pollos ===
+function editChickenSale(index) {
+  const sale = chickenSales[index];
+  if (!sale) return;
+  Swal.fire({
+    title: 'Editar Venta de Pollos',
+    html: `
+      <form id="editChickenSaleForm">
+        <div class="mb-2">
+          <label class="form-label">Cliente</label>
+          <input type="text" class="form-control" id="editChickenClient" value="${sale.clientName}" readonly>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Cantidad</label>
+          <input type="number" class="form-control" id="editChickenQuantity" value="${sale.quantity}" min="1" required>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Peso Total (lbs)</label>
+          <input type="number" class="form-control" id="editChickenWeight" value="${sale.weight}" step="0.01" min="0.01" required>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Precio por Libra</label>
+          <input type="number" class="form-control" id="editChickenPricePerPound" value="${sale.pricePerPound}" step="0.01" min="0.01" required>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Costo por Libra</label>
+          <input type="number" class="form-control" id="editChickenCostPerPound" value="${sale.costPerPound}" step="0.01" min="0" required>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Tipo de Pago</label>
+          <select class="form-select" id="editChickenPaymentType">
+            <option value="cash" ${sale.paymentType === 'cash' ? 'selected' : ''}>Efectivo</option>
+            <option value="credit" ${sale.paymentType === 'credit' ? 'selected' : ''}>Crédito</option>
+            <option value="transfer" ${sale.paymentType === 'transfer' ? 'selected' : ''}>Transferencia</option>
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Abono (si es crédito)</label>
+          <input type="number" class="form-control" id="editChickenAbono" value="${sale.abono || 0}" step="0.01" min="0">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Fecha</label>
+          <input type="date" class="form-control" id="editChickenDate" value="${sale.date ? sale.date.slice(0,10) : ''}" required>
+        </div>
+      </form>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'Guardar',
+    cancelButtonText: 'Cancelar',
+    preConfirm: () => {
+      const quantity = parseInt(document.getElementById('editChickenQuantity').value);
+      const weight = parseFloat(document.getElementById('editChickenWeight').value);
+      const pricePerPound = parseFloat(document.getElementById('editChickenPricePerPound').value);
+      const costPerPound = parseFloat(document.getElementById('editChickenCostPerPound').value);
+      const paymentType = document.getElementById('editChickenPaymentType').value;
+      const abono = parseFloat(document.getElementById('editChickenAbono').value) || 0;
+      const date = document.getElementById('editChickenDate').value;
+      if (!quantity || !weight || !pricePerPound || !date) {
+        Swal.showValidationMessage('Todos los campos son obligatorios');
+        return false;
+      }
+      return { quantity, weight, pricePerPound, costPerPound, paymentType, abono, date };
+    }
+  }).then(async (result) => {
+    if (result.isConfirmed && result.value) {
+      const { quantity, weight, pricePerPound, costPerPound, paymentType, abono, date } = result.value;
+      const total = pricePerPound * weight;
+      const profit = (pricePerPound - costPerPound) * weight;
+      chickenSales[index] = {
+        ...sale,
+        quantity,
+        weight,
+        pricePerPound,
+        costPerPound,
+        total,
+        profit,
+        paymentType,
+        abono,
+        debt: paymentType === 'credit' ? total - abono : 0,
+        date: date,
+      };
+      await saveToStorage('chickenSales', chickenSales);
+      updateChickenStats();
+      updateChickenSalesList();
+      Swal.fire({ icon: 'success', title: 'Venta actualizada', text: 'La venta de pollos fue actualizada correctamente.', timer: 1500, showConfirmButton: false });
+    }
+  });
+}
+
+// Modificar updateChickenSalesList para agregar botón de editar
 // ... existing code ...
+  container.innerHTML = filteredSales.map((sale, idx) => `
+    <div class="chicken-sale-item-treinta">
+      <div class="chicken-sale-header-treinta">
+        <div class="chicken-sale-client-treinta">
+          <i class="bi bi-person"></i>
+          ${sale.clientName}
+        </div>
+        <div class="chicken-sale-date-treinta">
+          ${new Date(sale.date).toLocaleDateString()} ${sale.time}
+        </div>
+        <button class="btn btn-sm btn-outline-primary ms-2" title="Editar" onclick="editChickenSale(${chickenSales.indexOf(sale)})"><i class="bi bi-pencil"></i></button>
+      </div>
+      <div class="chicken-sale-details-treinta">
+        <div class="chicken-sale-detail-treinta">
+          <div class="chicken-sale-detail-label-treinta">Cantidad</div>
+          <div class="chicken-sale-detail-value-treinta">${sale.quantity} pollo(s)</div>
+        </div>
+        <div class="chicken-sale-detail-treinta">
+          <div class="chicken-sale-detail-label-treinta">Peso Total</div>
+          <div class="chicken-sale-detail-value-treinta">${sale.weight} lbs</div>
+        </div>
+        <div class="chicken-sale-detail-treinta">
+          <div class="chicken-sale-detail-label-treinta">Precio/Lb</div>
+          <div class="chicken-sale-detail-value-treinta">$${sale.pricePerPound.toFixed(2)}</div>
+        </div>
+        <div class="chicken-sale-detail-treinta">
+          <div class="chicken-sale-detail-label-treinta">Peso Promedio</div>
+          <div class="chicken-sale-detail-value-treinta">${(sale.weight / sale.quantity).toFixed(1)} lbs</div>
+        </div>
+      </div>
+      <div class="chicken-sale-total-treinta">
+        <div class="chicken-sale-total-label-treinta">Total</div>
+        <div class="chicken-sale-total-amount-treinta">$${sale.total.toFixed(2)}</div>
+      </div>
+      <div class="chicken-sale-payment-treinta ${sale.paymentType}">
+        <i class="bi bi-${getPaymentIcon(sale.paymentType)}"></i>
+        ${getPaymentText(sale.paymentType)}
+        ${sale.paymentType === 'credit' && sale.abono > 0 ? ` (Abono: $${sale.abono.toFixed(2)})` : ''}
+      </div>
+    </div>
+  `).join('');
+// ... existing code ...
+
+// Exponer la función globalmente
+window.editChickenSale = editChickenSale;
 // Finalizar venta de pollos desde el resumen
 async function finalizeChickenSale() {
   // Obtener datos del formulario
@@ -2083,7 +2220,7 @@ function updateChickenSalesList(opts = {}) {
     return;
   }
   
-  container.innerHTML = filteredSales.map(sale => `
+  container.innerHTML = filteredSales.map((sale, idx) => `
     <div class="chicken-sale-item-treinta">
       <div class="chicken-sale-header-treinta">
         <div class="chicken-sale-client-treinta">
@@ -2093,6 +2230,7 @@ function updateChickenSalesList(opts = {}) {
         <div class="chicken-sale-date-treinta">
           ${new Date(sale.date).toLocaleDateString()} ${sale.time}
         </div>
+        <button class="btn btn-sm btn-outline-primary ms-2" title="Editar" onclick="editChickenSale(${chickenSales.indexOf(sale)})"><i class="bi bi-pencil"></i></button>
       </div>
       
       <div class="chicken-sale-details-treinta">
