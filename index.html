@@ -476,6 +476,9 @@
       <button onclick="generatePDF('chickens')" class="btn btn-outline-primary btn-sm">
         <i class="bi bi-download"></i> Exportar PDF
       </button>
+      <button id="btnMermaPollo" class="btn btn-outline-warning btn-sm" type="button">
+        <i class="bi bi-percent"></i> Calcular Merma
+      </button>
     </div>
   </div>
 
@@ -939,5 +942,54 @@
       </a></li>
     </ul>
   </div>
+<!-- Modal de Merma de Pollo -->
+<div class="modal fade" id="modalMermaPollo" tabindex="-1" aria-labelledby="modalMermaPolloLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalMermaPolloLabel"><i class="bi bi-percent"></i> Cálculo de Merma de Pollo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formMermaPollo">
+          <div class="mb-3">
+            <label for="precioPluma" class="form-label">Precio libra en pluma (vivo)</label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" class="form-control" id="precioPluma" step="0.01" min="0" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="manoObra" class="form-label">Mano de obra por pollo</label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" class="form-control" id="manoObra" step="0.01" min="0" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="pesoPluma" class="form-label">Peso total en pluma (lbs)</label>
+            <input type="number" class="form-control" id="pesoPluma" step="0.01" min="0" required>
+          </div>
+          <div class="mb-3">
+            <label for="pesoPelado" class="form-label">Peso total pelado (lbs)</label>
+            <input type="number" class="form-control" id="pesoPelado" step="0.01" min="0" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Porcentaje de merma</label>
+            <input type="text" class="form-control" id="porcentajeMerma" readonly>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Costo real por libra pelada</label>
+            <input type="text" class="form-control" id="costoRealLibra" readonly>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="btnActualizarCostoLibra">Actualizar costo por libra</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

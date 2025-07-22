@@ -1165,6 +1165,75 @@ async function handleChickenSale(e) {
   await processChickenSale(sale);
 }
 
+// === Cálculo de Merma de Pollo ===
+document.addEventListener('DOMContentLoaded', function() {
+  const btnMermaPollo = document.getElementById('btnMermaPollo');
+  if (btnMermaPollo) {
+    btnMermaPollo.addEventListener('click', function() {
+      const modal = new bootstrap.Modal(document.getElementById('modalMermaPollo'));
+      document.getElementById('formMermaPollo').reset();
+      document.getElementById('porcentajeMerma').value = '';
+      document.getElementById('costoRealLibra').value = '';
+      modal.show();
+    });
+  }
+
+  // Lógica de cálculo en tiempo real
+  const inputs = ['precioPluma', 'manoObra', 'pesoPluma', 'pesoPelado'];
+  inputs.forEach(id => {
+    const input = document.getElementById(id);
+    if (input) {
+      input.addEventListener('input', calcularMermaPollo);
+    }
+  });
+
+  function calcularMermaPollo() {
+    const precioPluma = parseFloat(document.getElementById('precioPluma').value) || 0;
+    const manoObra = parseFloat(document.getElementById('manoObra').value) || 0;
+    const pesoPluma = parseFloat(document.getElementById('pesoPluma').value) || 0;
+    const pesoPelado = parseFloat(document.getElementById('pesoPelado').value) || 0;
+    let porcentajeMerma = '';
+    let costoRealLibra = '';
+    if (pesoPluma > 0 && pesoPelado > 0) {
+      porcentajeMerma = ((1 - (pesoPelado / pesoPluma)) * 100).toFixed(2) + '%';
+      costoRealLibra = (((precioPluma * pesoPluma) + manoObra) / pesoPelado).toFixed(2);
+    }
+    document.getElementById('porcentajeMerma').value = porcentajeMerma;
+    document.getElementById('costoRealLibra').value = costoRealLibra ? `$${costoRealLibra}` : '';
+  }
+
+  // Actualizar el costo por libra en la configuración
+  const btnActualizar = document.getElementById('btnActualizarCostoLibra');
+  if (btnActualizar) {
+    btnActualizar.addEventListener('click', function() {
+      const costoRealLibra = document.getElementById('costoRealLibra').value.replace('$','');
+      if (costoRealLibra && !isNaN(costoRealLibra)) {
+        const costInput = document.getElementById('costPerPound');
+        if (costInput) {
+          costInput.value = parseFloat(costoRealLibra).toFixed(2);
+          // Opcional: mostrar feedback
+          Swal.fire({
+            icon: 'success',
+            title: 'Costo actualizado',
+            text: 'El costo por libra ha sido actualizado.',
+            timer: 1500,
+            showConfirmButton: false
+          });
+          // Cerrar modal
+          const modal = bootstrap.Modal.getInstance(document.getElementById('modalMermaPollo'));
+          if (modal) modal.hide();
+        }
+      } else {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Datos incompletos',
+          text: 'Completa los datos y asegúrate que el cálculo sea válido.'
+        });
+      }
+    });
+  }
+});
+// ... existente ...
 // Finalizar venta de pollos desde el resumen
 async function finalizeChickenSale() {
   // Obtener datos del formulario
