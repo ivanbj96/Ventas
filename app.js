@@ -1233,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
-// ... existente ...
+// ... existing code ...
 // Finalizar venta de pollos desde el resumen
 async function finalizeChickenSale() {
   // Obtener datos del formulario
@@ -7366,28 +7366,6 @@ function updateMovementStats(movements) {
     pagos: stats.totalPaymentsAmount,
     gananciasVentasNormales: totalSalesProfit,
     gananciasVentasPollos: totalChickenProfit,
-    ingresosTotales: totalRevenue
-  });
-  
-  // Debug: mostrar movimientos procesados
-  console.log('Movimientos procesados:', movements.map(m => ({
-    type: m.type,
-    amount: m.amount,
-    title: m.title
-  })));
-  
-  // Debug: mostrar datos disponibles
-  console.log('Datos disponibles:', {
-    ventasNormales: sales?.length || 0,
-    ventasPollos: chickenSales?.length || 0,
-    deudas: debts?.length || 0
-  });
-  
-  // Debug: mostrar valores calculados
-  console.log('Estadísticas calculadas:', {
-    ventasNormales: stats.totalSalesAmount,
-    ventasPollos: stats.totalChickenAmount,
-    pagos: stats.totalPaymentsAmount,
     ingresosTotales: totalRevenue
   });
   

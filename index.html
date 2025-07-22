@@ -922,23 +922,23 @@
       <li><a class="dropdown-item" href="#" onclick="quickAction('addClient')">
         <i class="bi bi-person-plus"></i> Agregar Cliente
       </a></li>
-      <li><hr class="dropdown-divider"></li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('viewBalance')">
         <i class="bi bi-graph-up"></i> Ver Balance
       </a></li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('viewDebts')">
         <i class="bi bi-cash-stack"></i> Ver Deudas
       </a></li>
-      <li><hr class="dropdown-divider"></li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('filterByDate')">
         <i class="bi bi-calendar-event"></i> Filtrar por Fecha
       </a></li>
-      <li><hr class="dropdown-divider"></li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('exportData')">
         <i class="bi bi-download"></i> Exportar Datos
       </a></li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('clearCache')">
         <i class="bi bi-trash"></i> Limpiar Cache
+      </a></li>
+      <li><a class="dropdown-item" href="#" onclick="toggleAutoDownloadBackup()">
+        <i class="bi bi-cloud-arrow-down"></i> Backup automático descargable
       </a></li>
     </ul>
   </div>
@@ -991,5 +991,7 @@
     </div>
   </div>
 </div>
+<!-- localForage CDN (recomendado) -->
+<script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
 </body>
 </html>
