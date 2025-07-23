@@ -2100,7 +2100,7 @@ function setupChickenEventListeners() {
     });
   }
   
-  // Event listeners para botones individuales de ganancias
+  // Event listeners para botones individuales de ganancias (lógica robusta)
   const toggleProfitPerPoundBtn = document.getElementById('toggleProfitPerPoundBtn');
   const displayProfitPerPound = document.getElementById('displayProfitPerPound');
   if (toggleProfitPerPoundBtn && displayProfitPerPound) {
@@ -2110,17 +2110,21 @@ function setupChickenEventListeners() {
     toggleProfitPerPoundBtn.addEventListener('click', (event) => {
       event.stopPropagation();
       event.preventDefault();
-      const isHidden = displayProfitPerPound.textContent === '***';
+      const isHidden = displayProfitPerPound.classList.contains('hidden-revenue');
       if (isHidden) {
+        // Mostrar valor real y quitar difuminado
+        displayProfitPerPound.classList.remove('blur-profit', 'hidden-revenue');
         displayProfitPerPound.textContent = displayProfitPerPound.dataset.actualValue || '';
         toggleProfitPerPoundBtn.innerHTML = '<i class="bi bi-eye-slash"></i>';
       } else {
+        // Ocultar valor y aplicar difuminado fuerte
+        displayProfitPerPound.classList.add('blur-profit', 'hidden-revenue');
         displayProfitPerPound.textContent = '***';
         toggleProfitPerPoundBtn.innerHTML = '<i class="bi bi-eye"></i>';
       }
     });
   }
-  
+
   const toggleTotalProfitBtn = document.getElementById('toggleTotalProfitBtn');
   const displayTotalProfit = document.getElementById('displayTotalProfit');
   if (toggleTotalProfitBtn && displayTotalProfit) {
@@ -2130,16 +2134,19 @@ function setupChickenEventListeners() {
     toggleTotalProfitBtn.addEventListener('click', (event) => {
       event.stopPropagation();
       event.preventDefault();
-      const isHidden = displayTotalProfit.textContent === '***';
+      const isHidden = displayTotalProfit.classList.contains('hidden-revenue');
       if (isHidden) {
+        displayTotalProfit.classList.remove('blur-profit', 'hidden-revenue');
         displayTotalProfit.textContent = displayTotalProfit.dataset.actualValue || '';
         toggleTotalProfitBtn.innerHTML = '<i class="bi bi-eye-slash"></i>';
       } else {
+        displayTotalProfit.classList.add('blur-profit', 'hidden-revenue');
         displayTotalProfit.textContent = '***';
         toggleTotalProfitBtn.innerHTML = '<i class="bi bi-eye"></i>';
       }
     });
   }
+  // ...existing code...
   
   // Event listener para el formulario
   const form = document.getElementById('chickenSaleForm');
