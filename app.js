@@ -1,3 +1,21 @@
+// Evento para filtrar pollos por fecha seleccionada
+document.addEventListener('DOMContentLoaded', function() {
+  const btnFilterChickenDate = document.getElementById('btnFilterChickenDate');
+  const inputFilterChickenDate = document.getElementById('filterChickenDate');
+  if (btnFilterChickenDate && inputFilterChickenDate) {
+    btnFilterChickenDate.addEventListener('click', function() {
+      const fecha = inputFilterChickenDate.value;
+      if (fecha) {
+        updateChickenStats({ fecha });
+        updateChickenSalesList({ fecha });
+      } else {
+        // Si no hay fecha, mostrar el día actual
+        updateChickenStats();
+        updateChickenSalesList();
+      }
+    });
+  }
+});
 // === Arrays globales ===
 let products = [];
 let clients = [];
@@ -1150,7 +1168,17 @@ async function handleChickenSale(e) {
   const total = pricePerPound * weight;
   const profit = (pricePerPound - costPerPound) * weight;
   
-  // Crear objeto de venta
+  // Crear objeto de venta con fecha y hora local
+  let now = new Date();
+  let [year, month, day] = (saleDate || now.toLocaleDateString('en-CA')).split('-');
+  let localDate = new Date(
+    parseInt(year),
+    parseInt(month) - 1,
+    parseInt(day),
+    now.getHours(),
+    now.getMinutes(),
+    now.getSeconds()
+  );
   const sale = {
     id: Date.now(),
     clientId: clientId,
@@ -1164,8 +1192,9 @@ async function handleChickenSale(e) {
     paymentType: paymentType,
     abono: abono,
     debt: paymentType === 'credit' ? total - abono : 0,
-    date: saleDate || new Date().toISOString().slice(0,10),
-    timestamp: new Date().toISOString()
+    date: `${year}-${month}-${day}T${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`,
+    time: localDate.toLocaleTimeString(),
+    timestamp: localDate.toLocaleString()
   };
   
   // Procesar la venta
@@ -1437,7 +1466,17 @@ async function finalizeChickenSale() {
   const totalCost = weight * costPerPound;
   const profit = total - totalCost;
   
-  // Crear objeto de venta
+  // Crear objeto de venta con fecha y hora local
+  const now = new Date();
+  const [year, month, day] = saleDate.split('-');
+  const localDate = new Date(
+    parseInt(year),
+    parseInt(month) - 1,
+    parseInt(day),
+    now.getHours(),
+    now.getMinutes(),
+    now.getSeconds()
+  );
   const sale = {
     id: Date.now().toString(),
     clientId: clientId,
@@ -1449,11 +1488,11 @@ async function finalizeChickenSale() {
     total: total,
     cost: totalCost,
     profit: profit, // Ganancia real (PVP - Costo)
-    date: saleDate + 'T' + new Date().toTimeString().slice(0,8), // Formato ISO consistente
-    time: new Date().toLocaleTimeString(),
+    date: `${year}-${month}-${day}T${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`,
+    time: localDate.toLocaleTimeString(),
     paymentType: paymentType,
     abono: abono,
-    createdAt: new Date().toISOString()
+    createdAt: localDate.toLocaleString()
   };
   
   try {
@@ -3561,13 +3600,23 @@ async function finalizeSale() {
         }
       });
       
-      // Obtener fecha del drawer si estamos en vista Temu
-      let saleDate = new Date().toISOString();
+      // Obtener fecha local (del drawer o actual)
+      let now = new Date();
+      let saleDateStr = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
       const dateInput = document.getElementById('saleDateDrawer');
       if (dateInput && dateInput.value) {
-        saleDate = dateInput.value + 'T' + new Date().toTimeString().slice(0,8);
+        saleDateStr = dateInput.value;
       }
-      
+      let [year, month, day] = saleDateStr.split('-');
+      let localDate = new Date(
+        parseInt(year),
+        parseInt(month) - 1,
+        parseInt(day),
+        now.getHours(),
+        now.getMinutes(),
+        now.getSeconds()
+      );
+      let saleDate = `${year}-${month}-${day}T${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
       // Registrar venta
       const sale = {
         id: generateId('sale'),
@@ -3581,7 +3630,7 @@ async function finalizeSale() {
         profit: finalTotal - cost,
         paymentType,
         date: saleDate,
-        time: new Date().toLocaleTimeString()
+        time: localDate.toLocaleTimeString()
       };
       
       if (!sales || !Array.isArray(sales)) {
