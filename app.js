@@ -6,8 +6,10 @@ let debts = [];
 let movements = [];
 let cart = [];
 let currentClientId = null;
-let inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'grid'; // 'grid' o 'list'
-let clientsViewMode = localStorage.getItem('clientsViewMode') || 'grid'; // 'grid' o 'list'
+let inventoryViewMode = 'grid';
+let clientsViewMode = 'grid';
+localforage.getItem('inventoryViewMode').then(val => { if(val) inventoryViewMode = val; });
+localforage.getItem('clientsViewMode').then(val => { if(val) clientsViewMode = val; });
 // Variables globales para pollos
 let chickenSales = [];
 let pricePerPound = 0;
@@ -1072,8 +1074,13 @@ async function updatePricePerPound() {
   try {
     pricePerPound = newPrice;
     costPerPound = newCost;
-    localStorage.setItem('pricePerPound', pricePerPound.toString());
-    localStorage.setItem('costPerPound', costPerPound.toString());
+    if (typeof localforage !== 'undefined') {
+      await localforage.setItem('pricePerPound', pricePerPound.toString());
+      await localforage.setItem('costPerPound', costPerPound.toString());
+    } else {
+      localStorage.setItem('pricePerPound', pricePerPound.toString());
+      localStorage.setItem('costPerPound', costPerPound.toString());
+    }
     updateChickenCalculation();
     Swal.fire({
       icon: 'success',
@@ -2073,50 +2080,64 @@ function setupChickenEventListeners() {
   
   // Event listeners para botones de mostrar/ocultar ganancias
   const toggleProfitStatsBtn = document.getElementById('toggleProfitStatsBtn');
-  const profitStatsSection = document.getElementById('profitStatsSection');
   const totalProfitElement = document.getElementById('totalProfit');
-  
-  if (toggleProfitStatsBtn && profitStatsSection && totalProfitElement) {
+  if (toggleProfitStatsBtn && totalProfitElement) {
+    // Guardar valor real si no existe
+    if (!totalProfitElement.dataset.actualValue) {
+      totalProfitElement.dataset.actualValue = totalProfitElement.textContent;
+    }
     toggleProfitStatsBtn.addEventListener('click', (event) => {
       event.stopPropagation();
       event.preventDefault();
-      const isVisible = profitStatsSection.style.display !== 'none';
-      profitStatsSection.style.display = isVisible ? 'none' : 'block';
-      totalProfitElement.classList.toggle('revealed');
-      toggleProfitStatsBtn.innerHTML = isVisible ? 
-        '<i class="bi bi-eye"></i>' : 
-        '<i class="bi bi-eye-slash"></i>';
+      const isHidden = totalProfitElement.textContent === '***';
+      if (isHidden) {
+        totalProfitElement.textContent = totalProfitElement.dataset.actualValue || '';
+        toggleProfitStatsBtn.innerHTML = '<i class="bi bi-eye-slash"></i>';
+      } else {
+        totalProfitElement.textContent = '***';
+        toggleProfitStatsBtn.innerHTML = '<i class="bi bi-eye"></i>';
+      }
     });
   }
   
   // Event listeners para botones individuales de ganancias
   const toggleProfitPerPoundBtn = document.getElementById('toggleProfitPerPoundBtn');
   const displayProfitPerPound = document.getElementById('displayProfitPerPound');
-  
   if (toggleProfitPerPoundBtn && displayProfitPerPound) {
+    if (!displayProfitPerPound.dataset.actualValue) {
+      displayProfitPerPound.dataset.actualValue = displayProfitPerPound.textContent;
+    }
     toggleProfitPerPoundBtn.addEventListener('click', (event) => {
       event.stopPropagation();
       event.preventDefault();
-      const isRevealed = displayProfitPerPound.classList.contains('revealed');
-      displayProfitPerPound.classList.toggle('revealed');
-      toggleProfitPerPoundBtn.innerHTML = isRevealed ? 
-        '<i class="bi bi-eye"></i>' : 
-        '<i class="bi bi-eye-slash"></i>';
+      const isHidden = displayProfitPerPound.textContent === '***';
+      if (isHidden) {
+        displayProfitPerPound.textContent = displayProfitPerPound.dataset.actualValue || '';
+        toggleProfitPerPoundBtn.innerHTML = '<i class="bi bi-eye-slash"></i>';
+      } else {
+        displayProfitPerPound.textContent = '***';
+        toggleProfitPerPoundBtn.innerHTML = '<i class="bi bi-eye"></i>';
+      }
     });
   }
   
   const toggleTotalProfitBtn = document.getElementById('toggleTotalProfitBtn');
   const displayTotalProfit = document.getElementById('displayTotalProfit');
-  
   if (toggleTotalProfitBtn && displayTotalProfit) {
+    if (!displayTotalProfit.dataset.actualValue) {
+      displayTotalProfit.dataset.actualValue = displayTotalProfit.textContent;
+    }
     toggleTotalProfitBtn.addEventListener('click', (event) => {
       event.stopPropagation();
       event.preventDefault();
-      const isRevealed = displayTotalProfit.classList.contains('revealed');
-      displayTotalProfit.classList.toggle('revealed');
-      toggleTotalProfitBtn.innerHTML = isRevealed ? 
-        '<i class="bi bi-eye"></i>' : 
-        '<i class="bi bi-eye-slash"></i>';
+      const isHidden = displayTotalProfit.textContent === '***';
+      if (isHidden) {
+        displayTotalProfit.textContent = displayTotalProfit.dataset.actualValue || '';
+        toggleTotalProfitBtn.innerHTML = '<i class="bi bi-eye-slash"></i>';
+      } else {
+        displayTotalProfit.textContent = '***';
+        toggleTotalProfitBtn.innerHTML = '<i class="bi bi-eye"></i>';
+      }
     });
   }
   
@@ -2359,7 +2380,7 @@ function closeSidebar() {
 }
 
 // === Configuración de tema (global) ===
-function setTheme(mode) {
+async function setTheme(mode) {
   // Siempre forzar modo claro
   document.documentElement.classList.remove('dark-mode');
   document.body.classList.remove('dark-mode');
@@ -2370,7 +2391,11 @@ function setTheme(mode) {
   const btnLight = document.getElementById('theme-light');
   if (btnLight) btnLight.classList.add('active');
   // Guardar preferencia SIEMPRE como 'light'
-  localStorage.setItem('theme', 'light');
+  if (typeof localforage !== 'undefined') {
+    await localforage.setItem('theme', 'light');
+  } else {
+    localStorage.setItem('theme', 'light');
+  }
   // No mostrar ningún mensaje ni alerta
 }
 
@@ -2544,13 +2569,22 @@ function isAppInstalled() {
 }
 
 // === Función helper para verificar si el usuario rechazó la instalación ===
-function hasUserRejectedInstallation() {
-  return localStorage.getItem('pwa-installation-rejected') === 'true';
+async function hasUserRejectedInstallation() {
+  if (typeof localforage !== 'undefined') {
+    const val = await localforage.getItem('pwa-installation-rejected');
+    return val === 'true';
+  } else {
+    return localStorage.getItem('pwa-installation-rejected') === 'true';
+  }
 }
 
 // === Función helper para marcar que el usuario rechazó la instalación ===
-function markInstallationRejected() {
-  localStorage.setItem('pwa-installation-rejected', 'true');
+async function markInstallationRejected() {
+  if (typeof localforage !== 'undefined') {
+    await localforage.setItem('pwa-installation-rejected', 'true');
+  } else {
+    localStorage.setItem('pwa-installation-rejected', 'true');
+  }
 }
 
 // === Mostrar/ocultar botón de instalación PWA de forma centralizada ===
@@ -2651,7 +2685,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (toggleInventoryViewBtn && toggleInventoryViewText) {
     toggleInventoryViewBtn.addEventListener('click', () => {
       inventoryViewMode = inventoryViewMode === 'grid' ? 'list' : 'grid';
-      localStorage.setItem('inventoryViewMode', inventoryViewMode);
+      localforage.setItem('inventoryViewMode', inventoryViewMode);
       renderInventory();
       toggleInventoryViewBtn.querySelector('i').className = inventoryViewMode === 'grid' ? 'bi bi-grid-3x3-gap-fill' : 'bi bi-list-ul';
       toggleInventoryViewText.textContent = inventoryViewMode === 'grid' ? 'Cuadrícula' : 'Lista';
@@ -2672,7 +2706,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (toggleClientsViewBtn && toggleClientsViewText) {
     toggleClientsViewBtn.addEventListener('click', () => {
       clientsViewMode = clientsViewMode === 'grid' ? 'list' : 'grid';
-      localStorage.setItem('clientsViewMode', clientsViewMode);
+      localforage.setItem('clientsViewMode', clientsViewMode);
       renderClients();
       toggleClientsViewBtn.querySelector('i').className = clientsViewMode === 'grid' ? 'bi bi-grid-3x3-gap-fill' : 'bi bi-list-ul';
       toggleClientsViewText.textContent = clientsViewMode === 'grid' ? 'Cuadrícula' : 'Lista';
@@ -2708,8 +2742,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // === Inicialización del sidebar ===
   // Cargar tema guardado (predeterminado: claro)
-  const savedTheme = localStorage.getItem('theme') || 'light';
-  setTheme(savedTheme);
+  (async () => {
+    let savedTheme = 'light';
+    if (typeof localforage !== 'undefined') {
+      const val = await localforage.getItem('theme');
+      savedTheme = val || 'light';
+    } else {
+      savedTheme = localStorage.getItem('theme') || 'light';
+    }
+    await setTheme(savedTheme);
+  })();
   
   // Cerrar sidebar con Escape
   document.addEventListener('keydown', function(e) {
@@ -3130,7 +3172,7 @@ if (clientPhotoInput) {
 
 // === Mostrar productos en Inventario y Venta ===
 // Renderizar inventario con diseño tipo Treinta.co
-function renderInventory() {
+async function renderInventory() {
   const container = document.getElementById('inventoryList');
   if (!container) return;
   
@@ -3148,7 +3190,15 @@ function renderInventory() {
     return;
   }
   
-  const isGridView = localStorage.getItem('inventoryView') !== 'list';
+  // Usar localForage para persistencia robusta
+  let isGridView = true;
+  if (typeof localforage !== 'undefined') {
+    const val = await localforage.getItem('inventoryView');
+    isGridView = val !== 'list';
+  } else {
+    isGridView = localStorage.getItem('inventoryView') !== 'list';
+  }
+  // ...resto del código...
   
   if (isGridView) {
     container.className = 'row gy-3';
@@ -3238,6 +3288,13 @@ function addToCart(productId) {
   }
   
   renderCart();
+  // Animación shake al botón flotante del carrito
+  const cartBtn = document.getElementById('floatingCartBtn');
+  if (cartBtn) {
+    cartBtn.classList.remove('shake-cart-btn'); // Reiniciar si ya está
+    void cartBtn.offsetWidth; // Forzar reflow para reiniciar animación
+    cartBtn.classList.add('shake-cart-btn');
+  }
   
   // Mostrar notificación de producto agregado
   Swal.fire({
@@ -3269,10 +3326,16 @@ function renderCart() {
     totalElement.textContent = '$0.00';
     finalizeBtn.disabled = true;
     clearCartBtn.style.display = 'none';
+    // Quitar resaltado si está vacío
+    const cartBtn = document.getElementById('floatingCartBtn');
+    if (cartBtn) cartBtn.classList.remove('cart-has-items');
     return;
   }
 
   clearCartBtn.style.display = 'block';
+  // Resaltar el botón flotante si el carrito tiene productos
+  const cartBtn = document.getElementById('floatingCartBtn');
+  if (cartBtn) cartBtn.classList.add('cart-has-items');
 
   // Agregar selector de cliente compacto al inicio del carrito
   let clientSelectorHTML = '';
@@ -3733,7 +3796,7 @@ async function addClient(e) {
 }
 
 // Renderizar clientes con diseño tipo Treinta.co
-function renderClients() {
+async function renderClients() {
   const container = document.getElementById('clientList');
   if (!container) return;
   
@@ -3751,7 +3814,12 @@ function renderClients() {
     return;
   }
   
-  const isGridView = localStorage.getItem('clientsView') !== 'list';
+  let isGridView = true;
+  if (typeof localforage !== 'undefined') {
+    await localforage.getItem('clientsView').then(val => { isGridView = val !== 'list'; });
+  } else {
+    isGridView = localStorage.getItem('clientsView') !== 'list';
+  }
   
   if (isGridView) {
     container.className = 'row gy-3';
@@ -4124,21 +4192,28 @@ function renderSalesProducts() {
 }
 
 // Cambiar vista de productos en ventas
-function toggleSalesView() {
-  const currentView = localStorage.getItem('salesView');
+async function toggleSalesView() {
+  let currentView = 'grid';
+  if (typeof localforage !== 'undefined') {
+    const val = await localforage.getItem('salesView');
+    currentView = val || 'grid';
+  } else {
+    currentView = localStorage.getItem('salesView') || 'grid';
+  }
   const newView = currentView === 'list' ? 'grid' : 'list';
-  localStorage.setItem('salesView', newView);
-  
+  if (typeof localforage !== 'undefined') {
+    await localforage.setItem('salesView', newView);
+  } else {
+    localStorage.setItem('salesView', newView);
+  }
   const toggleBtn = document.getElementById('toggleSalesView');
   const toggleText = document.getElementById('toggleSalesViewText');
-  
   if (newView === 'grid') {
     toggleBtn.innerHTML = '<i class="bi bi-list"></i> <span id="toggleSalesViewText">Lista</span>';
   } else {
     toggleBtn.innerHTML = '<i class="bi bi-grid-3x3-gap-fill"></i> <span id="toggleSalesViewText">Cuadrícula</span>';
   }
-  
-  renderSalesProducts();
+  await renderSalesProducts();
 }
 
 // Cambiar vista de inventario
@@ -4160,21 +4235,28 @@ function toggleInventoryView() {
 }
 
 // Cambiar vista de clientes
-function toggleClientsView() {
-  const currentView = localStorage.getItem('clientsView');
+async function toggleClientsView() {
+  let currentView = 'grid';
+  if (typeof localforage !== 'undefined') {
+    const val = await localforage.getItem('clientsView');
+    currentView = val || 'grid';
+  } else {
+    currentView = localStorage.getItem('clientsView') || 'grid';
+  }
   const newView = currentView === 'list' ? 'grid' : 'list';
-  localStorage.setItem('clientsView', newView);
-  
+  if (typeof localforage !== 'undefined') {
+    await localforage.setItem('clientsView', newView);
+  } else {
+    localStorage.setItem('clientsView', newView);
+  }
   const toggleBtn = document.getElementById('toggleClientsView');
   const toggleText = document.getElementById('toggleClientsViewText');
-  
   if (newView === 'grid') {
     toggleBtn.innerHTML = '<i class="bi bi-list"></i> <span id="toggleClientsViewText">Lista</span>';
   } else {
     toggleBtn.innerHTML = '<i class="bi bi-grid-3x3-gap-fill"></i> <span id="toggleClientsViewText">Cuadrícula</span>';
   }
-  
-  renderClients();
+  await renderClients();
 }
 
 // Remover producto del carrito
@@ -4992,7 +5074,7 @@ setInterval(() => {
 
 // Backup automático de datos
 function setupAutoBackup() {
-  setInterval(() => {
+  setInterval(async () => {
     const backupData = {
       products,
       clients,
@@ -5000,32 +5082,50 @@ function setupAutoBackup() {
       debts,
       timestamp: new Date().toISOString()
     };
-    
-    localStorage.setItem('tillup_backup', JSON.stringify(backupData));
+    if (typeof localforage !== 'undefined') {
+      await localforage.setItem('tillup_backup', backupData);
+    } else {
+      localStorage.setItem('tillup_backup', JSON.stringify(backupData));
+    }
   }, 5 * 60 * 1000); // Cada 5 minutos
 }
 
 // Restaurar backup si es necesario
-function restoreBackup() {
-  const backup = localStorage.getItem('tillup_backup');
-  if (backup) {
+async function restoreBackup() {
+  let backupData = null;
+  if (typeof localforage !== 'undefined') {
+    backupData = await localforage.getItem('tillup_backup');
+  } else {
+    const backup = localStorage.getItem('tillup_backup');
+    if (backup) {
+      try {
+        backupData = JSON.parse(backup);
+      } catch (error) {
+        console.error('Error al parsear backup:', error);
+      }
+    }
+  }
+  if (backupData) {
     try {
-      const backupData = JSON.parse(backup);
       const backupAge = Date.now() - new Date(backupData.timestamp).getTime();
-      
       // Solo restaurar si el backup es reciente (menos de 1 hora)
       if (backupAge < 60 * 60 * 1000) {
         products = backupData.products || products;
         clients = backupData.clients || clients;
         sales = backupData.sales || sales;
         debts = backupData.debts || debts;
-        
         // Guardar datos restaurados
-        saveToStorage('products', products);
-        saveToStorage('clients', clients);
-        saveToStorage('sales', sales);
-        saveToStorage('debts', debts);
-        
+        if (typeof localforage !== 'undefined') {
+          await localforage.setItem('products', products);
+          await localforage.setItem('clients', clients);
+          await localforage.setItem('sales', sales);
+          await localforage.setItem('debts', debts);
+        } else {
+          localStorage.setItem('products', JSON.stringify(products));
+          localStorage.setItem('clients', JSON.stringify(clients));
+          localStorage.setItem('sales', JSON.stringify(sales));
+          localStorage.setItem('debts', JSON.stringify(debts));
+        }
         console.log('Backup restaurado exitosamente');
       }
     } catch (error) {
@@ -6666,7 +6766,7 @@ function toggleCartDrawer() {
 // --- FIN Drawer/cortina carrito Temu ---
 
 // === Renderizar productos en ventas con diseño tipo Temu ===
-function renderSalesProducts() {
+async function renderSalesProducts() {
   const container = document.getElementById('salesProductsGrid');
   if (!container) return;
 
@@ -8213,7 +8313,7 @@ async function checkStoredData() {
   
   try {
     const sales = await loadFromStorage('sales') || [];
-    const chickenSales = await loadFromStorage('chickenSales') || [];
+    chickenSales = await loadFromStorage('chickenSales') || [];
     const movements = await loadFromStorage('movements') || [];
     
     console.log('Ventas normales almacenadas:', sales.length);

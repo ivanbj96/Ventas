@@ -141,9 +141,18 @@ async function loadAllCriticalData() {
     }
     
     // Cargar configuraciones
-    data.pricePerPound = parseFloat(localStorage.getItem('pricePerPound')) || 2.50;
-    data.costPerPound = parseFloat(localStorage.getItem('costPerPound')) || 0;
-    data.theme = localStorage.getItem('theme') || 'light';
+    if (window.localforage) {
+      const pricePerPoundVal = await localforage.getItem('pricePerPound');
+      const costPerPoundVal = await localforage.getItem('costPerPound');
+      const themeVal = await localforage.getItem('theme');
+      data.pricePerPound = pricePerPoundVal !== null ? parseFloat(pricePerPoundVal) : 2.50;
+      data.costPerPound = costPerPoundVal !== null ? parseFloat(costPerPoundVal) : 0;
+      data.theme = themeVal || 'light';
+    } else {
+      data.pricePerPound = parseFloat(localStorage.getItem('pricePerPound')) || 2.50;
+      data.costPerPound = parseFloat(localStorage.getItem('costPerPound')) || 0;
+      data.theme = localStorage.getItem('theme') || 'light';
+    }
     
     console.log('Datos críticos cargados:', {
       products: data.products.length,
@@ -577,24 +586,35 @@ function cleanCorruptedData() {
 }
 
 // === Función para exportar todos los datos ===
-function exportAllData() {
+async function exportAllData() {
   try {
     const exportData = {};
-    
     // Exportar datos críticos
     for (const key of STORAGE_CONFIG.CRITICAL_DATA) {
-      exportData[key] = loadFromStorage(key) || [];
+      exportData[key] = await loadFromStorage(key) || [];
     }
-    
     // Exportar configuraciones
+    let pricePerPound, costPerPound, theme, inventoryViewMode, clientsViewMode;
+    if (window.localforage) {
+      pricePerPound = (await localforage.getItem('pricePerPound')) || 2.50;
+      costPerPound = (await localforage.getItem('costPerPound')) || 0;
+      theme = (await localforage.getItem('theme')) || 'light';
+      inventoryViewMode = (await localforage.getItem('inventoryViewMode')) || 'grid';
+      clientsViewMode = (await localforage.getItem('clientsViewMode')) || 'grid';
+    } else {
+      pricePerPound = parseFloat(localStorage.getItem('pricePerPound')) || 2.50;
+      costPerPound = parseFloat(localStorage.getItem('costPerPound')) || 0;
+      theme = localStorage.getItem('theme') || 'light';
+      inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'grid';
+      clientsViewMode = localStorage.getItem('clientsViewMode') || 'grid';
+    }
     exportData.settings = {
-      pricePerPound: parseFloat(localStorage.getItem('pricePerPound')) || 2.50,
-      costPerPound: parseFloat(localStorage.getItem('costPerPound')) || 0,
-      theme: localStorage.getItem('theme') || 'light',
-      inventoryViewMode: localStorage.getItem('inventoryViewMode') || 'grid',
-      clientsViewMode: localStorage.getItem('clientsViewMode') || 'grid'
+      pricePerPound,
+      costPerPound,
+      theme,
+      inventoryViewMode,
+      clientsViewMode
     };
-    
     // Agregar metadatos
     exportData.metadata = {
       exportDate: new Date().toISOString(),
@@ -603,7 +623,6 @@ function exportAllData() {
         Array.isArray(data) ? sum + data.length : sum, 0
       )
     };
-    
     return exportData;
   } catch (error) {
     console.error('Error exportando datos:', error);
