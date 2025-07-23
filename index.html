@@ -564,13 +564,16 @@
           <div class="stat-icon">
             <i class="bi bi-cash-stack"></i>
           </div>
-          <div class="stat-content">
-            <div class="stat-value blur-profit" id="totalProfit">$0.00</div>
+          <div class="stat-content text-center">
+            <div class="d-flex justify-content-center align-items-center mb-1">
+              <div class="stat-value me-2 hidden-profit" id="totalProfit">•••••</div>
+              <button id="toggleChickenProfitBtn" type="button" class="btn btn-link btn-sm p-0" title="Mostrar/Ocultar ganancia total">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
             <div class="stat-label">Ganancias Hoy</div>
           </div>
-          <button id="toggleProfitStatsBtn" class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2" title="Mostrar/Ocultar Ganancias">
-            <i class="bi bi-eye"></i>
-          </button>
+
         </div>
       </div>
       <div class="col-md-3">
@@ -642,10 +645,7 @@
                 </div>
                 <div class="calculation-item">
                   <span>Ganancia por libra:</span>
-                  <span id="displayProfitPerPound" class="profit-amount blur-profit">$0.00</span>
-                  <button id="toggleProfitPerPoundBtn" class="btn btn-sm btn-outline-secondary ms-2" title="Mostrar/Ocultar Ganancia">
-                    <i class="bi bi-eye"></i>
-                  </button>
+                  <span id="displayProfitPerPound" class="profit-amount">$0.00</span>
                 </div>
                 <div class="calculation-item">
                   <span>Total a pagar:</span>
@@ -653,8 +653,8 @@
                 </div>
                 <div class="calculation-item">
                   <span>Ganancia total:</span>
-                  <span id="displayTotalProfit" class="profit-amount blur-profit">$0.00</span>
-                  <button id="toggleTotalProfitBtn" class="btn btn-sm btn-outline-secondary ms-2" title="Mostrar/Ocultar Ganancia">
+                  <span id="displayTotalProfit" class="profit-amount hidden-profit-calc" data-actual-value="$0.00">•••••</span>
+                  <button id="toggleChickenProfitCalcBtn" type="button" class="btn btn-link btn-sm p-0 ms-1" title="Mostrar/Ocultar ganancia total calculada">
                     <i class="bi bi-eye"></i>
                   </button>
                 </div>

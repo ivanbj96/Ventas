@@ -1960,8 +1960,18 @@ function updateChickenStats(opts = {}) {
   if (totalWeightElement) totalWeightElement.textContent = totalWeight.toFixed(1);
   if (totalRevenueElement) totalRevenueElement.textContent = `$${totalRevenue.toFixed(2)}`;
   if (avgWeightElement) avgWeightElement.textContent = avgWeight.toFixed(1);
-  if (totalProfitElement) totalProfitElement.textContent = `$${totalProfit.toFixed(2)}`;
-  if (totalProfitTodayElement) totalProfitTodayElement.textContent = `$${totalProfit.toFixed(2)}`;
+  // Ganancias hoy y total: mostrar como oculto si corresponde
+  if (totalProfitElement) {
+    const isHidden = totalProfitElement.classList.contains('hidden-profit');
+    totalProfitElement.textContent = isHidden ? '•••••' : `$${totalProfit.toFixed(2)}`;
+    totalProfitElement.setAttribute('data-actual-value', `$${totalProfit.toFixed(2)}`);
+  }
+  if (totalProfitTodayElement) {
+    // Solo mostrar el valor, sin botón ni alternancia
+    totalProfitTodayElement.textContent = `$${totalProfit.toFixed(2)}`;
+    totalProfitTodayElement.setAttribute('data-actual-value', `$${totalProfit.toFixed(2)}`);
+    totalProfitTodayElement.classList.remove('hidden-profit-today');
+  }
   if (profitMarginElement) profitMarginElement.textContent = `${profitPercentage.toFixed(1)}%`;
 }
 
@@ -1988,21 +1998,48 @@ function resetChickenStats() {
   });
 }
 
-// Función para mostrar/ocultar estadísticas de ganancias
-function toggleProfitStats() {
-  const profitSection = document.getElementById('profitStatsSection');
-  const toggleBtn = document.getElementById('toggleProfitStats');
-  const icon = document.getElementById('profitStatsIcon');
-  const text = document.getElementById('profitStatsText');
-  
-  if (profitSection.style.display === 'none') {
-    profitSection.style.display = 'block';
-    icon.className = 'bi bi-eye-slash';
-    text.textContent = 'Ocultar Ganancias';
+// Función para mostrar/ocultar ganancias totales de pollos (estadística principal)
+function toggleChickenProfitVisibility() {
+  const totalProfitElement = document.getElementById('totalProfit');
+  const btn = document.getElementById('toggleChickenProfitBtn');
+  if (!totalProfitElement || !btn) return;
+  const isHidden = totalProfitElement.classList.toggle('hidden-profit');
+  if (isHidden) {
+    totalProfitElement.textContent = '•••••';
+    btn.innerHTML = '<i class="bi bi-eye"></i>';
   } else {
-    profitSection.style.display = 'none';
-    icon.className = 'bi bi-eye';
-    text.textContent = 'Mostrar Ganancias';
+    totalProfitElement.textContent = totalProfitElement.getAttribute('data-actual-value') || '';
+    btn.innerHTML = '<i class="bi bi-eye-slash"></i>';
+  }
+}
+
+// Función para mostrar/ocultar ganancia total calculada en la sección de cálculo automático
+function toggleChickenProfitCalcVisibility() {
+  const profitCalcElement = document.getElementById('displayTotalProfit');
+  const btn = document.getElementById('toggleChickenProfitCalcBtn');
+  if (!profitCalcElement || !btn) return;
+  const isHidden = profitCalcElement.classList.toggle('hidden-profit-calc');
+  if (isHidden) {
+    profitCalcElement.textContent = '•••••';
+    btn.innerHTML = '<i class="bi bi-eye"></i>';
+  } else {
+    profitCalcElement.textContent = profitCalcElement.getAttribute('data-actual-value') || '';
+    btn.innerHTML = '<i class="bi bi-eye-slash"></i>';
+  }
+}
+
+// Función para mostrar/ocultar ganancias de hoy de pollos
+function toggleChickenProfitTodayVisibility() {
+  const totalProfitTodayElement = document.getElementById('totalProfitToday');
+  const btn = document.getElementById('toggleChickenProfitTodayBtn');
+  if (!totalProfitTodayElement || !btn) return;
+  const isHidden = totalProfitTodayElement.classList.toggle('hidden-profit-today');
+  if (isHidden) {
+    totalProfitTodayElement.textContent = '•••••';
+    btn.innerHTML = '<i class="bi bi-eye"></i>';
+  } else {
+    totalProfitTodayElement.textContent = totalProfitTodayElement.getAttribute('data-actual-value') || '';
+    btn.innerHTML = '<i class="bi bi-eye-slash"></i>';
   }
 }
 
@@ -2035,8 +2072,13 @@ function updateChickenCalculation() {
   displayProfitPerPound.textContent = `$${profitPerPound.toFixed(2)}`;
   displayProfitPerPound.setAttribute('data-actual-value', `$${profitPerPound.toFixed(2)}`);
   displayTotal.textContent = `$${total.toFixed(2)}`;
-  displayTotalProfit.textContent = `$${totalProfit.toFixed(2)}`;
+  // Ganancia total: solo mostrar el valor real si NO está oculta
   displayTotalProfit.setAttribute('data-actual-value', `$${totalProfit.toFixed(2)}`);
+  if (displayTotalProfit.classList.contains('hidden-profit-calc')) {
+    displayTotalProfit.textContent = '•••••';
+  } else {
+    displayTotalProfit.textContent = `$${totalProfit.toFixed(2)}`;
+  }
 }
 
 // Configurar eventos del formulario de pollos
@@ -2046,138 +2088,45 @@ function setupChickenEventListeners() {
   const costInput = document.getElementById('costPerPound');
   const weightInput = document.getElementById('chickenWeight');
   const quantityInput = document.getElementById('chickenQuantity');
-  
+
   if (priceInput) {
     priceInput.addEventListener('input', updateChickenCalculation);
   }
-  
+
   if (costInput) {
     costInput.addEventListener('input', updateChickenCalculation);
   }
-  
+
   if (weightInput) {
     weightInput.addEventListener('input', updateChickenCalculation);
   }
-  
+
   if (quantityInput) {
     quantityInput.addEventListener('input', updateChickenCalculation);
   }
-  
+
   // Event listeners para forma de pago
   const cashRadio = document.getElementById('chickenCash');
   const creditRadio = document.getElementById('chickenCredit');
   const abonoSection = document.getElementById('chickenAbonoSection');
-  
+
   if (cashRadio && creditRadio && abonoSection) {
     cashRadio.addEventListener('change', () => {
       abonoSection.style.display = 'none';
     });
-    
+
     creditRadio.addEventListener('change', () => {
       abonoSection.style.display = 'block';
     });
   }
-  
-  // Event listeners para botones de mostrar/ocultar ganancias
-  const toggleProfitStatsBtn = document.getElementById('toggleProfitStatsBtn');
-  const totalProfitElement = document.getElementById('totalProfit');
-  if (toggleProfitStatsBtn && totalProfitElement) {
-    // Guardar valor real si no existe
-    if (!totalProfitElement.dataset.actualValue) {
-      totalProfitElement.dataset.actualValue = totalProfitElement.textContent;
-    }
-    toggleProfitStatsBtn.addEventListener('click', (event) => {
-      event.stopPropagation();
-      event.preventDefault();
-      const isHidden = totalProfitElement.textContent === '***';
-      if (isHidden) {
-        totalProfitElement.textContent = totalProfitElement.dataset.actualValue || '';
-        toggleProfitStatsBtn.innerHTML = '<i class="bi bi-eye-slash"></i>';
-      } else {
-        totalProfitElement.textContent = '***';
-        toggleProfitStatsBtn.innerHTML = '<i class="bi bi-eye"></i>';
-      }
-    });
-  }
-  
-  // Event listeners para botones individuales de ganancias (lógica robusta)
-  const toggleProfitPerPoundBtn = document.getElementById('toggleProfitPerPoundBtn');
-  const displayProfitPerPound = document.getElementById('displayProfitPerPound');
-  if (toggleProfitPerPoundBtn && displayProfitPerPound) {
-    if (!displayProfitPerPound.dataset.actualValue) {
-      displayProfitPerPound.dataset.actualValue = displayProfitPerPound.textContent;
-    }
-    toggleProfitPerPoundBtn.addEventListener('click', (event) => {
-      event.stopPropagation();
-      event.preventDefault();
-      const isHidden = displayProfitPerPound.classList.contains('hidden-revenue');
-      if (isHidden) {
-        // Mostrar valor real y quitar difuminado
-        displayProfitPerPound.classList.remove('blur-profit', 'hidden-revenue');
-        displayProfitPerPound.textContent = displayProfitPerPound.dataset.actualValue || '';
-        toggleProfitPerPoundBtn.innerHTML = '<i class="bi bi-eye-slash"></i>';
-      } else {
-        // Ocultar valor y aplicar difuminado fuerte
-        displayProfitPerPound.classList.add('blur-profit', 'hidden-revenue');
-        displayProfitPerPound.textContent = '***';
-        toggleProfitPerPoundBtn.innerHTML = '<i class="bi bi-eye"></i>';
-      }
-    });
-  }
 
-  const toggleTotalProfitBtn = document.getElementById('toggleTotalProfitBtn');
-  const displayTotalProfit = document.getElementById('displayTotalProfit');
-  if (toggleTotalProfitBtn && displayTotalProfit) {
-    if (!displayTotalProfit.dataset.actualValue) {
-      displayTotalProfit.dataset.actualValue = displayTotalProfit.textContent;
-    }
-    toggleTotalProfitBtn.addEventListener('click', (event) => {
-      event.stopPropagation();
-      event.preventDefault();
-      const isHidden = displayTotalProfit.classList.contains('hidden-revenue');
-      if (isHidden) {
-        displayTotalProfit.classList.remove('blur-profit', 'hidden-revenue');
-        displayTotalProfit.textContent = displayTotalProfit.dataset.actualValue || '';
-        toggleTotalProfitBtn.innerHTML = '<i class="bi bi-eye-slash"></i>';
-      } else {
-        displayTotalProfit.classList.add('blur-profit', 'hidden-revenue');
-        displayTotalProfit.textContent = '***';
-        toggleTotalProfitBtn.innerHTML = '<i class="bi bi-eye"></i>';
-      }
-    });
-  }
-  // ...existing code...
-  
   // Event listener para el formulario
   const form = document.getElementById('chickenSaleForm');
   if (form) {
     form.addEventListener('submit', handleChickenSale);
   }
-  
-  // Al final de setupChickenEventListeners
-  initializeChickenProfitToggles();
 }
-// === Inicializar estado oculto de ganancias en sección de pollos ===
-function initializeChickenProfitToggles() {
-  const profitElement = document.getElementById('totalProfit');
-  const profitPerPound = document.getElementById('displayProfitPerPound');
-  const totalProfit = document.getElementById('displayTotalProfit');
-  if (profitElement) {
-    profitElement.classList.add('hidden-revenue');
-    profitElement.setAttribute('data-actual-value', profitElement.textContent);
-    profitElement.textContent = '***';
-  }
-  if (profitPerPound) {
-    profitPerPound.classList.add('hidden-revenue');
-    profitPerPound.setAttribute('data-actual-value', profitPerPound.textContent);
-    profitPerPound.textContent = '***';
-  }
-  if (totalProfit) {
-    totalProfit.classList.add('hidden-revenue');
-    totalProfit.setAttribute('data-actual-value', totalProfit.textContent);
-    totalProfit.textContent = '***';
-  }
-}
+// Eliminada la función initializeChickenProfitToggles y lógica de ocultar ganancias
 // Actualizar selector de clientes para pollos
 function updateChickenClientSelector() {
   const selector = document.getElementById('chickenClient');
@@ -2630,6 +2579,39 @@ window.addEventListener('appinstalled', () => {
 
 // === Inicialización del botón de instalación PWA ===
 document.addEventListener('DOMContentLoaded', () => {
+  // Inicializar botones de ocultar/mostrar ganancias de pollos
+  const totalProfitElement = document.getElementById('totalProfit');
+  const totalProfitTodayElement = document.getElementById('totalProfitToday');
+  const profitCalcElement = document.getElementById('displayTotalProfit');
+  if (totalProfitElement) {
+    totalProfitElement.classList.add('hidden-profit');
+    totalProfitElement.textContent = '•••••';
+  }
+  if (totalProfitTodayElement) {
+    // Mostrar el valor directamente, sin ocultar ni botón
+    totalProfitTodayElement.classList.remove('hidden-profit-today');
+    totalProfitTodayElement.textContent = '';
+  }
+  if (profitCalcElement) {
+    profitCalcElement.classList.add('hidden-profit-calc');
+    profitCalcElement.textContent = '•••••';
+    profitCalcElement.setAttribute('data-actual-value', '$0.00');
+  }
+  const btnProfit = document.getElementById('toggleChickenProfitBtn');
+  if (btnProfit) {
+    btnProfit.innerHTML = '<i class="bi bi-eye"></i>';
+    btnProfit.onclick = toggleChickenProfitVisibility;
+  }
+  // Eliminar el botón de ojo de ganancias hoy si existe
+  const btnProfitToday = document.getElementById('toggleChickenProfitTodayBtn');
+  if (btnProfitToday && btnProfitToday.parentNode) {
+    btnProfitToday.parentNode.removeChild(btnProfitToday);
+  }
+  const btnProfitCalc = document.getElementById('toggleChickenProfitCalcBtn');
+  if (btnProfitCalc) {
+    btnProfitCalc.innerHTML = '<i class="bi bi-eye"></i>';
+    btnProfitCalc.onclick = toggleChickenProfitCalcVisibility;
+  }
   installButton = document.getElementById('installPWA');
   updateInstallButtonVisibility();
   if (installButton) {
@@ -6734,7 +6716,6 @@ function filtrarPorFecha(fechaStr) {
 }
 
 // Hacer funciones disponibles globalmente
-window.toggleProfitStats = toggleProfitStats;
 window.updateChickenCalculation = updateChickenCalculation;
 window.filtrarPorFecha = filtrarPorFecha;
 window.updateChickenClientSelector = updateChickenClientSelector;
