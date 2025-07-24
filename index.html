@@ -1094,9 +1094,17 @@
     formData.append('document', blob, 'backup-tillup-' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.json');
     const url = `https://api.telegram.org/bot${config.token}/sendDocument`;
     const resp = await fetch(url, { method: 'POST', body: formData });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const result = await resp.json();
-    if (!result.ok) throw new Error(result.description || 'Error desconocido');
+    let result = null;
+    try {
+      result = await resp.json();
+    } catch (e) {
+      console.error('No se pudo parsear la respuesta de Telegram:', e);
+      throw new Error('Respuesta inválida de Telegram');
+    }
+    if (!resp.ok || !result.ok) {
+      console.error('Telegram API error:', result);
+      throw new Error((result && result.description) ? result.description : ('HTTP ' + resp.status));
+    }
     return true;
   }
   </script>
