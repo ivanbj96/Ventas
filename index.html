@@ -476,8 +476,67 @@
   <div id="inventoryList" class="row gy-3"></div>
 </section>
 
-      <!-- Nueva sección de facturación de pollos tipo checkout profesional -->
-      <!-- Vista: Pollos -->
+  <!-- Configuración de Backup Automático a Telegram -->
+  <section id="view-telegram-backup" class="app-view d-none">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="mb-0"><i class="bi bi-cloud-arrow-up"></i> Backup Automático a Telegram</h2>
+    </div>
+    <div class="card card-custom mb-4">
+      <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-gear"></i> Configuración de Telegram</h5>
+        <form id="telegramBackupForm" class="form-treinta">
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label for="telegramBotToken" class="form-label"><i class="bi bi-key"></i> Bot Token</label>
+              <input type="text" id="telegramBotToken" class="form-control form-control-treinta" placeholder="123456789:ABC..." required />
+            </div>
+            <div class="col-md-4">
+              <label for="telegramChatId" class="form-label"><i class="bi bi-person-badge"></i> Chat ID</label>
+              <input type="text" id="telegramChatId" class="form-control form-control-treinta" placeholder="Ej: 123456789" required />
+            </div>
+            <div class="col-md-4">
+              <label for="telegramBackupInterval" class="form-label"><i class="bi bi-clock-history"></i> Intervalo (minutos)</label>
+              <input type="number" id="telegramBackupInterval" class="form-control form-control-treinta" min="5" max="1440" value="60" required />
+              <div class="form-text">Mínimo: 5 min, Máximo: 1440 min (24h)</div>
+            </div>
+          </div>
+          <div class="d-grid gap-2 mb-3">
+            <button type="submit" class="btn btn-primary btn-treinta">
+              <i class="bi bi-save"></i> Guardar Configuración
+            </button>
+            <button type="button" class="btn btn-outline-success btn-treinta" id="testTelegramBackup">
+              <i class="bi bi-send"></i> Probar Envío Manual
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="card card-custom">
+      <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-question-circle"></i> Guía paso a paso</h5>
+        <ol class="telegram-guide-list">
+          <li>Abre <b>Telegram</b> y busca <b>@BotFather</b>.</li>
+          <li>Envía <code>/newbot</code> y sigue las instrucciones para crear un nuevo bot.<br>Guarda el <b>Token</b> que te entrega BotFather.</li>
+          <li>Agrega tu bot al chat o grupo donde quieras recibir los backups.<br>Si es grupo, hazlo administrador.</li>
+          <li>Para obtener el <b>Chat ID</b>:
+            <ul>
+              <li>Busca el bot <b>@userinfobot</b> en Telegram y escríbele o agrégalo al grupo.</li>
+              <li>Te mostrará tu <b>Chat ID</b> o el del grupo.</li>
+            </ul>
+          </li>
+          <li>Ingresa el <b>Token</b> y <b>Chat ID</b> en el formulario de arriba y guarda.</li>
+          <li>Configura el intervalo de respaldo automático (en minutos).</li>
+          <li>Pulsa <b>Probar Envío Manual</b> para verificar que todo funciona.</li>
+        </ol>
+        <div class="alert alert-info mt-3">
+          <b>Nota:</b> El backup enviará un archivo con todos tus datos de la app en formato JSON.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Nueva sección de facturación de pollos tipo checkout profesional -->
+  <!-- Vista: Pollos -->
 <section id="view-chickens" class="app-view d-none">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0">
@@ -909,8 +968,15 @@
         <i class="bi bi-box-seam"></i>
         <span>Inventario</span>
       </button>
+      <!-- Botón de backup eliminado de la barra inferior -->
     </div>
-  </nav>
+        </nav>
+        <div class="sidebar-section mt-3">
+          <button class="sidebar-nav-item w-100" onclick="showView('telegram-backup')" id="nav-sidebar-telegram-backup">
+            <i class="bi bi-cloud-arrow-up"></i>
+            <span>Backup Telegram</span>
+          </button>
+        </div>
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -921,11 +987,119 @@
   <!-- PDF Generator JS -->
   <script src="pdf-generator.js"></script>
   
-
   <!-- localForage CDN (recomendado) -->
   <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
   <!-- App JS -->
   <script src="app.js"></script>
+
+  <!-- Telegram Backup Logic -->
+  <script>
+  // --- Telegram Backup Config ---
+  const TELEGRAM_CONFIG_KEY = 'telegramBackupConfig';
+  let telegramBackupTimer = null;
+
+  // Cargar configuración al abrir la vista
+  document.addEventListener('DOMContentLoaded', () => {
+    loadTelegramConfigToForm();
+    // Si ya hay config, programa el backup automático
+    localforage.getItem(TELEGRAM_CONFIG_KEY).then(cfg => {
+      if (cfg && cfg.enabled) {
+        scheduleTelegramBackup(cfg);
+      }
+    });
+  });
+
+  // Guardar configuración
+  document.getElementById('telegramBackupForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const token = document.getElementById('telegramBotToken').value.trim();
+    const chatId = document.getElementById('telegramChatId').value.trim();
+    const interval = parseInt(document.getElementById('telegramBackupInterval').value, 10);
+    if (!token || !chatId || isNaN(interval) || interval < 5) {
+      Swal.fire('Error', 'Completa todos los campos correctamente.', 'error');
+      return;
+    }
+    const config = { token, chatId, interval, enabled: true };
+    await localforage.setItem(TELEGRAM_CONFIG_KEY, config);
+    Swal.fire('¡Guardado!', 'La configuración de backup a Telegram ha sido guardada.', 'success');
+    scheduleTelegramBackup(config);
+  });
+
+  // Probar envío manual
+  document.getElementById('testTelegramBackup').addEventListener('click', async function() {
+    const config = await getTelegramConfig();
+    if (!config) {
+      Swal.fire('Error', 'Configura primero el backup de Telegram.', 'error');
+      return;
+    }
+    Swal.fire({title:'Enviando backup...', allowOutsideClick:false, didOpen:()=>Swal.showLoading()});
+    try {
+      await sendTelegramBackup(config);
+      Swal.fire('¡Enviado!', 'Backup enviado correctamente a Telegram.', 'success');
+    } catch (err) {
+      Swal.fire('Error', 'No se pudo enviar el backup: ' + (err.message || err), 'error');
+    }
+  });
+
+  // Obtener config desde storage
+  async function getTelegramConfig() {
+    const cfg = await localforage.getItem(TELEGRAM_CONFIG_KEY);
+    if (!cfg || !cfg.token || !cfg.chatId || !cfg.interval) return null;
+    return cfg;
+  }
+
+  // Cargar config en el formulario
+  async function loadTelegramConfigToForm() {
+    const cfg = await localforage.getItem(TELEGRAM_CONFIG_KEY);
+    if (!cfg) return;
+    document.getElementById('telegramBotToken').value = cfg.token || '';
+    document.getElementById('telegramChatId').value = cfg.chatId || '';
+    document.getElementById('telegramBackupInterval').value = cfg.interval || 60;
+  }
+
+  // Programar backup automático
+  function scheduleTelegramBackup(config) {
+    if (telegramBackupTimer) clearInterval(telegramBackupTimer);
+    telegramBackupTimer = setInterval(async () => {
+      try {
+        await sendTelegramBackup(config);
+        // Opcional: notificación visual
+        // Swal.fire('Backup enviado', 'Backup automático enviado a Telegram.', 'success');
+      } catch (err) {
+        // Opcional: notificación de error
+        // Swal.fire('Error', 'No se pudo enviar el backup automático.', 'error');
+      }
+    }, config.interval * 60 * 1000);
+  }
+
+  // Obtener todos los datos de la app (ajusta según tu estructura)
+  async function getAllAppData() {
+    // Puedes agregar aquí todas las claves relevantes de localForage
+    const keys = await localforage.keys();
+    const data = {};
+    for (const key of keys) {
+      data[key] = await localforage.getItem(key);
+    }
+    return data;
+  }
+
+  // Enviar backup a Telegram
+  async function sendTelegramBackup(config) {
+    const data = await getAllAppData();
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const formData = new FormData();
+    formData.append('chat_id', config.chatId);
+    formData.append('caption', 'Backup TillUp POS (' + new Date().toLocaleString() + ')');
+    formData.append('document', blob, 'backup-tillup-' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.json');
+    const url = `https://api.telegram.org/bot${config.token}/sendDocument`;
+    const resp = await fetch(url, { method: 'POST', body: formData });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.description || 'Error desconocido');
+    return true;
+  }
+  </script>
 
   <!-- Botón de Acciones Rápidas Fijo -->
   <div class="dropup quick-actions-fixed">
@@ -962,8 +1136,8 @@
       <li><a class="dropdown-item" href="#" onclick="quickAction('clearCache')">
         <i class="bi bi-trash"></i> Limpiar Cache
       </a></li>
-      <li><a class="dropdown-item" href="#" onclick="toggleAutoDownloadBackup()">
-        <i class="bi bi-cloud-arrow-down"></i> Backup automático descargable
+      <li><a class="dropdown-item" href="#" onclick="showView('telegram-backup')">
+        <i class="bi bi-cloud-arrow-up"></i> Backup Telegram
       </a></li>
     </ul>
   </div>
