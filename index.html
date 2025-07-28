@@ -1119,11 +1119,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Obtener todos los datos de la app (ajusta según tu estructura)
   async function getAllAppData() {
-    // Puedes agregar aquí todas las claves relevantes de localForage
+    // Excluir claves internas de localforage (como _localforage_config)
     const keys = await localforage.keys();
     const data = {};
     for (const key of keys) {
-      data[key] = await localforage.getItem(key);
+      if (!key.startsWith('_localforage')) {
+        data[key] = await localforage.getItem(key);
+      }
     }
     return data;
   }
