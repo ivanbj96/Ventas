@@ -507,6 +507,10 @@
             <button type="button" class="btn btn-outline-success btn-treinta" id="testTelegramBackup">
               <i class="bi bi-send"></i> Probar Envío Manual
             </button>
+            <button type="button" class="btn btn-outline-secondary btn-treinta" id="importTelegramBackupBtn">
+              <i class="bi bi-upload"></i> Importar Backup
+            </button>
+            <input type="file" id="importTelegramBackupInput" accept="application/json" style="display:none" />
           </div>
         </form>
       </div>
@@ -997,6 +1001,47 @@
   // --- Telegram Backup Config ---
   const TELEGRAM_CONFIG_KEY = 'telegramBackupConfig';
   let telegramBackupTimer = null;
+
+// Importar backup desde archivo JSON
+document.addEventListener('DOMContentLoaded', () => {
+  const importBtn = document.getElementById('importTelegramBackupBtn');
+  const importInput = document.getElementById('importTelegramBackupInput');
+  if (importBtn && importInput) {
+    importBtn.addEventListener('click', () => importInput.click());
+    importInput.addEventListener('change', async function() {
+      if (!this.files || !this.files[0]) return;
+      const file = this.files[0];
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (typeof data !== 'object' || Array.isArray(data) || !Object.keys(data).length) {
+          Swal.fire('Error', 'El archivo no tiene el formato esperado.', 'error');
+          return;
+        }
+        // Confirmar antes de reemplazar
+        const { isConfirmed } = await Swal.fire({
+          title: '¿Importar backup?',
+          text: 'Esto reemplazará todos los datos actuales de la app por los del backup. ¿Continuar?',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, importar',
+          cancelButtonText: 'Cancelar'
+        });
+        if (!isConfirmed) return;
+        // Limpiar todo localforage antes de restaurar
+        await localforage.clear();
+        // Restaurar cada clave
+        for (const key of Object.keys(data)) {
+          await localforage.setItem(key, data[key]);
+        }
+        Swal.fire('¡Importado!', 'Backup restaurado correctamente. Recarga la página para ver los cambios.', 'success');
+      } catch (err) {
+        Swal.fire('Error', 'No se pudo importar el backup: ' + (err.message || err), 'error');
+      }
+      this.value = '';
+    });
+  }
+});
 
   // Cargar configuración al abrir la vista
   document.addEventListener('DOMContentLoaded', () => {
