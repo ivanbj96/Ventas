@@ -543,35 +543,31 @@
   <!-- Vista: Pollos -->
 <section id="view-chickens" class="app-view d-none">
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">
-      <i class="bi bi-egg-fried"></i> Gestión de Pollos
-    </h2>
-    <div class="d-flex gap-2">
-      <button onclick="generatePDF('chickens')" class="btn btn-outline-primary btn-sm">
-        <i class="bi bi-download"></i> Exportar PDF
-      </button>
-      <button id="btnMermaPollo" class="btn btn-outline-warning btn-sm" type="button">
-        <i class="bi bi-percent"></i> Calcular Merma
-      </button>
-    </div>
-  </div>
-
-  <!-- Configuración de precio por libra -->
-  <div class="chicken-config-treinta mb-4">
-    <div class="card card-custom">
-      <div class="card-body">
-        <h5 class="card-title">
-          <i class="bi bi-gear"></i> Configuración de Precio
-        </h5>
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label for="pricePerPound" class="form-label">
-              <i class="bi bi-currency-dollar"></i> Precio por Libra (PVP)
-            </label>
-            <div class="input-group">
-              <span class="input-group-text">$</span>
-              <input type="number" id="pricePerPound" class="form-control form-control-treinta" 
-                     step="0.01" placeholder="0.00" value="2.50" />
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-gear"></i> Configuración de Telegram</h5>
+          <form id="telegramBackupForm" class="form-treinta">
+            <div class="mb-3">
+              <label for="telegramBotToken" class="form-label"><i class="bi bi-key"></i> Bot Token</label>
+              <input type="text" id="telegramBotToken" class="form-control form-control-treinta" placeholder="123456789:ABC..." required />
+            </div>
+            <div class="mb-3">
+              <label for="telegramChatId" class="form-label"><i class="bi bi-person-badge"></i> Chat ID</label>
+              <input type="text" id="telegramChatId" class="form-control form-control-treinta" placeholder="Ej: 123456789" required />
+            </div>
+            <div class="mb-3">
+              <label for="telegramBackupInterval" class="form-label"><i class="bi bi-clock-history"></i> Intervalo (minutos)</label>
+              <input type="number" id="telegramBackupInterval" class="form-control form-control-treinta" min="5" max="1440" value="60" required />
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+              <button type="submit" class="btn btn-primary btn-treinta"><i class="bi bi-save"></i> Guardar Configuración</button>
+              <button type="button" class="btn btn-outline-success btn-treinta" id="testTelegramBackup">
+                <i class="bi bi-send"></i> Probar Envío
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
             </div>
             <div class="form-text">Precio actual por libra de pollo</div>
           </div>
@@ -975,12 +971,7 @@
       <!-- Botón de backup eliminado de la barra inferior -->
     </div>
         </nav>
-        <div class="sidebar-section mt-3">
-          <button class="sidebar-nav-item w-100" onclick="showView('telegram-backup')" id="nav-sidebar-telegram-backup">
-            <i class="bi bi-cloud-arrow-up"></i>
-            <span>Backup Telegram</span>
-          </button>
-        </div>
+
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -1030,11 +1021,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isConfirmed) return;
         // Limpiar todo localforage antes de restaurar
         await localforage.clear();
-        // Restaurar cada clave
-        for (const key of Object.keys(data)) {
-          await localforage.setItem(key, data[key]);
+        // Restaurar solo claves críticas y settings
+        const criticalKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.CRITICAL_DATA) || ['sales','clients','products','debts','movements','chickenSales'];
+        const settingsKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.SETTINGS) || ['theme','viewModes','pricePerPound','costPerPound'];
+        // Restaurar datos críticos
+        for (const key of criticalKeys) {
+          if (data[key] !== undefined) {
+            if (typeof saveToStorage === 'function') {
+              await saveToStorage(key, data[key]);
+              console.debug('Restaurado (saveToStorage):', key, data[key]);
+            } else {
+              await localforage.setItem(key, data[key]);
+              console.debug('Restaurado (localforage):', key, data[key]);
+            }
+          }
         }
-        Swal.fire('¡Importado!', 'Backup restaurado correctamente. Recarga la página para ver los cambios.', 'success');
+        // Restaurar settings
+        for (const key of settingsKeys) {
+          if (data[key] !== undefined) {
+            await localforage.setItem(key, data[key]);
+            try { localStorage.setItem(key, JSON.stringify(data[key])); } catch(e){}
+            console.debug('Restaurado setting:', key, data[key]);
+          }
+        }
+        // Recargar datos y actualizar UI tras importar backup
+        if (typeof loadData === 'function') {
+          await loadData();
+          if (typeof initializeChickenData === 'function') initializeChickenData();
+          if (typeof updateChickenSalesList === 'function') updateChickenSalesList();
+          if (typeof updateBalanceUI === 'function') updateBalanceUI();
+          if (typeof renderInventory === 'function') renderInventory();
+          if (typeof renderClients === 'function') renderClients();
+          if (typeof renderDebts === 'function') renderDebts();
+          if (typeof renderSalesProducts === 'function') renderSalesProducts();
+        }
+        Swal.fire('¡Importado!', 'Backup restaurado correctamente. Los datos han sido recargados.', 'success');
       } catch (err) {
         Swal.fire('Error', 'No se pudo importar el backup: ' + (err.message || err), 'error');
       }
@@ -1187,6 +1208,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </a></li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('exportData')">
         <i class="bi bi-download"></i> Exportar Datos
+      </a></li>
       </a></li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('clearCache')">
         <i class="bi bi-trash"></i> Limpiar Cache
