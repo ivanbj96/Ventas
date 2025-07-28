@@ -1170,7 +1170,7 @@ async function handleChickenSale(e) {
   
   // Crear objeto de venta con fecha y hora local
   let now = new Date();
-  let [year, month, day] = (saleDate || now.toLocaleDateString('en-CA')).split('-');
+  let [year, month, day] = (saleDate || now.toLocaleDateString('es-EC')).split('-');
   let localDate = new Date(
     parseInt(year),
     parseInt(month) - 1,
