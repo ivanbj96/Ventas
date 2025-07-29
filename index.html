@@ -543,31 +543,35 @@
   <!-- Vista: Pollos -->
 <section id="view-chickens" class="app-view d-none">
   <div class="d-flex justify-content-between align-items-center mb-4">
-      <div class="card mb-3">
-        <div class="card-body">
-          <h5 class="card-title"><i class="bi bi-gear"></i> Configuración de Telegram</h5>
-          <form id="telegramBackupForm" class="form-treinta">
-            <div class="mb-3">
-              <label for="telegramBotToken" class="form-label"><i class="bi bi-key"></i> Bot Token</label>
-              <input type="text" id="telegramBotToken" class="form-control form-control-treinta" placeholder="123456789:ABC..." required />
-            </div>
-            <div class="mb-3">
-              <label for="telegramChatId" class="form-label"><i class="bi bi-person-badge"></i> Chat ID</label>
-              <input type="text" id="telegramChatId" class="form-control form-control-treinta" placeholder="Ej: 123456789" required />
-            </div>
-            <div class="mb-3">
-              <label for="telegramBackupInterval" class="form-label"><i class="bi bi-clock-history"></i> Intervalo (minutos)</label>
-              <input type="number" id="telegramBackupInterval" class="form-control form-control-treinta" min="5" max="1440" value="60" required />
-            </div>
-            <div class="d-flex gap-2 flex-wrap">
-              <button type="submit" class="btn btn-primary btn-treinta"><i class="bi bi-save"></i> Guardar Configuración</button>
-              <button type="button" class="btn btn-outline-success btn-treinta" id="testTelegramBackup">
-                <i class="bi bi-send"></i> Probar Envío
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+    <h2 class="mb-0">
+      <i class="bi bi-egg-fried"></i> Gestión de Pollos
+    </h2>
+    <div class="d-flex gap-2">
+      <button onclick="generatePDF('chickens')" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-download"></i> Exportar PDF
+      </button>
+      <button id="btnMermaPollo" class="btn btn-outline-warning btn-sm" type="button">
+        <i class="bi bi-percent"></i> Calcular Merma
+      </button>
+    </div>
+  </div>
+
+  <!-- Configuración de precio por libra -->
+  <div class="chicken-config-treinta mb-4">
+    <div class="card card-custom">
+      <div class="card-body">
+        <h5 class="card-title">
+          <i class="bi bi-gear"></i> Configuración de Precio
+        </h5>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="pricePerPound" class="form-label">
+              <i class="bi bi-currency-dollar"></i> Precio por Libra (PVP)
+            </label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" id="pricePerPound" class="form-control form-control-treinta" 
+                     step="0.01" placeholder="0.00" value="2.50" />
             </div>
             <div class="form-text">Precio actual por libra de pollo</div>
           </div>
