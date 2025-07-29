@@ -455,8 +455,30 @@
       <i class="bi bi-download"></i> Exportar PDF
     </button>
   </div>
-  <div id="debtList" class="row gy-3">
+  <!-- Filtros de estado de deuda y buscador de clientes -->
+  <div class="mb-3">
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+      <div class="btn-group" role="group" aria-label="Filtrar deudas">
+        <button type="button" class="btn btn-outline-primary active" id="btnDebtFilterPending" onclick="setDebtStatusFilter('pending')">
+          <i class="bi bi-hourglass-split"></i> Pendientes / Abonadas
+        </button>
+        <button type="button" class="btn btn-outline-success" id="btnDebtFilterPaid" onclick="setDebtStatusFilter('paid')">
+          <i class="bi bi-check-circle"></i> Pagadas
+        </button>
+      </div>
+      <span id="debtTotalBalance" class="badge bg-info text-dark ms-2" style="font-size:1rem;min-width:120px;"></span>
+      <div class="flex-grow-1 ms-0 ms-md-3" style="min-width:220px;">
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" id="debtClientSearch" class="form-control" placeholder="Buscar cliente por nombre..." oninput="filterDebtClients()">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="debtList" class="row gy-3 position-relative">
     <!-- Lista de deudas cargada por JS -->
+    <!-- Botón de agregar cliente junto al último cliente listado -->
+    <div id="addClientDebtBtnContainer"></div>
   </div>
 </section>
 
@@ -1179,6 +1201,100 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     return true;
   }
+
+  // --- Filtro de estado de deudas y buscador ---
+
+  window.currentDebtStatusFilter = 'pending'; // 'pending' o 'paid'
+
+  function setDebtStatusFilter(status) {
+    window.currentDebtStatusFilter = status;
+    // Botones activos
+    document.getElementById('btnDebtFilterPending').classList.toggle('active', status === 'pending');
+    document.getElementById('btnDebtFilterPaid').classList.toggle('active', status === 'paid');
+    if (typeof renderDebts === 'function') renderDebts();
+    filterDebtClients();
+    updateDebtTotalBalance();
+  }
+
+  function filterDebtClients() {
+    const search = document.getElementById('debtClientSearch').value.toLowerCase();
+    const debtList = document.getElementById('debtList');
+    if (!debtList) return;
+    const items = debtList.querySelectorAll('.debt-client-item');
+    items.forEach(item => {
+      // Determinar si el grupo de cliente tiene al menos una deuda del estado seleccionado
+      const debts = Array.from(item.querySelectorAll('.debt-item'));
+      let show = false;
+      debts.forEach(debtDiv => {
+        const badge = debtDiv.querySelector('.badge');
+        const isPaid = badge && badge.textContent.trim().toLowerCase().includes('pagad');
+        if ((currentDebtStatusFilter === 'paid' && isPaid) || (currentDebtStatusFilter === 'pending' && !isPaid)) {
+          show = true;
+        }
+      });
+      // Filtrar por nombre de cliente solo en el lado seleccionado
+      const name = item.getAttribute('data-client-name') || '';
+      if (show && name.toLowerCase().includes(search)) {
+        item.style.display = '';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+    updateDebtTotalBalance();
+  }
+
+  function updateDebtTotalBalance() {
+    // Suma los saldos visibles según el filtro actual
+    const debtList = document.getElementById('debtList');
+    const totalSpan = document.getElementById('debtTotalBalance');
+    if (!debtList || !totalSpan) return;
+    let total = 0;
+    const items = debtList.querySelectorAll('.debt-client-item');
+    items.forEach(item => {
+      if (item.style.display === 'none') return;
+      const debts = Array.from(item.querySelectorAll('.debt-item'));
+      debts.forEach(debtDiv => {
+        const badge = debtDiv.querySelector('.badge');
+        const isPaid = badge && badge.textContent.trim().toLowerCase().includes('pagad');
+        if ((currentDebtStatusFilter === 'paid' && isPaid) || (currentDebtStatusFilter === 'pending' && !isPaid)) {
+          // Buscar monto en el texto de la deuda (mejorando el parseo para miles y decimales)
+          // Busca el primer span o elemento con clase que contenga el monto, si existe
+          let amountText = '';
+          // Busca span con clase 'debt-amount' o similar
+          const amountSpan = debtDiv.querySelector('.debt-amount');
+          if (amountSpan) {
+            amountText = amountSpan.textContent;
+          } else {
+            // Si no, busca el primer $ en el texto
+            const match = debtDiv.textContent.match(/\$\s*([\d.,]+)/);
+            if (match) amountText = match[1];
+          }
+          if (amountText) {
+            // Elimina espacios, separadores de miles y normaliza decimales
+            let clean = amountText.replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(/,/g, '.');
+            let amount = parseFloat(clean);
+            if (!isNaN(amount)) total += amount;
+          }
+        }
+      });
+    });
+    totalSpan.textContent = 'Total: $' + total.toLocaleString('es-EC', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+
+  function openAddClientModalFromDebt() {
+    const modal = document.getElementById('modalClient');
+    if (modal) {
+      const modalInstance = bootstrap.Modal.getOrCreateInstance(modal);
+      modalInstance.show();
+    }
+  }
+
+  // Actualizar el total al cargar la vista de deudas
+  document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('view-debt')) {
+      setTimeout(updateDebtTotalBalance, 500);
+    }
+  });
   </script>
 
   <!-- Botón de Acciones Rápidas Fijo -->

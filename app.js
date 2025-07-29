@@ -3883,6 +3883,10 @@ async function renderClients() {
               ${client.debt > 0 ? `Deuda: $${client.debt.toFixed(2)}` : 'Sin deuda'}
             </span>
           </div>
+          <div class="d-flex justify-content-end gap-1 mt-2">
+            <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteClient('${client.id}')" title="Eliminar cliente"><i class="bi bi-trash"></i></button>
+            <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editClient('${client.id}')" title="Editar cliente"><i class="bi bi-pencil"></i></button>
+          </div>
         </div>
       </div>
     `).join('');
@@ -3913,10 +3917,47 @@ async function renderClients() {
           <button class="btn btn-sm btn-outline-primary" onclick="showClientDetails('${client.id}')">
             <i class="bi bi-eye"></i>
           </button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteClient('${client.id}')" title="Eliminar cliente">
+            <i class="bi bi-trash"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-primary" onclick="editClient('${client.id}')" title="Editar cliente">
+            <i class="bi bi-pencil"></i>
+          </button>
         </div>
       </li>
     `).join('');
   }
+// Eliminar cliente
+function deleteClient(clientId) {
+  const client = clients.find(c => c.id === clientId);
+  if (!client) return;
+  Swal.fire({
+    icon: 'warning',
+    title: '¿Eliminar cliente?',
+    text: `Esta acción no se puede deshacer. ¿Eliminar a "${client.name}"?`,
+    showCancelButton: true,
+    confirmButtonText: 'Eliminar',
+    cancelButtonText: 'Cancelar',
+    reverseButtons: true
+  }).then(result => {
+    if (result.isConfirmed) {
+      // Eliminar cliente
+      clients = clients.filter(c => c.id !== clientId);
+      // Eliminar deudas asociadas
+      debts = debts.filter(d => d.clientId !== clientId);
+      // Eliminar proformas asociadas si existe función
+      if (typeof deleteProforma === 'function') deleteProforma(clientId);
+      // Si el cliente estaba seleccionado en el carrito, quitarlo
+      if (currentClientId === clientId) currentClientId = null;
+      saveToStorage('clients', clients);
+      saveToStorage('debts', debts);
+      renderClients();
+      renderDebts && renderDebts();
+      renderCart && renderCart();
+      Swal.fire({ icon: 'success', title: 'Eliminado', text: 'Cliente eliminado.' });
+    }
+  });
+}
 }
 
 // === Selector de cliente en ventas ===
@@ -3949,32 +3990,66 @@ function renderDebts() {
   }
 
   list.className = 'row gy-3';
-  list.innerHTML = debts.map(debt => {
-    let status = 'unpaid', statusText = 'Pendiente', statusClass = 'bg-warning';
-    if (debt.amount === 0) { 
-      status = 'paid'; 
-      statusText = 'Pagada'; 
-      statusClass = 'bg-success';
-    } else if (debt.abono && debt.abono > 0) { 
-      status = 'partial'; 
-      statusText = 'Abonada'; 
-      statusClass = 'bg-info';
-    }
-    
+  // Agrupar deudas por clienteId
+  const debtsByClient = {};
+  debts.forEach(debt => {
+    const clientKey = debt.clientId || debt.clientName || 'Desconocido';
+    if (!debtsByClient[clientKey]) debtsByClient[clientKey] = [];
+    debtsByClient[clientKey].push(debt);
+  });
+
+  // Obtener el filtro de estado global (debe estar en window)
+  let statusFilter = (typeof window !== 'undefined' && window.currentDebtStatusFilter) ? window.currentDebtStatusFilter : 'pending';
+  list.innerHTML = Object.keys(debtsByClient).map(clientKey => {
+    const clientDebts = debtsByClient[clientKey];
+    const clientName = clientDebts[0].clientName || 'Cliente desconocido';
+    // Filtrar deudas del cliente según el estado seleccionado
+    const filteredDebts = clientDebts.filter(debt => {
+      if (statusFilter === 'paid') {
+        return debt.amount === 0;
+      } else {
+        return debt.amount > 0;
+      }
+    });
+    if (filteredDebts.length === 0) return '';
     return `
-      <div class="col-12 col-md-6 col-lg-4">
-        <div class="debt-card-treinta ${status}" onclick="showDebtDetailModal('${debt.id}')">
-          <div class="debt-header">
-            <div class="debt-client">${debt.clientName}</div>
-            <div class="debt-date">${debt.date}</div>
+      <div class="col-12 col-md-6 col-lg-4 debt-client-item mb-3" data-client-name="${clientName.replace(/"/g, '&quot;')}">
+        <div class="card h-100 shadow-sm">
+          <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-person"></i> ${clientName}</span>
+            <span class="badge bg-light text-primary">${filteredDebts.length} deuda${filteredDebts.length > 1 ? 's' : ''}</span>
           </div>
-          <div class="debt-body">
-            <div class="debt-amount">$${(debt.total || debt.amount + (debt.abono || 0)).toFixed(2)}</div>
-            ${debt.abono ? `<div class="debt-abono">Abonado: $${debt.abono.toFixed(2)}</div>` : ''}
-            <div class="debt-saldo">Saldo: $${debt.amount.toFixed(2)}</div>
-          </div>
-          <div class="debt-footer">
-            <span class="badge ${statusClass}">${statusText}</span>
+          <div class="card-body p-2">
+            <div class="debt-list-client row g-2">
+              ${filteredDebts.map(debt => {
+                let status = 'unpaid', statusText = 'Pendiente', statusClass = 'bg-warning';
+                if (debt.amount === 0) { 
+                  status = 'paid'; 
+                  statusText = 'Pagada'; 
+                  statusClass = 'bg-success';
+                } else if (debt.abono && debt.abono > 0) { 
+                  status = 'partial'; 
+                  statusText = 'Abonada'; 
+                  statusClass = 'bg-info';
+                }
+                return `
+                  <div class="col-12">
+                    <div class="debt-item border rounded p-2 mb-1 d-flex justify-content-between align-items-center debt-card-treinta ${status}" data-debt-status="${status}" onclick="showDebtDetailModal('${debt.id}')">
+                      <div>
+                        <div class="fw-bold">${debt.reason || debt.description || 'Sin descripción'}</div>
+                        <div class="text-muted small">${debt.date || ''}</div>
+                      </div>
+                      <div class="text-end">
+                        <div class="text-danger fw-bold">$${(debt.total || debt.amount + (debt.abono || 0)).toFixed(2)}</div>
+                        ${debt.abono ? `<div class='debt-abono text-success small'>Abonado: $${debt.abono.toFixed(2)}</div>` : ''}
+                        <div class="debt-saldo small">Saldo: $${debt.amount.toFixed(2)}</div>
+                        <span class="badge ${statusClass}">${statusText}</span>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
           </div>
         </div>
       </div>
