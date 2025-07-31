@@ -123,6 +123,10 @@
             <i class="bi bi-arrow-clockwise"></i>
             <span>Actualizar App</span>
           </button>
+          <button class="sidebar-action-btn" onclick="debugPWA()" id="btn-debug-pwa">
+            <i class="bi bi-bug"></i>
+            <span>Debug PWA</span>
+          </button>
         </div>
       </div>
       
@@ -1605,6 +1609,88 @@
       Swal.fire('¡Enviado!', 'Backup enviado correctamente a Telegram.', 'success');
     } catch (err) {
       Swal.fire('Error', 'No se pudo enviar el backup: ' + (err.message || err), 'error');
+    }
+  });
+
+  // Importar backup desde archivo
+  document.getElementById('importTelegramBackupBtn').addEventListener('click', function() {
+    document.getElementById('importTelegramBackupInput').click();
+  });
+
+  // Manejar la selección de archivo para importar
+  document.getElementById('importTelegramBackupInput').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      Swal.fire({title:'Importando backup...', allowOutsideClick:false, didOpen:()=>Swal.showLoading()});
+      
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      if (typeof data !== 'object' || Array.isArray(data) || !Object.keys(data).length) {
+        Swal.fire('Error', 'El archivo no tiene el formato esperado.', 'error');
+        return;
+      }
+
+      // Confirmar antes de reemplazar
+      const { isConfirmed } = await Swal.fire({
+        title: '¿Importar backup?',
+        text: 'Esto reemplazará todos los datos actuales de la app por los del backup. ¿Continuar?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, importar',
+        cancelButtonText: 'Cancelar'
+      });
+
+      if (!isConfirmed) return;
+
+      // Limpiar todo localforage antes de restaurar
+      await localforage.clear();
+
+      // Restaurar solo claves críticas y settings
+      const criticalKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.CRITICAL_DATA) || ['sales','clients','products','debts','movements','chickenSales'];
+      const settingsKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.SETTINGS) || ['theme','viewModes','pricePerPound','costPerPound'];
+
+      // Restaurar datos críticos
+      for (const key of criticalKeys) {
+        if (data[key] !== undefined) {
+          if (typeof saveToStorage === 'function') {
+            await saveToStorage(key, data[key]);
+          } else {
+            await localforage.setItem(key, data[key]);
+          }
+        }
+      }
+
+      // Restaurar settings
+      for (const key of settingsKeys) {
+        if (data[key] !== undefined) {
+          await localforage.setItem(key, data[key]);
+          try { localStorage.setItem(key, JSON.stringify(data[key])); } catch(e){}
+        }
+      }
+
+      // Recargar datos y actualizar UI tras importar backup
+      if (typeof loadData === 'function') {
+        await loadData();
+        if (typeof initializeChickenData === 'function') initializeChickenData();
+        if (typeof updateChickenSalesList === 'function') updateChickenSalesList();
+        if (typeof updateBalanceUI === 'function') updateBalanceUI();
+        if (typeof renderInventory === 'function') renderInventory();
+        if (typeof renderClients === 'function') renderClients();
+        if (typeof renderDebts === 'function') renderDebts();
+        if (typeof renderSalesProducts === 'function') renderSalesProducts();
+      }
+
+      Swal.fire('¡Importado!', 'Backup restaurado correctamente. Los datos han sido recargados.', 'success');
+      
+      // Limpiar el input para permitir importar el mismo archivo nuevamente
+      e.target.value = '';
+      
+    } catch (err) {
+      Swal.fire('Error', 'No se pudo importar el backup: ' + (err.message || err), 'error');
+      e.target.value = '';
     }
   });
 

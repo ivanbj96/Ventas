@@ -2396,9 +2396,15 @@ async function setTheme(mode) {
 
 // === Funciones de instalación PWA ===
 function installPWA() {
+  console.log('installPWA() llamada');
+  console.log('deferredPrompt:', deferredPrompt);
+  console.log('installButton:', installButton);
+  
   if (deferredPrompt) {
+    console.log('Ejecutando deferredPrompt.prompt()');
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then((choiceResult) => {
+      console.log('Resultado de instalación:', choiceResult);
       if (choiceResult.outcome === 'accepted') {
         Swal.fire({
           icon: 'success',
@@ -2420,6 +2426,24 @@ function installPWA() {
       if (installButton) installButton.style.display = 'none';
       deferredPrompt = null;
       window.deferredPrompt = null;
+    }).catch((error) => {
+      console.error('Error en la instalación PWA:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error en la instalación',
+        text: 'No se pudo completar la instalación. Inténtalo de nuevo.',
+        timer: 3000,
+        showConfirmButton: false
+      });
+    });
+  } else {
+    console.log('No hay deferredPrompt disponible');
+    Swal.fire({
+      icon: 'warning',
+      title: 'No se puede instalar',
+      text: 'La instalación no está disponible en este momento. Inténtalo más tarde.',
+      timer: 3000,
+      showConfirmButton: false
     });
   }
 }
@@ -2582,31 +2606,60 @@ async function markInstallationRejected() {
   }
 }
 
+// === Función helper para limpiar el estado de rechazo de instalación ===
+async function clearInstallationRejection() {
+  if (typeof localforage !== 'undefined') {
+    await localforage.removeItem('pwa-installation-rejected');
+  } else {
+    localStorage.removeItem('pwa-installation-rejected');
+  }
+  console.log('Estado de rechazo de instalación limpiado');
+}
+
 // === Mostrar/ocultar botón de instalación PWA de forma centralizada ===
-function updateInstallButtonVisibility() {
+async function updateInstallButtonVisibility() {
+  console.log('updateInstallButtonVisibility() llamada');
   if (!installButton) installButton = document.getElementById('installPWA');
-  if (!installButton) return;
-  if (isAppInstalled() || hasUserRejectedInstallation() || !deferredPrompt) {
+  if (!installButton) {
+    console.log('No se encontró el botón installPWA');
+    return;
+  }
+  
+  const isInstalled = isAppInstalled();
+  const hasRejected = await hasUserRejectedInstallation();
+  
+  console.log('Estado PWA:', {
+    isInstalled,
+    hasRejected,
+    hasDeferredPrompt: !!deferredPrompt,
+    installButton: !!installButton
+  });
+  
+  if (isInstalled || hasRejected || !deferredPrompt) {
+    console.log('Ocultando botón de instalación');
     installButton.style.display = 'none';
   } else {
+    console.log('Mostrando botón de instalación');
     installButton.style.display = 'flex';
     installButton.classList.add('animate');
   }
 }
 
 // === Evento beforeinstallprompt (centralizado) ===
-window.addEventListener('beforeinstallprompt', (e) => {
+window.addEventListener('beforeinstallprompt', async (e) => {
+  console.log('beforeinstallprompt event disparado');
   e.preventDefault();
   deferredPrompt = e;
   window.deferredPrompt = e;
-  updateInstallButtonVisibility();
+  console.log('deferredPrompt configurado:', deferredPrompt);
+  await updateInstallButtonVisibility();
 });
 
 // === Evento appinstalled ===
-window.addEventListener('appinstalled', () => {
+window.addEventListener('appinstalled', async () => {
   deferredPrompt = null;
   window.deferredPrompt = null;
-  updateInstallButtonVisibility();
+  await updateInstallButtonVisibility();
   Swal.fire({
     icon: 'success',
     title: '¡Instalación completada!',
@@ -2617,7 +2670,7 @@ window.addEventListener('appinstalled', () => {
 });
 
 // === Inicialización del botón de instalación PWA ===
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // Inicializar botones de ocultar/mostrar ganancias de pollos
   const totalProfitElement = document.getElementById('totalProfit');
   const totalProfitTodayElement = document.getElementById('totalProfitToday');
@@ -2652,7 +2705,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnProfitCalc.onclick = toggleChickenProfitCalcVisibility;
   }
   installButton = document.getElementById('installPWA');
-  updateInstallButtonVisibility();
+  await updateInstallButtonVisibility();
   if (installButton) {
     installButton.onclick = installPWA;
   }
@@ -4149,11 +4202,35 @@ window.addEventListener('beforeinstallprompt', e => {
 });
 
 // === Registrar Service Worker ===
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js')
-    .then(reg => console.log("SW registrado:", reg.scope))
-    .catch(err => console.error("SW error:", err));
+// Función centralizada para registrar el service worker
+async function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.register('./sw.js');
+      console.log("SW registrado:", registration.scope);
+      
+      // Escuchar actualizaciones del SW
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            console.log('Nueva versión del SW instalada');
+            // No mostrar automáticamente el botón de instalación aquí
+          }
+        });
+      });
+      
+      return registration;
+    } catch (err) {
+      console.error("SW error:", err);
+      return null;
+    }
+  }
+  return null;
 }
+
+// Registrar el service worker una sola vez
+registerServiceWorker();
 
 // Modal de detalles de producto
 function showProductDetailModal(productId) {
@@ -6630,26 +6707,8 @@ document.addEventListener('DOMContentLoaded', function() {
   updateChickenSalesList();
   setupChickenEventListeners();
   
-  // Mostrar botón de instalación si es necesario
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-      .then(registration => {
-        console.log('SW registrado:', registration);
-        
-        // Escuchar actualizaciones del SW
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              showInstallButton();
-            }
-          });
-        });
-      })
-      .catch(error => {
-        console.error('Error registrando SW:', error);
-      });
-  }
+  // El service worker ya está registrado en la función registerServiceWorker()
+  // No necesitamos registrarlo aquí nuevamente
   
   // Verificar si la app está instalada
   if (isAppInstalled()) {
@@ -6673,6 +6732,65 @@ document.addEventListener('DOMContentLoaded', function() {
     localStorage.setItem('appInitialized', 'true');
   }
 });
+
+// === Función de debug para PWA ===
+function debugPWA() {
+  console.log('=== DEBUG PWA ===');
+  console.log('deferredPrompt:', deferredPrompt);
+  console.log('installButton:', installButton);
+  console.log('isAppInstalled():', isAppInstalled());
+  console.log('hasUserRejectedInstallation():', hasUserRejectedInstallation());
+  console.log('navigator.serviceWorker:', navigator.serviceWorker);
+  console.log('window.matchMedia(display-mode: standalone):', window.matchMedia('(display-mode: standalone)').matches);
+  console.log('navigator.standalone:', navigator.standalone);
+  
+  // Verificar el estado del service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then(registration => {
+      console.log('SW Registration:', registration);
+      if (registration) {
+        console.log('SW State:', registration.active ? registration.active.state : 'No active');
+        console.log('SW Scope:', registration.scope);
+      }
+    });
+  }
+  
+  // Mostrar información en la consola
+  Swal.fire({
+    icon: 'info',
+    title: 'Debug PWA',
+    html: `
+      <div class="text-start">
+        <p><strong>deferredPrompt:</strong> ${deferredPrompt ? 'Disponible' : 'No disponible'}</p>
+        <p><strong>installButton:</strong> ${installButton ? 'Encontrado' : 'No encontrado'}</p>
+        <p><strong>App Instalada:</strong> ${isAppInstalled() ? 'Sí' : 'No'}</p>
+        <p><strong>Service Worker:</strong> ${'serviceWorker' in navigator ? 'Soportado' : 'No soportado'}</p>
+        <p><strong>Display Mode:</strong> ${window.matchMedia('(display-mode: standalone)').matches ? 'Standalone' : 'Browser'}</p>
+      </div>
+    `,
+    showCancelButton: true,
+    showDenyButton: true,
+    confirmButtonText: 'Forzar Instalación',
+    denyButtonText: 'Limpiar Rechazo',
+    cancelButtonText: 'OK'
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      // Forzar la aparición del botón de instalación para pruebas
+      if (installButton) {
+        installButton.style.display = 'flex';
+        installButton.classList.add('animate');
+        Swal.fire('Botón mostrado', 'El botón de instalación ha sido forzado a aparecer para pruebas.', 'success');
+      } else {
+        Swal.fire('Error', 'No se encontró el botón de instalación.', 'error');
+      }
+    } else if (result.isDenied) {
+      // Limpiar el estado de rechazo de instalación
+      await clearInstallationRejection();
+      await updateInstallButtonVisibility();
+      Swal.fire('Estado limpiado', 'El estado de rechazo de instalación ha sido limpiado. El botón debería aparecer si está disponible.', 'success');
+    }
+  });
+}
 
 // === FUNCIONES GLOBALES PARA HTML ===
 // Al final del archivo o después de definir cada función global:
@@ -6720,6 +6838,8 @@ window.showAppStatus = showAppStatus;
 window.exportAllData = exportAllData;
 window.importData = importData;
 window.showCredits = showCredits;
+window.debugPWA = debugPWA;
+window.clearInstallationRejection = clearInstallationRejection;
 
 function showReceipt(sale) {
   // ... definición de la función ...
