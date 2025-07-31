@@ -28,6 +28,10 @@
   <link rel="stylesheet" href="style.css" />
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Google API JS Client (solo para Drive, no auth2) -->
+  <script src="https://apis.google.com/js/api.js"></script>
+  <!-- Google Identity Services para OAuth 2.0 -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="bg-light">
 
@@ -175,6 +179,188 @@
     showView('balance');
   });
 </script>
+
+
+
+  <!-- Google Drive en Sidebar (solo visible si logueado) -->
+  <script>
+    // Inserta la sección de Google Drive en el sidebar al cargar
+    document.addEventListener('DOMContentLoaded', function() {
+      const sidebarContent = document.querySelector('.sidebar-content');
+      if (!sidebarContent) return;
+      // Evita duplicados
+      if (document.getElementById('sidebarGoogleDriveSection')) return;
+      const section = document.createElement('div');
+      section.className = 'sidebar-section';
+      section.id = 'sidebarGoogleDriveSection';
+      section.innerHTML = `
+        <div class="card card-custom mb-2">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-google fs-4 me-2 text-danger"></i>
+              <span class="fw-bold">Google Drive</span>
+            </div>
+            <div id="googleDriveSidebarLoggedOut">
+              <button id="googleSignInBtn" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                <i class="bi bi-google"></i> Iniciar sesión Google
+              </button>
+            </div>
+            <div id="googleDriveSidebarLoggedIn" style="display:none">
+              <div class="mb-2 small text-success"><i class="bi bi-person-check"></i> Sesión activa</div>
+              <button id="googleBackupBtn" class="btn btn-primary btn-sm w-100 mb-2">
+                <i class="bi bi-cloud-upload"></i> Backup a Drive
+              </button>
+              <button id="googleRestoreBtn" class="btn btn-success btn-sm w-100 mb-2">
+                <i class="bi bi-cloud-download"></i> Restaurar Backup
+              </button>
+              <button id="googleSignOutBtn" class="btn btn-outline-danger btn-sm w-100">
+                <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+              </button>
+            </div>
+            <div id="googleUserStatus" class="mt-2 small text-muted"></div>
+          </div>
+        </div>
+      `;
+      sidebarContent.prepend(section);
+
+      // Asignar event listeners dinámicamente
+      function assignGoogleDriveSidebarListeners() {
+        const signInBtn = document.getElementById('googleSignInBtn');
+        const signOutBtn = document.getElementById('googleSignOutBtn');
+        const backupBtn = document.getElementById('googleBackupBtn');
+        const restoreBtn = document.getElementById('googleRestoreBtn');
+        if (signInBtn) {
+          signInBtn.onclick = function() {
+            if (typeof initGoogleTokenClient === 'function') {
+              initGoogleTokenClient();
+              tokenClient.requestAccessToken();
+            }
+          };
+        }
+        if (signOutBtn) {
+          signOutBtn.onclick = function() {
+            googleAccessToken = null;
+            localStorage.removeItem('googleAccessToken');
+            enableGoogleDriveButtons(false);
+            stopGoogleDriveAutoBackup();
+            Swal.fire('Sesión cerrada', 'Has cerrado sesión de Google Drive.', 'info');
+          };
+        }
+        if (backupBtn) {
+          backupBtn.onclick = async function() {
+            if (!(await ensureGoogleAccessToken())) return;
+            try {
+              const data = await getAllAppData();
+              const fileContent = JSON.stringify(data, null, 2);
+              await uploadBackupToDrive(fileContent);
+              Swal.fire('¡Backup subido!', 'Tu backup fue guardado en Google Drive.', 'success');
+            } catch (err) {
+              if (err && err.message && err.message.includes('403')) {
+                googleAccessToken = null;
+                localStorage.removeItem('googleAccessToken');
+                enableGoogleDriveButtons(false);
+                Swal.fire('Permiso denegado',
+                  'No tienes permisos suficientes para acceder a Google Drive.\n' +
+                  '1. Cierra sesión y vuelve a iniciar sesión con tu cuenta Google.\n' +
+                  '2. Asegúrate de aceptar el permiso de acceso a Google Drive.\n' +
+                  '3. Si el problema persiste, revisa la configuración de tu cuenta o contacta al soporte.',
+                  'error');
+              } else {
+                Swal.fire('Error', 'No se pudo subir el backup: ' + (err && err.message ? err.message : err), 'error');
+              }
+            }
+          };
+        }
+        if (restoreBtn) {
+          restoreBtn.onclick = async function() {
+            if (!(await ensureGoogleAccessToken())) return;
+            try {
+              const fileContent = await downloadBackupFromDrive();
+              const data = JSON.parse(fileContent);
+              if (typeof data !== 'object' || Array.isArray(data) || !Object.keys(data).length) {
+                Swal.fire('Error', 'El archivo no tiene el formato esperado.', 'error');
+                return;
+              }
+              // Confirmar antes de reemplazar
+              const { isConfirmed } = await Swal.fire({
+                title: '¿Importar backup?',
+                text: 'Esto reemplazará todos los datos actuales de la app por los del backup. ¿Continuar?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, importar',
+                cancelButtonText: 'Cancelar'
+              });
+              if (!isConfirmed) return;
+              // Limpiar todo localforage antes de restaurar
+              await localforage.clear();
+              // Restaurar solo claves críticas y settings
+              const criticalKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.CRITICAL_DATA) || ['sales','clients','products','debts','movements','chickenSales'];
+              const settingsKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.SETTINGS) || ['theme','viewModes','pricePerPound','costPerPound'];
+              // Restaurar datos críticos
+              for (const key of criticalKeys) {
+                if (data[key] !== undefined) {
+                  if (typeof saveToStorage === 'function') {
+                    await saveToStorage(key, data[key]);
+                  } else {
+                    await localforage.setItem(key, data[key]);
+                  }
+                }
+              }
+              // Restaurar settings
+              for (const key of settingsKeys) {
+                if (data[key] !== undefined) {
+                  await localforage.setItem(key, data[key]);
+                  try { localStorage.setItem(key, JSON.stringify(data[key])); } catch(e){}
+                }
+              }
+              // Recargar datos y actualizar UI tras importar backup
+              if (typeof loadData === 'function') {
+                await loadData();
+                if (typeof initializeChickenData === 'function') initializeChickenData();
+                if (typeof updateChickenSalesList === 'function') updateChickenSalesList();
+                if (typeof updateBalanceUI === 'function') updateBalanceUI();
+                if (typeof renderInventory === 'function') renderInventory();
+                if (typeof renderClients === 'function') renderClients();
+                if (typeof renderDebts === 'function') renderDebts();
+                if (typeof renderSalesProducts === 'function') renderSalesProducts();
+              }
+              Swal.fire('¡Importado!', 'Backup restaurado correctamente. Los datos han sido recargados.', 'success');
+            } catch (err) {
+              if (err && err.message && err.message.includes('403')) {
+                googleAccessToken = null;
+                localStorage.removeItem('googleAccessToken');
+                enableGoogleDriveButtons(false);
+                Swal.fire('Permiso denegado',
+                  'No tienes permisos suficientes para acceder a Google Drive.\n' +
+                  '1. Cierra sesión y vuelve a iniciar sesión con tu cuenta Google.\n' +
+                  '2. Asegúrate de aceptar el permiso de acceso a Google Drive.\n' +
+                  '3. Si el problema persiste, revisa la configuración de tu cuenta o contacta al soporte.',
+                  'error');
+              } else {
+                Swal.fire('Error', 'No se pudo restaurar: ' + (err && err.message ? err.message : err), 'error');
+              }
+            }
+          };
+        }
+      }
+
+      // Lógica para mostrar/ocultar según sesión
+      function updateSidebarGoogleDriveUI(loggedIn) {
+        document.getElementById('googleDriveSidebarLoggedOut').style.display = loggedIn ? 'none' : '';
+        document.getElementById('googleDriveSidebarLoggedIn').style.display = loggedIn ? '' : 'none';
+      }
+      // Hookear enableGoogleDriveButtons para actualizar sidebar
+      const origEnableGoogleDriveButtons = window.enableGoogleDriveButtons;
+      window.enableGoogleDriveButtons = function(enabled) {
+        origEnableGoogleDriveButtons(enabled);
+        updateSidebarGoogleDriveUI(enabled);
+        assignGoogleDriveSidebarListeners();
+      };
+      // Estado inicial
+      updateSidebarGoogleDriveUI(!!localStorage.getItem('googleAccessToken'));
+      assignGoogleDriveSidebarListeners();
+    });
+  </script>
 
   <main class="container py-3" id="mainContent">
 
@@ -519,6 +705,11 @@
             <div class="col-md-4">
               <label for="telegramBackupInterval" class="form-label"><i class="bi bi-clock-history"></i> Intervalo (minutos)</label>
               <input type="number" id="telegramBackupInterval" class="form-control form-control-treinta" min="5" max="1440" value="60" required />
+              <div class="form-text">Mínimo: 5 min, Máximo: 1440 min (24h)</div>
+            </div>
+            <div class="col-md-4">
+              <label for="googleDriveBackupInterval" class="form-label"><i class="bi bi-cloud-arrow-up"></i> Intervalo Google Drive (minutos)</label>
+              <input type="number" id="googleDriveBackupInterval" class="form-control form-control-treinta" min="5" max="1440" value="60" required />
               <div class="form-text">Mínimo: 5 min, Máximo: 1440 min (24h)</div>
             </div>
           </div>
@@ -1013,83 +1204,367 @@
   <!-- App JS -->
   <script src="app.js"></script>
 
-  <!-- Telegram Backup Logic -->
+  <!-- Telegram y Google Drive Backup Logic -->
   <script>
-  // --- Telegram Backup Config ---
-  const TELEGRAM_CONFIG_KEY = 'telegramBackupConfig';
-  let telegramBackupTimer = null;
 
-// Importar backup desde archivo JSON
-document.addEventListener('DOMContentLoaded', () => {
-  const importBtn = document.getElementById('importTelegramBackupBtn');
-  const importInput = document.getElementById('importTelegramBackupInput');
-  if (importBtn && importInput) {
-    importBtn.addEventListener('click', () => importInput.click());
-    importInput.addEventListener('change', async function() {
-      if (!this.files || !this.files[0]) return;
-      const file = this.files[0];
+
+
+  // --- Google Drive Backup/Restore con Google Identity Services (GIS) ---
+  const GOOGLE_CLIENT_ID = '83503843228-lh6tbfvp9q1a3omus30g2i9miadrp6i7.apps.googleusercontent.com';
+  const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
+  const BACKUP_FILENAME = 'backup-tillup.json';
+  let googleAccessToken = null;
+  let tokenClient = null;
+  let googleDriveBackupTimer = null;
+  let googleDriveBackupInterval = 60; // minutos por defecto
+
+  // Leer intervalo guardado en localStorage (si existe)
+  if (localStorage.getItem('googleDriveBackupInterval')) {
+    const val = parseInt(localStorage.getItem('googleDriveBackupInterval'), 10);
+    if (!isNaN(val) && val >= 5 && val <= 1440) {
+      googleDriveBackupInterval = val;
+    }
+  }
+
+  // Actualizar campo de intervalo en la UI al cargar
+  document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('googleDriveBackupInterval');
+    if (input) input.value = googleDriveBackupInterval;
+  });
+
+  // Guardar intervalo cuando se cambie el valor
+  document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('googleDriveBackupInterval');
+    if (input) {
+      input.addEventListener('change', function() {
+        let val = parseInt(this.value, 10);
+        if (isNaN(val) || val < 5) val = 5;
+        if (val > 1440) val = 1440;
+        this.value = val;
+        googleDriveBackupInterval = val;
+        localStorage.setItem('googleDriveBackupInterval', val);
+        if (googleAccessToken) {
+          stopGoogleDriveAutoBackup();
+          startGoogleDriveAutoBackup(val);
+        }
+      });
+    }
+  });
+
+  // Iniciar backup automático a Google Drive
+  function startGoogleDriveAutoBackup(intervalMinutes) {
+    stopGoogleDriveAutoBackup();
+    if (!intervalMinutes || isNaN(intervalMinutes) || intervalMinutes < 5) intervalMinutes = 60;
+    googleDriveBackupInterval = intervalMinutes;
+    localStorage.setItem('googleDriveBackupInterval', intervalMinutes);
+    googleDriveBackupTimer = setInterval(async () => {
+      if (!(await ensureGoogleAccessToken())) return;
       try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-        if (typeof data !== 'object' || Array.isArray(data) || !Object.keys(data).length) {
-          Swal.fire('Error', 'El archivo no tiene el formato esperado.', 'error');
-          return;
-        }
-        // Confirmar antes de reemplazar
-        const { isConfirmed } = await Swal.fire({
-          title: '¿Importar backup?',
-          text: 'Esto reemplazará todos los datos actuales de la app por los del backup. ¿Continuar?',
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'Sí, importar',
-          cancelButtonText: 'Cancelar'
-        });
-        if (!isConfirmed) return;
-        // Limpiar todo localforage antes de restaurar
-        await localforage.clear();
-        // Restaurar solo claves críticas y settings
-        const criticalKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.CRITICAL_DATA) || ['sales','clients','products','debts','movements','chickenSales'];
-        const settingsKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.SETTINGS) || ['theme','viewModes','pricePerPound','costPerPound'];
-        // Restaurar datos críticos
-        for (const key of criticalKeys) {
-          if (data[key] !== undefined) {
-            if (typeof saveToStorage === 'function') {
-              await saveToStorage(key, data[key]);
-              console.debug('Restaurado (saveToStorage):', key, data[key]);
-            } else {
-              await localforage.setItem(key, data[key]);
-              console.debug('Restaurado (localforage):', key, data[key]);
-            }
-          }
-        }
-        // Restaurar settings
-        for (const key of settingsKeys) {
-          if (data[key] !== undefined) {
-            await localforage.setItem(key, data[key]);
-            try { localStorage.setItem(key, JSON.stringify(data[key])); } catch(e){}
-            console.debug('Restaurado setting:', key, data[key]);
-          }
-        }
-        // Recargar datos y actualizar UI tras importar backup
-        if (typeof loadData === 'function') {
-          await loadData();
-          if (typeof initializeChickenData === 'function') initializeChickenData();
-          if (typeof updateChickenSalesList === 'function') updateChickenSalesList();
-          if (typeof updateBalanceUI === 'function') updateBalanceUI();
-          if (typeof renderInventory === 'function') renderInventory();
-          if (typeof renderClients === 'function') renderClients();
-          if (typeof renderDebts === 'function') renderDebts();
-          if (typeof renderSalesProducts === 'function') renderSalesProducts();
-        }
-        Swal.fire('¡Importado!', 'Backup restaurado correctamente. Los datos han sido recargados.', 'success');
+        const data = await getAllAppData();
+        const fileContent = JSON.stringify(data, null, 2);
+        await uploadBackupToDrive(fileContent);
+        // Opcional: notificación visual
+        // console.log('Backup automático a Google Drive realizado.');
       } catch (err) {
-        Swal.fire('Error', 'No se pudo importar el backup: ' + (err.message || err), 'error');
+        // console.error('Error en backup automático a Google Drive:', err);
       }
-      this.value = '';
+    }, intervalMinutes * 60 * 1000);
+  }
+
+  // Detener backup automático a Google Drive
+  function stopGoogleDriveAutoBackup() {
+    if (googleDriveBackupTimer) {
+      clearInterval(googleDriveBackupTimer);
+      googleDriveBackupTimer = null;
+    }
+  }
+
+  // Inicializa GIS token client (solo una vez)
+  function initGoogleTokenClient() {
+    if (!tokenClient) {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: GOOGLE_SCOPES,
+        callback: handleGoogleTokenResponse
+      });
+    }
+  }
+
+  // Maneja la respuesta del token
+  function handleGoogleTokenResponse(resp) {
+    if (resp.error) {
+      Swal.fire('Error', 'No se pudo iniciar sesión: ' + resp.error, 'error');
+      return;
+    }
+    googleAccessToken = resp.access_token;
+    localStorage.setItem('googleAccessToken', googleAccessToken);
+    enableGoogleDriveButtons(true);
+    Swal.fire('¡Listo!', 'Sesión iniciada con Google.', 'success');
+    // Leer el intervalo actualizado del input
+    let interval = googleDriveBackupInterval;
+    const input = document.getElementById('googleDriveBackupInterval');
+    if (input) {
+      const val = parseInt(input.value, 10);
+      if (!isNaN(val) && val >= 5 && val <= 1440) interval = val;
+    }
+    startGoogleDriveAutoBackup(interval);
+  }
+
+  // Solicita un token nuevo antes de cada operación sensible
+  async function ensureGoogleAccessToken(forcePrompt = false) {
+    if (!tokenClient) initGoogleTokenClient();
+    // Si ya hay token, intenta usarlo primero
+    if (googleAccessToken && !forcePrompt) return true;
+    return await new Promise((resolve) => {
+      tokenClient.callback = (resp) => {
+        if (resp.error) {
+          Swal.fire('Error', 'No se pudo obtener token: ' + resp.error, 'error');
+          resolve(false);
+        } else {
+          googleAccessToken = resp.access_token;
+          localStorage.setItem('googleAccessToken', googleAccessToken);
+          resolve(true);
+        }
+      };
+      tokenClient.requestAccessToken({ prompt: forcePrompt ? 'consent' : '' });
     });
   }
+
+
+  // Habilita/deshabilita botones según sesión (solo sidebar)
+  function enableGoogleDriveButtons(enabled) {
+    const backupBtn = document.getElementById('googleBackupBtn');
+    const restoreBtn = document.getElementById('googleRestoreBtn');
+    const signInBtn = document.getElementById('googleSignInBtn');
+    const signOutBtn = document.getElementById('googleSignOutBtn');
+    const userStatus = document.getElementById('googleUserStatus');
+    if (backupBtn) backupBtn.disabled = !enabled;
+    if (restoreBtn) restoreBtn.disabled = !enabled;
+    if (signInBtn) signInBtn.classList[enabled ? 'add' : 'remove']('d-none');
+    if (signOutBtn) signOutBtn.classList[enabled ? 'remove' : 'add']('d-none');
+    if (userStatus) userStatus.textContent = enabled ? 'Sesión activa' : '';
+  }
+
+
+  // Subir backup a Google Drive (crea o actualiza el archivo, robusto)
+  async function uploadBackupToDrive(content) {
+    // Siempre refresca el token antes de operar
+    if (!(await ensureGoogleAccessToken())) throw new Error('No hay token de acceso válido.');
+    // Cargar gapi solo para Drive API (no auth2)
+    await new Promise((resolve) => {
+      gapi.load('client', async () => {
+        await gapi.client.init({
+          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+        });
+        resolve();
+      });
+    });
+    let fileId;
+    try {
+      fileId = await findBackupFileId();
+    } catch (err) {
+      if (err && err.message && err.message.includes('403')) {
+        googleAccessToken = null;
+        localStorage.removeItem('googleAccessToken');
+        enableGoogleDriveButtons(false);
+        throw new Error('Permiso denegado por Google Drive. Por favor, cierra sesión y vuelve a iniciar sesión con tu cuenta Google.');
+      } else {
+        throw err;
+      }
+    }
+    const metadata = {
+      name: BACKUP_FILENAME,
+      mimeType: 'application/json',
+    };
+    const boundary = '-------314159265358979323846';
+    const delimiter = "\r\n--" + boundary + "\r\n";
+    const close_delim = "\r\n--" + boundary + "--";
+    const multipartRequestBody =
+      delimiter +
+      'Content-Type: application/json\r\n\r\n' +
+      JSON.stringify(metadata) +
+      delimiter +
+      'Content-Type: application/json\r\n\r\n' +
+      content +
+      close_delim;
+
+    let url = 'https://www.googleapis.com/upload/drive/v3/files';
+    let method = 'POST';
+    if (fileId) {
+      url += '/' + fileId + '?uploadType=multipart';
+      method = 'PATCH';
+    } else {
+      url += '?uploadType=multipart';
+    }
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Authorization': 'Bearer ' + googleAccessToken,
+        'Content-Type': 'multipart/related; boundary="' + boundary + '"',
+      },
+      body: multipartRequestBody,
+    });
+    if (res.status === 403) {
+      googleAccessToken = null;
+      localStorage.removeItem('googleAccessToken');
+      enableGoogleDriveButtons(false);
+      throw new Error('Permiso denegado por Google Drive. Por favor, cierra sesión y vuelve a iniciar sesión con tu cuenta Google.');
+    }
+    if (!res.ok) {
+      let msg = 'Error subiendo backup: ' + res.statusText;
+      try {
+        const errJson = await res.json();
+        if (errJson && errJson.error && errJson.error.message) msg += ' - ' + errJson.error.message;
+      } catch(e){}
+      throw new Error(msg);
+    }
+  }
+
+  // Buscar si ya existe el archivo de backup
+  async function findBackupFileId() {
+    // Cargar gapi solo para Drive API (no auth2)
+    await new Promise((resolve) => {
+      gapi.load('client', async () => {
+        await gapi.client.init({
+          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+        });
+        resolve();
+      });
+    });
+    let res;
+    try {
+      res = await gapi.client.drive.files.list({
+        q: `name='${BACKUP_FILENAME}' and trashed=false`,
+        fields: 'files(id, name)',
+        spaces: 'drive',
+      });
+    } catch (err) {
+      if (err && err.status && err.status === 403) {
+        throw new Error('403 - Permiso denegado por Google Drive.');
+      }
+      throw err;
+    }
+    if (res.result.files && res.result.files.length > 0) {
+      return res.result.files[0].id;
+    }
+    return null;
+  }
+
+  // Descargar el backup desde Google Drive
+  async function downloadBackupFromDrive() {
+    const fileId = await findBackupFileId();
+    if (!fileId) throw new Error('No se encontró backup en tu Google Drive.');
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: { 'Authorization': 'Bearer ' + googleAccessToken }
+    });
+    if (!res.ok) throw new Error('No se pudo descargar el backup.');
+    return await res.text();
+  }
+
+  // Restaurar datos de la app (ajusta según tu lógica)
+  async function restoreAppData(data) {
+    // Igual que tu import desde Telegram
+    const criticalKeys = ['sales','clients','products','debts','movements','chickenSales'];
+    const settingsKeys = ['theme','viewModes','pricePerPound','costPerPound'];
+    for (const key of criticalKeys) {
+      if (data[key] !== undefined) await localforage.setItem(key, data[key]);
+    }
+    for (const key of settingsKeys) {
+      if (data[key] !== undefined) {
+        await localforage.setItem(key, data[key]);
+        try { localStorage.setItem(key, JSON.stringify(data[key])); } catch(e){}
+      }
+    }
+    // Recarga la UI si es necesario
+    if (typeof loadData === 'function') await loadData();
+    if (typeof renderClients === 'function') renderClients();
+    if (typeof renderDebts === 'function') renderDebts();
+    if (typeof renderInventory === 'function') renderInventory();
+  }
+
+  // Al cargar la página, intenta restaurar sesión
+  window.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('googleAccessToken');
+    if (token) {
+      googleAccessToken = token;
+      enableGoogleDriveButtons(true);
+      // Leer el intervalo actualizado del input
+      let interval = googleDriveBackupInterval;
+      const input = document.getElementById('googleDriveBackupInterval');
+      if (input) {
+        const val = parseInt(input.value, 10);
+        if (!isNaN(val) && val >= 5 && val <= 1440) interval = val;
+      }
+      startGoogleDriveAutoBackup(interval);
+      // El siguiente bloque debe estar en una función async
+      (async () => {
+        try {
+          const data = await getAllAppData();
+          const fileContent = JSON.stringify(data, null, 2);
+          await uploadBackupToDrive(fileContent);
+          Swal.fire('¡Backup subido!', 'Tu backup fue guardado en Google Drive.', 'success');
+          if (typeof data !== 'object' || Array.isArray(data) || !Object.keys(data).length) {
+            Swal.fire('Error', 'El archivo no tiene el formato esperado.', 'error');
+            return;
+          }
+          // Confirmar antes de reemplazar
+          const { isConfirmed } = await Swal.fire({
+            title: '¿Importar backup?',
+            text: 'Esto reemplazará todos los datos actuales de la app por los del backup. ¿Continuar?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, importar',
+            cancelButtonText: 'Cancelar'
+          });
+          if (!isConfirmed) return;
+          // Limpiar todo localforage antes de restaurar
+          await localforage.clear();
+          // Restaurar solo claves críticas y settings
+          const criticalKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.CRITICAL_DATA) || ['sales','clients','products','debts','movements','chickenSales'];
+          const settingsKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.SETTINGS) || ['theme','viewModes','pricePerPound','costPerPound'];
+          // Restaurar datos críticos
+          for (const key of criticalKeys) {
+            if (data[key] !== undefined) {
+              if (typeof saveToStorage === 'function') {
+                await saveToStorage(key, data[key]);
+                console.debug('Restaurado (saveToStorage):', key, data[key]);
+              } else {
+                await localforage.setItem(key, data[key]);
+                console.debug('Restaurado (localforage):', key, data[key]);
+              }
+            }
+          }
+          // Restaurar settings
+          for (const key of settingsKeys) {
+            if (data[key] !== undefined) {
+              await localforage.setItem(key, data[key]);
+              try { localStorage.setItem(key, JSON.stringify(data[key])); } catch(e){}
+              console.debug('Restaurado setting:', key, data[key]);
+            }
+          }
+          // Recargar datos y actualizar UI tras importar backup
+          if (typeof loadData === 'function') {
+            await loadData();
+            if (typeof initializeChickenData === 'function') initializeChickenData();
+            if (typeof updateChickenSalesList === 'function') updateChickenSalesList();
+            if (typeof updateBalanceUI === 'function') updateBalanceUI();
+            if (typeof renderInventory === 'function') renderInventory();
+            if (typeof renderClients === 'function') renderClients();
+            if (typeof renderDebts === 'function') renderDebts();
+            if (typeof renderSalesProducts === 'function') renderSalesProducts();
+          }
+          Swal.fire('¡Importado!', 'Backup restaurado correctamente. Los datos han sido recargados.', 'success');
+        } catch (err) {
+          let msg = err && err.message ? err.message : String(err);
+          Swal.fire('Error', 'No se pudo subir el backup: ' + msg, 'error');
+        }
+      })();
+    }
 });
 
+  // Definir clave de configuración de Telegram (evita ReferenceError)
+  const TELEGRAM_CONFIG_KEY = 'telegram_backup_config';
   // Cargar configuración al abrir la vista
   document.addEventListener('DOMContentLoaded', () => {
     loadTelegramConfigToForm();
@@ -1152,15 +1627,38 @@ document.addEventListener('DOMContentLoaded', () => {
   // Programar backup automático
   function scheduleTelegramBackup(config) {
     if (telegramBackupTimer) clearInterval(telegramBackupTimer);
-    telegramBackupTimer = setInterval(async () => {
-      try {
-        await sendTelegramBackup(config);
-        // Opcional: notificación visual
-        // Swal.fire('Backup enviado', 'Backup automático enviado a Telegram.', 'success');
-      } catch (err) {
-        // Opcional: notificación de error
-        // Swal.fire('Error', 'No se pudo enviar el backup automático.', 'error');
-      }
+    telegramBackupTimer = setInterval(() => {
+      (async () => {
+        try {
+          // Siempre obtener los datos más recientes antes de enviar
+          let data = null;
+          if (typeof getAllAppData === 'function') {
+            data = await getAllAppData();
+          } else if (window.localforage) {
+            // Fallback si getAllAppData no está disponible
+            const keys = await localforage.keys();
+            data = {};
+            for (const key of keys) {
+              if (!key.startsWith('_localforage')) {
+                data[key] = await localforage.getItem(key);
+              }
+            }
+          } else {
+            data = {};
+          }
+          if (!data || Object.keys(data).length === 0) {
+            console.warn('Backup automático: datos vacíos, no se envía a Telegram.');
+            return;
+          }
+          await sendTelegramBackup(config, data);
+          // Opcional: notificación visual
+          // Swal.fire('Backup enviado', 'Backup automático enviado a Telegram.', 'success');
+        } catch (err) {
+          // Opcional: notificación de error
+          // Swal.fire('Error', 'No se pudo enviar el backup automático.', 'error');
+          console.error('Error en backup automático a Telegram:', err);
+        }
+      })();
     }, config.interval * 60 * 1000);
   }
 
@@ -1178,8 +1676,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Enviar backup a Telegram
-  async function sendTelegramBackup(config) {
-    const data = await getAllAppData();
+  async function sendTelegramBackup(config, dataOverride) {
+    // Si se pasa dataOverride, usarla; si no, obtener los datos normalmente
+    let data = dataOverride;
+    if (!data) {
+      if (typeof getAllAppData === 'function') {
+        data = await getAllAppData();
+      } else if (window.localforage) {
+        const keys = await localforage.keys();
+        data = {};
+        for (const key of keys) {
+          if (!key.startsWith('_localforage')) {
+            data[key] = await localforage.getItem(key);
+          }
+        }
+      } else {
+        data = {};
+      }
+    }
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const formData = new FormData();

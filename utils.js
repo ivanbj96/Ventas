@@ -769,7 +769,7 @@ window.groupBy = groupBy;
 window.saveProforma = saveProforma;
 window.loadProforma = loadProforma;
 window.deleteProforma = deleteProforma;
-window.cleanLocalStorage = cleanCorruptedData; // Renamed to reflect new functionality
+// No exportar cleanCorruptedData como cleanLocalStorage para evitar confusión y duplicidad
 window.exportData = exportAllData; // Renamed to reflect new functionality
 window.importData = importData;
 window.debounce = debounce;

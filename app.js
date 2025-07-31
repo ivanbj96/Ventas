@@ -5186,66 +5186,9 @@ setInterval(() => {
 }, 5 * 60 * 1000); // Cada 5 minutos
 
 // Backup automático de datos
-function setupAutoBackup() {
-  setInterval(async () => {
-    const backupData = {
-      products,
-      clients,
-      sales,
-      debts,
-      timestamp: new Date().toISOString()
-    };
-    if (typeof localforage !== 'undefined') {
-      await localforage.setItem('tillup_backup', backupData);
-    } else {
-      localStorage.setItem('tillup_backup', JSON.stringify(backupData));
-    }
-  }, 5 * 60 * 1000); // Cada 5 minutos
-}
+// (Eliminada función duplicada de backup automático de Google Drive)
 
-// Restaurar backup si es necesario
-async function restoreBackup() {
-  let backupData = null;
-  if (typeof localforage !== 'undefined') {
-    backupData = await localforage.getItem('tillup_backup');
-  } else {
-    const backup = localStorage.getItem('tillup_backup');
-    if (backup) {
-      try {
-        backupData = JSON.parse(backup);
-      } catch (error) {
-        console.error('Error al parsear backup:', error);
-      }
-    }
-  }
-  if (backupData) {
-    try {
-      const backupAge = Date.now() - new Date(backupData.timestamp).getTime();
-      // Solo restaurar si el backup es reciente (menos de 1 hora)
-      if (backupAge < 60 * 60 * 1000) {
-        products = backupData.products || products;
-        clients = backupData.clients || clients;
-        sales = backupData.sales || sales;
-        debts = backupData.debts || debts;
-        // Guardar datos restaurados
-        if (typeof localforage !== 'undefined') {
-          await localforage.setItem('products', products);
-          await localforage.setItem('clients', clients);
-          await localforage.setItem('sales', sales);
-          await localforage.setItem('debts', debts);
-        } else {
-          localStorage.setItem('products', JSON.stringify(products));
-          localStorage.setItem('clients', JSON.stringify(clients));
-          localStorage.setItem('sales', JSON.stringify(sales));
-          localStorage.setItem('debts', JSON.stringify(debts));
-        }
-        console.log('Backup restaurado exitosamente');
-      }
-    } catch (error) {
-      console.error('Error al restaurar backup:', error);
-    }
-  }
-}
+// (Eliminada función duplicada de restaurar backup de Google Drive)
 
 // Inicializar funcionalidades avanzadas
 document.addEventListener('DOMContentLoaded', function() {
@@ -5255,11 +5198,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Configurar lazy loading
   setupLazyLoading();
   
-  // Configurar backup automático
-  setupAutoBackup();
-  
-  // Restaurar backup si es necesario
-  restoreBackup();
+  // (Eliminada llamada a backup/restore duplicado de Google Drive)
   
   // Configurar corrección de accesibilidad
   setupAccessibilityFix();
@@ -6676,7 +6615,7 @@ document.addEventListener('DOMContentLoaded', function() {
   setupLazyLoading();
   
   // Configurar backup automático
-  setupAutoBackup();
+  // setupAutoBackup(); // Eliminado: función ya no existe
   
   // Actualizar fecha y hora
   updateDateTime();
