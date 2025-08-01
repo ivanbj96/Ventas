@@ -193,6 +193,8 @@ function startAutoBackup() {
       const success = await saveAllCriticalData();
       if (success) {
         console.debug('Backup automático completado');
+        // Actualizar timestamp del último backup local
+        localStorage.setItem('lastLocalBackup', Date.now().toString());
       }
     } catch (error) {
       console.error('Error en backup automático:', error);

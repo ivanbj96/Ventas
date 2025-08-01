@@ -222,6 +222,9 @@ async function loadData() {
     // Iniciar backup automático
     startAutoBackup();
     
+    // Configurar detección de cambios para backup automático
+    setupDataChangeDetection();
+    
   } catch (error) {
     console.error('Error cargando datos:', error);
     // Inicializar arrays vacíos en caso de error
@@ -5262,10 +5265,401 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000); // Cada 5 minutos
 
-// Backup automático de datos
-// (Eliminada función duplicada de backup automático de Google Drive)
+// Backup automático iniciado
+console.log('📝 Backup automático iniciado');
 
-// (Eliminada función duplicada de restaurar backup de Google Drive)
+// Función para verificar el estado de los backups automáticos
+async function checkBackupStatus() {
+  console.log('🔍 Verificando estado de backups automáticos...');
+  
+  const status = {
+    telegram: {
+      configured: false,
+      enabled: false,
+      lastBackup: null,
+      lastError: null,
+      nextBackup: null,
+      interval: null
+    },
+    googleDrive: {
+      configured: false,
+      enabled: false,
+      lastBackup: null,
+      lastError: null,
+      nextBackup: null,
+      interval: null,
+      tokenValid: false
+    },
+    local: {
+      enabled: false,
+      lastBackup: null,
+      interval: null
+    }
+  };
+
+  // Verificar backup local
+  try {
+    const backupInterval = localStorage.getItem('backupInterval');
+    if (backupInterval) {
+      status.local.enabled = true;
+      status.local.interval = parseInt(backupInterval);
+      status.local.lastBackup = localStorage.getItem('lastLocalBackup');
+    }
+  } catch (error) {
+    console.error('Error verificando backup local:', error);
+  }
+
+  // Verificar backup de Telegram
+  try {
+    const telegramConfig = await localforage.getItem('telegram_backup_config');
+    if (telegramConfig && telegramConfig.enabled) {
+      status.telegram.configured = true;
+      status.telegram.enabled = true;
+      status.telegram.interval = telegramConfig.interval;
+      status.telegram.lastBackup = localStorage.getItem('lastTelegramBackup');
+      status.telegram.lastError = localStorage.getItem('lastTelegramBackupError');
+      
+      if (status.telegram.lastBackup) {
+        const lastBackupTime = parseInt(status.telegram.lastBackup);
+        const nextBackupTime = lastBackupTime + (telegramConfig.interval * 60 * 1000);
+        status.telegram.nextBackup = nextBackupTime;
+      }
+    }
+  } catch (error) {
+    console.error('Error verificando backup de Telegram:', error);
+  }
+
+  // Verificar backup de Google Drive
+  try {
+    const googleToken = localStorage.getItem('googleAccessToken');
+    const googleInterval = localStorage.getItem('googleDriveBackupInterval');
+    
+    if (googleToken) {
+      status.googleDrive.configured = true;
+      status.googleDrive.enabled = true;
+      status.googleDrive.interval = parseInt(googleInterval) || 60;
+      status.googleDrive.lastBackup = localStorage.getItem('lastGoogleDriveBackup');
+      status.googleDrive.lastError = localStorage.getItem('lastGoogleDriveBackupError');
+      
+      // Verificar si el token es válido
+      const tokenTimestamp = localStorage.getItem('googleTokenTimestamp');
+      if (tokenTimestamp) {
+        const tokenAge = Date.now() - parseInt(tokenTimestamp);
+        const tokenMaxAge = 50 * 60 * 1000; // 50 minutos
+        status.googleDrive.tokenValid = tokenAge < tokenMaxAge;
+      }
+      
+      if (status.googleDrive.lastBackup) {
+        const lastBackupTime = parseInt(status.googleDrive.lastBackup);
+        const nextBackupTime = lastBackupTime + (status.googleDrive.interval * 60 * 1000);
+        status.googleDrive.nextBackup = nextBackupTime;
+      }
+    }
+  } catch (error) {
+    console.error('Error verificando backup de Google Drive:', error);
+  }
+
+  console.log('📊 Estado de backups:', status);
+  return status;
+}
+
+// Función para mostrar el estado de backups en una interfaz amigable
+async function showBackupStatus() {
+  const status = await checkBackupStatus();
+  
+  let html = `
+    <div class="backup-status-container">
+      <h5 class="mb-3">Estado de Backups Automáticos</h5>
+      
+      <div class="row">
+        <div class="col-md-4">
+          <div class="card ${status.local.enabled ? 'border-success' : 'border-secondary'}">
+            <div class="card-header">
+              <h6 class="mb-0">📱 Backup Local</h6>
+            </div>
+            <div class="card-body">
+              <p class="mb-1"><strong>Estado:</strong> ${status.local.enabled ? '✅ Activo' : '❌ Inactivo'}</p>
+              ${status.local.enabled ? `
+                <p class="mb-1"><strong>Intervalo:</strong> ${status.local.interval} minutos</p>
+                <p class="mb-1"><strong>Último backup:</strong> ${status.local.lastBackup ? new Date(parseInt(status.local.lastBackup)).toLocaleString() : 'Nunca'}</p>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-4">
+          <div class="card ${status.telegram.enabled ? 'border-success' : 'border-secondary'}">
+            <div class="card-header">
+              <h6 class="mb-0">📱 Telegram</h6>
+            </div>
+            <div class="card-body">
+              <p class="mb-1"><strong>Estado:</strong> ${status.telegram.enabled ? '✅ Activo' : status.telegram.configured ? '⚠️ Configurado pero inactivo' : '❌ No configurado'}</p>
+              ${status.telegram.enabled ? `
+                <p class="mb-1"><strong>Intervalo:</strong> ${status.telegram.interval} minutos</p>
+                <p class="mb-1"><strong>Último backup:</strong> ${status.telegram.lastBackup ? new Date(parseInt(status.telegram.lastBackup)).toLocaleString() : 'Nunca'}</p>
+                ${status.telegram.nextBackup ? `<p class="mb-1"><strong>Próximo backup:</strong> ${new Date(status.telegram.nextBackup).toLocaleString()}</p>` : ''}
+                ${status.telegram.lastError ? `<p class="mb-1 text-danger"><strong>Último error:</strong> ${localStorage.getItem('lastTelegramBackupErrorMsg') || 'Error desconocido'}</p>` : ''}
+              ` : ''}
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-4">
+          <div class="card ${status.googleDrive.enabled && status.googleDrive.tokenValid ? 'border-success' : 'border-secondary'}">
+            <div class="card-header">
+              <h6 class="mb-0">☁️ Google Drive</h6>
+            </div>
+            <div class="card-body">
+              <p class="mb-1"><strong>Estado:</strong> ${status.googleDrive.enabled && status.googleDrive.tokenValid ? '✅ Activo' : status.googleDrive.configured ? '⚠️ Configurado pero token inválido' : '❌ No configurado'}</p>
+              ${status.googleDrive.enabled ? `
+                <p class="mb-1"><strong>Intervalo:</strong> ${status.googleDrive.interval} minutos</p>
+                <p class="mb-1"><strong>Token válido:</strong> ${status.googleDrive.tokenValid ? '✅ Sí' : '❌ No'}</p>
+                <p class="mb-1"><strong>Último backup:</strong> ${status.googleDrive.lastBackup ? new Date(parseInt(status.googleDrive.lastBackup)).toLocaleString() : 'Nunca'}</p>
+                ${status.googleDrive.nextBackup ? `<p class="mb-1"><strong>Próximo backup:</strong> ${new Date(status.googleDrive.nextBackup).toLocaleString()}</p>` : ''}
+                ${status.googleDrive.lastError ? `<p class="mb-1 text-danger"><strong>Último error:</strong> ${localStorage.getItem('lastGoogleDriveBackupErrorMsg') || 'Error desconocido'}</p>` : ''}
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-3">
+        <button class="btn btn-primary btn-sm" onclick="checkBackupStatus().then(console.log)">
+          🔄 Actualizar Estado
+        </button>
+        <button class="btn btn-warning btn-sm" onclick="forceBackupTest()">
+          🧪 Probar Backups
+        </button>
+      </div>
+    </div>
+  `;
+  
+  Swal.fire({
+    title: 'Estado de Backups',
+    html: html,
+    width: '800px',
+    showConfirmButton: true,
+    confirmButtonText: 'Cerrar'
+  });
+}
+
+// Función para forzar una prueba de todos los backups
+async function forceBackupTest() {
+  console.log('🧪 Iniciando prueba de backups...');
+  
+  const results = {
+    local: false,
+    telegram: false,
+    googleDrive: false
+  };
+  
+  try {
+    // Probar backup local
+    const localSuccess = await saveAllCriticalData();
+    results.local = localSuccess;
+    console.log('✅ Backup local:', localSuccess ? 'Exitoso' : 'Falló');
+  } catch (error) {
+    console.error('❌ Error en backup local:', error);
+  }
+  
+  try {
+    // Probar backup de Telegram
+    const telegramConfig = await localforage.getItem('telegram_backup_config');
+    if (telegramConfig && telegramConfig.enabled) {
+      const data = await getAllAppData();
+      await sendTelegramBackup(telegramConfig, data);
+      results.telegram = true;
+      console.log('✅ Backup de Telegram: Exitoso');
+    } else {
+      console.log('⚠️ Backup de Telegram: No configurado');
+    }
+  } catch (error) {
+    console.error('❌ Error en backup de Telegram:', error);
+  }
+  
+  try {
+    // Probar backup de Google Drive
+    if (typeof ensureGoogleAccessToken === 'function') {
+      const tokenValid = await ensureGoogleAccessToken();
+      if (tokenValid) {
+        const data = await getAllAppData();
+        const fileContent = JSON.stringify(data, null, 2);
+        await uploadBackupToDrive(fileContent);
+        results.googleDrive = true;
+        console.log('✅ Backup de Google Drive: Exitoso');
+      } else {
+        console.log('❌ Backup de Google Drive: Token inválido');
+      }
+    } else {
+      console.log('⚠️ Backup de Google Drive: Función no disponible');
+    }
+  } catch (error) {
+    console.error('❌ Error en backup de Google Drive:', error);
+  }
+  
+  console.log('📊 Resultados de prueba:', results);
+  
+  Swal.fire({
+    title: 'Prueba de Backups Completada',
+    html: `
+      <div class="text-left">
+        <p><strong>Backup Local:</strong> ${results.local ? '✅ Exitoso' : '❌ Falló'}</p>
+        <p><strong>Backup Telegram:</strong> ${results.telegram ? '✅ Exitoso' : '❌ Falló'}</p>
+        <p><strong>Backup Google Drive:</strong> ${results.googleDrive ? '✅ Exitoso' : '❌ Falló'}</p>
+      </div>
+    `,
+    icon: 'info'
+  });
+}
+
+// Función para mostrar el estado de backups en una interfaz amigable
+async function showBackupStatus() {
+  const status = await checkBackupStatus();
+  
+  let html = `
+    <div class="backup-status-container">
+      <h5 class="mb-3">Estado de Backups Automáticos</h5>
+      
+      <div class="row">
+        <div class="col-md-4">
+          <div class="card ${status.local.enabled ? 'border-success' : 'border-secondary'}">
+            <div class="card-header">
+              <h6 class="mb-0">📱 Backup Local</h6>
+            </div>
+            <div class="card-body">
+              <p class="mb-1"><strong>Estado:</strong> ${status.local.enabled ? '✅ Activo' : '❌ Inactivo'}</p>
+              ${status.local.enabled ? `
+                <p class="mb-1"><strong>Intervalo:</strong> ${status.local.interval} minutos</p>
+                <p class="mb-1"><strong>Último backup:</strong> ${status.local.lastBackup ? new Date(parseInt(status.local.lastBackup)).toLocaleString() : 'Nunca'}</p>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-4">
+          <div class="card ${status.telegram.enabled ? 'border-success' : 'border-secondary'}">
+            <div class="card-header">
+              <h6 class="mb-0">📱 Telegram</h6>
+            </div>
+            <div class="card-body">
+              <p class="mb-1"><strong>Estado:</strong> ${status.telegram.enabled ? '✅ Activo' : status.telegram.configured ? '⚠️ Configurado pero inactivo' : '❌ No configurado'}</p>
+              ${status.telegram.enabled ? `
+                <p class="mb-1"><strong>Intervalo:</strong> ${status.telegram.interval} minutos</p>
+                <p class="mb-1"><strong>Último backup:</strong> ${status.telegram.lastBackup ? new Date(parseInt(status.telegram.lastBackup)).toLocaleString() : 'Nunca'}</p>
+                ${status.telegram.nextBackup ? `<p class="mb-1"><strong>Próximo backup:</strong> ${new Date(status.telegram.nextBackup).toLocaleString()}</p>` : ''}
+                ${status.telegram.lastError ? `<p class="mb-1 text-danger"><strong>Último error:</strong> ${localStorage.getItem('lastTelegramBackupErrorMsg') || 'Error desconocido'}</p>` : ''}
+              ` : ''}
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-4">
+          <div class="card ${status.googleDrive.enabled && status.googleDrive.tokenValid ? 'border-success' : 'border-secondary'}">
+            <div class="card-header">
+              <h6 class="mb-0">☁️ Google Drive</h6>
+            </div>
+            <div class="card-body">
+              <p class="mb-1"><strong>Estado:</strong> ${status.googleDrive.enabled && status.googleDrive.tokenValid ? '✅ Activo' : status.googleDrive.configured ? '⚠️ Configurado pero token inválido' : '❌ No configurado'}</p>
+              ${status.googleDrive.enabled ? `
+                <p class="mb-1"><strong>Intervalo:</strong> ${status.googleDrive.interval} minutos</p>
+                <p class="mb-1"><strong>Token válido:</strong> ${status.googleDrive.tokenValid ? '✅ Sí' : '❌ No'}</p>
+                <p class="mb-1"><strong>Último backup:</strong> ${status.googleDrive.lastBackup ? new Date(parseInt(status.googleDrive.lastBackup)).toLocaleString() : 'Nunca'}</p>
+                ${status.googleDrive.nextBackup ? `<p class="mb-1"><strong>Próximo backup:</strong> ${new Date(status.googleDrive.nextBackup).toLocaleString()}</p>` : ''}
+                ${status.googleDrive.lastError ? `<p class="mb-1 text-danger"><strong>Último error:</strong> ${localStorage.getItem('lastGoogleDriveBackupErrorMsg') || 'Error desconocido'}</p>` : ''}
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-3">
+        <button class="btn btn-primary btn-sm" onclick="checkBackupStatus().then(console.log)">
+          🔄 Actualizar Estado
+        </button>
+        <button class="btn btn-warning btn-sm" onclick="forceBackupTest()">
+          🧪 Probar Backups
+        </button>
+      </div>
+    </div>
+  `;
+  
+  Swal.fire({
+    title: 'Estado de Backups',
+    html: html,
+    width: '800px',
+    showConfirmButton: true,
+    confirmButtonText: 'Cerrar'
+  });
+}
+
+// Función para forzar una prueba de todos los backups
+async function forceBackupTest() {
+  console.log('🧪 Iniciando prueba de backups...');
+  
+  const results = {
+    local: false,
+    telegram: false,
+    googleDrive: false
+  };
+  
+  try {
+    // Probar backup local
+    const localSuccess = await saveAllCriticalData();
+    results.local = localSuccess;
+    console.log('✅ Backup local:', localSuccess ? 'Exitoso' : 'Falló');
+  } catch (error) {
+    console.error('❌ Error en backup local:', error);
+  }
+  
+  try {
+    // Probar backup de Telegram
+    const telegramConfig = await localforage.getItem('telegram_backup_config');
+    if (telegramConfig && telegramConfig.enabled) {
+      const data = await getAllAppData();
+      await sendTelegramBackup(telegramConfig, data);
+      results.telegram = true;
+      console.log('✅ Backup de Telegram: Exitoso');
+    } else {
+      console.log('⚠️ Backup de Telegram: No configurado');
+    }
+  } catch (error) {
+    console.error('❌ Error en backup de Telegram:', error);
+  }
+  
+  try {
+    // Probar backup de Google Drive
+    if (typeof ensureGoogleAccessToken === 'function') {
+      const tokenValid = await ensureGoogleAccessToken();
+      if (tokenValid) {
+        const data = await getAllAppData();
+        const fileContent = JSON.stringify(data, null, 2);
+        await uploadBackupToDrive(fileContent);
+        results.googleDrive = true;
+        console.log('✅ Backup de Google Drive: Exitoso');
+      } else {
+        console.log('❌ Backup de Google Drive: Token inválido');
+      }
+    } else {
+      console.log('⚠️ Backup de Google Drive: Función no disponible');
+    }
+  } catch (error) {
+    console.error('❌ Error en backup de Google Drive:', error);
+  }
+  
+  console.log('📊 Resultados de prueba:', results);
+  
+  Swal.fire({
+    title: 'Prueba de Backups Completada',
+    html: `
+      <div class="text-left">
+        <p><strong>Backup Local:</strong> ${results.local ? '✅ Exitoso' : '❌ Falló'}</p>
+        <p><strong>Backup Telegram:</strong> ${results.telegram ? '✅ Exitoso' : '❌ Falló'}</p>
+        <p><strong>Backup Google Drive:</strong> ${results.googleDrive ? '✅ Exitoso' : '❌ Falló'}</p>
+      </div>
+    `,
+    icon: 'info'
+  });
+}
 
 // Inicializar funcionalidades avanzadas
 document.addEventListener('DOMContentLoaded', function() {
@@ -5274,8 +5668,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Configurar lazy loading
   setupLazyLoading();
-  
-  // (Eliminada llamada a backup/restore duplicado de Google Drive)
   
   // Configurar corrección de accesibilidad
   setupAccessibilityFix();
@@ -6691,9 +7083,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // Configurar carga lazy
   setupLazyLoading();
   
-  // Configurar backup automático
-  // setupAutoBackup(); // Eliminado: función ya no existe
-  
   // Actualizar fecha y hora
   updateDateTime();
   setInterval(updateDateTime, 1000);
@@ -6706,9 +7095,6 @@ document.addEventListener('DOMContentLoaded', function() {
   updateChickenClientSelector();
   updateChickenSalesList();
   setupChickenEventListeners();
-  
-  // El service worker ya está registrado en la función registerServiceWorker()
-  // No necesitamos registrarlo aquí nuevamente
   
   // Verificar si la app está instalada
   if (isAppInstalled()) {
@@ -8669,6 +9055,66 @@ window.checkStoredData = checkStoredData;
 window.forceRecalculateRevenue = forceRecalculateRevenue;
 window.checkRevenueElements = checkRevenueElements;
 window.checkProfitCalculations = checkProfitCalculations;
+
+// Función para configurar detección de cambios en los datos
+function setupDataChangeDetection() {
+  console.log('🔍 Configurando detección de cambios en datos...');
+  
+  // Función para marcar que hay cambios
+  function markDataChanged() {
+    localStorage.setItem('lastLocalBackup', Date.now().toString());
+    console.debug('📝 Cambios detectados en datos, actualizando timestamp local');
+  }
+  
+  // Interceptar funciones de guardado para detectar cambios
+  const originalSaveToStorage = window.saveToStorage;
+  if (originalSaveToStorage) {
+    window.saveToStorage = async function(key, data) {
+      const result = await originalSaveToStorage(key, data);
+      markDataChanged();
+      return result;
+    };
+  }
+  
+  // Interceptar funciones específicas de la app
+  const originalAddProduct = window.addProduct;
+  if (originalAddProduct) {
+    window.addProduct = async function(e) {
+      const result = await originalAddProduct(e);
+      markDataChanged();
+      return result;
+    };
+  }
+  
+  const originalAddClient = window.addClient;
+  if (originalAddClient) {
+    window.addClient = async function(e) {
+      const result = await originalAddClient(e);
+      markDataChanged();
+      return result;
+    };
+  }
+  
+  const originalFinalizeSale = window.finalizeSale;
+  if (originalFinalizeSale) {
+    window.finalizeSale = async function() {
+      const result = await originalFinalizeSale();
+      markDataChanged();
+      return result;
+    };
+  }
+  
+  const originalFinalizeChickenSale = window.finalizeChickenSale;
+  if (originalFinalizeChickenSale) {
+    window.finalizeChickenSale = async function() {
+      const result = await originalFinalizeChickenSale();
+      markDataChanged();
+      return result;
+    };
+  }
+  
+  console.log('✅ Detección de cambios configurada');
+}
 
 // Event listener para inicializar la vista de movimientos cuando se muestra
 document.addEventListener('DOMContentLoaded', () => {

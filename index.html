@@ -127,6 +127,10 @@
             <i class="bi bi-bug"></i>
             <span>Debug PWA</span>
           </button>
+          <button class="sidebar-action-btn" onclick="showBackupStatus()" id="btn-backup-status">
+            <i class="bi bi-cloud-check"></i>
+            <span>Estado Backups</span>
+          </button>
         </div>
       </div>
       
@@ -1257,22 +1261,79 @@
 
   // Iniciar backup automático a Google Drive
   function startGoogleDriveAutoBackup(intervalMinutes) {
+    console.log('Iniciando backup automático de Google Drive con intervalo:', intervalMinutes, 'minutos');
+    
     stopGoogleDriveAutoBackup();
     if (!intervalMinutes || isNaN(intervalMinutes) || intervalMinutes < 5) intervalMinutes = 60;
     googleDriveBackupInterval = intervalMinutes;
     localStorage.setItem('googleDriveBackupInterval', intervalMinutes);
+    
+    const intervalMs = intervalMinutes * 60 * 1000;
+    console.log(`Backup automático de Google Drive programado cada ${intervalMinutes} minutos (${intervalMs}ms)`);
+    
     googleDriveBackupTimer = setInterval(async () => {
-      if (!(await ensureGoogleAccessToken())) return;
-      try {
-        const data = await getAllAppData();
-        const fileContent = JSON.stringify(data, null, 2);
-        await uploadBackupToDrive(fileContent);
-        // Opcional: notificación visual
-        // console.log('Backup automático a Google Drive realizado.');
-      } catch (err) {
-        // console.error('Error en backup automático a Google Drive:', err);
+      console.log('🔍 Verificando si es necesario hacer backup automático de Google Drive...');
+      
+      if (!(await ensureGoogleAccessToken())) {
+        console.warn('No se pudo obtener token de Google, saltando backup automático');
+        return;
       }
-    }, intervalMinutes * 60 * 1000);
+      
+      try {
+        // Verificar si hay cambios desde el último backup
+        const lastBackup = localStorage.getItem('lastGoogleDriveBackup');
+        const lastLocalBackup = localStorage.getItem('lastLocalBackup');
+        
+        if (lastBackup && lastLocalBackup) {
+          const backupTime = parseInt(lastBackup);
+          const localTime = parseInt(lastLocalBackup);
+          
+          // Solo hacer backup si los datos locales son más recientes
+          if (localTime <= backupTime) {
+            console.log('📊 No hay cambios nuevos, saltando backup automático');
+            return;
+          }
+        }
+        
+        const data = await getAllAppData();
+        if (!data || Object.keys(data).length === 0) {
+          console.warn('Backup automático: datos vacíos, no se envía a Google Drive.');
+          return;
+        }
+        
+        const fileContent = JSON.stringify(data, null, 2);
+        console.log('📤 Subiendo backup automático a Google Drive...');
+        await uploadBackupToDrive(fileContent);
+        console.log('✅ Backup automático de Google Drive realizado exitosamente');
+        
+        // Guardar timestamp del último backup exitoso
+        localStorage.setItem('lastGoogleDriveBackup', Date.now().toString());
+        
+      } catch (err) {
+        console.error('❌ Error en backup automático a Google Drive:', err);
+        // Guardar timestamp del último error
+        localStorage.setItem('lastGoogleDriveBackupError', Date.now().toString());
+        localStorage.setItem('lastGoogleDriveBackupErrorMsg', err.message || err.toString());
+      }
+    }, intervalMs);
+    
+    // Ejecutar backup inmediatamente si es la primera vez
+    if (!localStorage.getItem('lastGoogleDriveBackup')) {
+      console.log('Ejecutando backup inicial de Google Drive...');
+      setTimeout(async () => {
+        try {
+          if (await ensureGoogleAccessToken()) {
+            const data = await getAllAppData();
+            const fileContent = JSON.stringify(data, null, 2);
+            await uploadBackupToDrive(fileContent);
+            console.log('Backup inicial de Google Drive realizado exitosamente');
+            localStorage.setItem('lastGoogleDriveBackup', Date.now().toString());
+          }
+        } catch (err) {
+          console.error('Error en backup inicial de Google Drive:', err);
+        }
+      }, 5000); // Esperar 5 segundos antes del primer backup
+    }
   }
 
   // Detener backup automático a Google Drive
@@ -1285,52 +1346,216 @@
 
   // Inicializa GIS token client (solo una vez)
   function initGoogleTokenClient() {
+    console.log('Inicializando Google Token Client...');
+    
+    if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+      console.error('Google Identity Services no está disponible');
+      Swal.fire('Error', 'Google Identity Services no está disponible. Verifica tu conexión a internet.', 'error');
+      return false;
+    }
+    
     if (!tokenClient) {
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: GOOGLE_SCOPES,
-        callback: handleGoogleTokenResponse
+      try {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: GOOGLE_SCOPES,
+          callback: handleGoogleTokenResponse,
+          error_callback: (error) => {
+            console.error('Error en Google Token Client:', error);
+            Swal.fire('Error de Google', 'No se pudo inicializar la autenticación de Google: ' + error.message, 'error');
+          }
+        });
+        console.log('Google Token Client inicializado correctamente');
+        return true;
+      } catch (error) {
+        console.error('Error al inicializar Google Token Client:', error);
+        Swal.fire('Error', 'No se pudo inicializar la autenticación de Google: ' + error.message, 'error');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Maneja la respuesta del token
+  async function handleGoogleTokenResponse(resp) {
+    console.log('Respuesta de Google Token:', resp);
+    
+    if (resp.error) {
+      console.error('Error en respuesta de Google Token:', resp.error);
+      let errorMessage = 'No se pudo iniciar sesión';
+      
+      switch (resp.error) {
+        case 'popup_closed_by_user':
+          errorMessage = 'Inicio de sesión cancelado por el usuario';
+          break;
+        case 'access_denied':
+          errorMessage = 'Acceso denegado. Verifica los permisos de Google Drive.';
+          break;
+        case 'invalid_client':
+          errorMessage = 'Error de configuración del cliente de Google';
+          break;
+        case 'invalid_grant':
+          errorMessage = 'Token inválido. Intenta iniciar sesión nuevamente.';
+          break;
+        default:
+          errorMessage += ': ' + resp.error;
+      }
+      
+      Swal.fire('Error de Google', errorMessage, 'error');
+      return;
+    }
+    
+    if (!resp.access_token) {
+      console.error('No se recibió token de acceso');
+      Swal.fire('Error', 'No se recibió el token de acceso de Google', 'error');
+      return;
+    }
+    
+    googleAccessToken = resp.access_token;
+    localStorage.setItem('googleAccessToken', googleAccessToken);
+    localStorage.setItem('googleTokenTimestamp', Date.now().toString());
+    
+    console.log('Token de Google guardado exitosamente');
+    enableGoogleDriveButtons(true);
+    
+    // Mostrar mensaje de conexión exitosa
+    Swal.fire({
+      icon: 'info',
+      title: 'Conectando a Google Drive...',
+      text: 'Verificando backups existentes...',
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    
+    try {
+      // Verificar si existe backup en Drive y restaurarlo automáticamente
+      await checkAndRestoreGoogleDriveBackup();
+      
+      // Leer el intervalo actualizado del input
+      let interval = googleDriveBackupInterval;
+      const input = document.getElementById('googleDriveBackupInterval');
+      if (input) {
+        const val = parseInt(input.value, 10);
+        if (!isNaN(val) && val >= 5 && val <= 1440) interval = val;
+      }
+      
+      console.log('Iniciando backup automático de Google Drive con intervalo:', interval, 'minutos');
+      startGoogleDriveAutoBackup(interval);
+      
+      // Cerrar el loading y mostrar éxito
+      Swal.fire({
+        icon: 'success',
+        title: '¡Sesión iniciada!',
+        text: 'Conectado exitosamente a Google Drive. Los backups automáticos están activos.',
+        timer: 3000,
+        showConfirmButton: false
+      });
+      
+    } catch (error) {
+      console.error('Error durante la verificación/restauración de backup:', error);
+      Swal.fire({
+        icon: 'warning',
+        title: 'Sesión iniciada con advertencia',
+        text: 'Conectado a Google Drive, pero hubo un problema con la verificación de backups. Los backups automáticos están activos.',
+        timer: 3000,
+        showConfirmButton: false
       });
     }
   }
 
-  // Maneja la respuesta del token
-  function handleGoogleTokenResponse(resp) {
-    if (resp.error) {
-      Swal.fire('Error', 'No se pudo iniciar sesión: ' + resp.error, 'error');
-      return;
-    }
-    googleAccessToken = resp.access_token;
-    localStorage.setItem('googleAccessToken', googleAccessToken);
-    enableGoogleDriveButtons(true);
-    Swal.fire('¡Listo!', 'Sesión iniciada con Google.', 'success');
-    // Leer el intervalo actualizado del input
-    let interval = googleDriveBackupInterval;
-    const input = document.getElementById('googleDriveBackupInterval');
-    if (input) {
-      const val = parseInt(input.value, 10);
-      if (!isNaN(val) && val >= 5 && val <= 1440) interval = val;
-    }
-    startGoogleDriveAutoBackup(interval);
-  }
-
   // Solicita un token nuevo antes de cada operación sensible
   async function ensureGoogleAccessToken(forcePrompt = false) {
-    if (!tokenClient) initGoogleTokenClient();
-    // Si ya hay token, intenta usarlo primero
-    if (googleAccessToken && !forcePrompt) return true;
+    console.log('Verificando token de Google Access...');
+    
+    if (!tokenClient) {
+      if (!initGoogleTokenClient()) {
+        return false;
+      }
+    }
+    
+    // Verificar si el token actual es válido (no expirado)
+    const tokenTimestamp = localStorage.getItem('googleTokenTimestamp');
+    if (tokenTimestamp) {
+      const tokenAge = Date.now() - parseInt(tokenTimestamp);
+      const tokenMaxAge = 50 * 60 * 1000; // 50 minutos (los tokens expiran en 1 hora)
+      
+      if (tokenAge < tokenMaxAge && googleAccessToken && !forcePrompt) {
+        console.log('Token de Google válido, usando token existente');
+        
+        // Verificar que el token realmente funciona haciendo una prueba
+        try {
+          const testResponse = await fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
+            headers: {
+              'Authorization': `Bearer ${googleAccessToken}`
+            }
+          });
+          
+          if (testResponse.status === 401 || testResponse.status === 403) {
+            console.log('Token de Google inválido en el servidor, solicitando nuevo token...');
+            googleAccessToken = null;
+            localStorage.removeItem('googleAccessToken');
+            localStorage.removeItem('googleTokenTimestamp');
+          } else if (testResponse.ok) {
+            console.log('Token de Google verificado exitosamente en el servidor');
+            return true;
+          }
+        } catch (error) {
+          console.log('Error verificando token en servidor, solicitando nuevo token:', error);
+          googleAccessToken = null;
+          localStorage.removeItem('googleAccessToken');
+          localStorage.removeItem('googleTokenTimestamp');
+        }
+      } else {
+        console.log('Token de Google expirado o forzando renovación');
+        googleAccessToken = null;
+        localStorage.removeItem('googleAccessToken');
+        localStorage.removeItem('googleTokenTimestamp');
+      }
+    }
+    
     return await new Promise((resolve) => {
+      console.log('Solicitando nuevo token de Google...');
+      
       tokenClient.callback = (resp) => {
         if (resp.error) {
-          Swal.fire('Error', 'No se pudo obtener token: ' + resp.error, 'error');
+          console.error('Error al obtener token de Google:', resp.error);
+          let errorMessage = 'No se pudo obtener token';
+          
+          switch (resp.error) {
+            case 'popup_closed_by_user':
+              errorMessage = 'Inicio de sesión cancelado por el usuario';
+              break;
+            case 'access_denied':
+              errorMessage = 'Acceso denegado. Verifica los permisos de Google Drive.';
+              break;
+            case 'invalid_grant':
+              errorMessage = 'Token inválido. Intenta iniciar sesión nuevamente.';
+              break;
+            default:
+              errorMessage += ': ' + resp.error;
+          }
+          
+          Swal.fire('Error de Google', errorMessage, 'error');
           resolve(false);
         } else {
           googleAccessToken = resp.access_token;
           localStorage.setItem('googleAccessToken', googleAccessToken);
+          localStorage.setItem('googleTokenTimestamp', Date.now().toString());
+          console.log('Nuevo token de Google obtenido exitosamente');
           resolve(true);
         }
       };
-      tokenClient.requestAccessToken({ prompt: forcePrompt ? 'consent' : '' });
+      
+      try {
+        tokenClient.requestAccessToken({ prompt: forcePrompt ? 'consent' : '' });
+      } catch (error) {
+        console.error('Error al solicitar token de Google:', error);
+        Swal.fire('Error', 'No se pudo solicitar el token de Google: ' + error.message, 'error');
+        resolve(false);
+      }
     });
   }
 
@@ -1349,11 +1574,185 @@
     if (userStatus) userStatus.textContent = enabled ? 'Sesión activa' : '';
   }
 
+  // Función para verificar y restaurar backup de Google Drive automáticamente
+  async function checkAndRestoreGoogleDriveBackup() {
+    console.log('🔍 Verificando si existe backup en Google Drive...');
+    
+    try {
+      // Buscar si existe el archivo de backup
+      const fileId = await findBackupFileId();
+      
+      if (fileId) {
+        console.log('📁 Backup encontrado en Google Drive, restaurando automáticamente...');
+        
+        // Descargar y restaurar el backup
+        const backupData = await downloadBackupFromDrive(fileId);
+        
+        if (backupData && Object.keys(backupData).length > 0) {
+          // Verificar si hay datos locales para comparar
+          const localData = await getAllAppData();
+          const hasLocalData = localData && Object.keys(localData).length > 0;
+          
+          if (hasLocalData) {
+            // Comparar fechas de modificación si están disponibles
+            const backupDate = backupData.metadata?.lastModified || 0;
+            const localDate = localStorage.getItem('lastLocalBackup') || 0;
+            
+            if (backupDate > localDate) {
+              console.log('📥 Restaurando datos desde Google Drive (más recientes)...');
+              await restoreFromBackupData(backupData);
+            } else {
+              console.log('📤 Los datos locales son más recientes, creando nuevo backup...');
+              await createNewGoogleDriveBackup();
+            }
+          } else {
+            // No hay datos locales, restaurar desde Drive
+            console.log('📥 No hay datos locales, restaurando desde Google Drive...');
+            await restoreFromBackupData(backupData);
+          }
+        } else {
+          console.log('⚠️ Backup encontrado pero vacío, creando nuevo backup...');
+          await createNewGoogleDriveBackup();
+        }
+      } else {
+        console.log('📝 No se encontró backup en Google Drive, creando uno nuevo...');
+        await createNewGoogleDriveBackup();
+      }
+      
+    } catch (error) {
+      console.error('❌ Error verificando/restaurando backup:', error);
+      throw error;
+    }
+  }
+
+  // Función para restaurar datos desde backup
+  async function restoreFromBackupData(backupData) {
+    console.log('🔄 Restaurando datos desde backup...');
+    
+    try {
+      // Limpiar datos existentes
+      await localforage.clear();
+      
+      // Restaurar datos críticos
+      const criticalKeys = ['products', 'clients', 'sales', 'debts', 'movements', 'chickenSales'];
+      
+      for (const key of criticalKeys) {
+        if (backupData[key] && Array.isArray(backupData[key])) {
+          await localforage.setItem(key, backupData[key]);
+          console.log(`✅ Restaurado: ${key} (${backupData[key].length} elementos)`);
+        }
+      }
+      
+      // Restaurar configuraciones
+      if (backupData.settings) {
+        for (const [key, value] of Object.entries(backupData.settings)) {
+          localStorage.setItem(key, value);
+        }
+        console.log('✅ Configuraciones restauradas');
+      }
+      
+      // Restaurar configuraciones de backup
+      if (backupData.backupConfig) {
+        if (backupData.backupConfig.googleDriveInterval) {
+          localStorage.setItem('googleDriveBackupInterval', backupData.backupConfig.googleDriveInterval);
+        }
+        if (backupData.backupConfig.telegramConfig) {
+          await localforage.setItem('telegram_backup_config', backupData.backupConfig.telegramConfig);
+        }
+        console.log('✅ Configuraciones de backup restauradas');
+      }
+      
+      // Recargar datos en la aplicación
+      if (typeof loadData === 'function') {
+        await loadData();
+      }
+      
+      // Recargar la vista actual
+      if (typeof renderInventory === 'function') {
+        renderInventory();
+      }
+      if (typeof renderClients === 'function') {
+        renderClients();
+      }
+      if (typeof renderDebts === 'function') {
+        renderDebts();
+      }
+      if (typeof updateBalanceUI === 'function') {
+        updateBalanceUI();
+      }
+      
+      console.log('✅ Restauración completada exitosamente');
+      
+    } catch (error) {
+      console.error('❌ Error durante la restauración:', error);
+      throw error;
+    }
+  }
+
+  // Función para crear nuevo backup en Google Drive
+  async function createNewGoogleDriveBackup() {
+    console.log('📤 Creando nuevo backup en Google Drive...');
+    
+    try {
+      const data = await getAllAppData();
+      const fileContent = JSON.stringify(data, null, 2);
+      await uploadBackupToDrive(fileContent);
+      console.log('✅ Nuevo backup creado exitosamente en Google Drive');
+    } catch (error) {
+      console.error('❌ Error creando nuevo backup:', error);
+      throw error;
+    }
+  }
+
+  // Función para forzar re-autenticación de Google Drive
+  async function forceGoogleReauth() {
+    console.log('🔄 Forzando re-autenticación de Google Drive...');
+    
+    // Limpiar tokens existentes
+    googleAccessToken = null;
+    localStorage.removeItem('googleAccessToken');
+    localStorage.removeItem('googleTokenTimestamp');
+    
+    // Deshabilitar botones
+    enableGoogleDriveButtons(false);
+    
+    // Mostrar mensaje al usuario
+    Swal.fire({
+      title: 'Re-autenticación requerida',
+      text: 'Se ha limpiado la sesión de Google Drive. Por favor, inicia sesión nuevamente.',
+      icon: 'info',
+      confirmButtonText: 'Entendido'
+    });
+    
+    // Intentar obtener nuevo token
+    try {
+      const success = await ensureGoogleAccessToken(true);
+      if (success) {
+        console.log('✅ Re-autenticación exitosa');
+        Swal.fire({
+          title: '¡Re-autenticación exitosa!',
+          text: 'La sesión de Google Drive se ha restaurado correctamente.',
+          icon: 'success',
+          timer: 3000,
+          showConfirmButton: false
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error en re-autenticación:', error);
+    }
+  }
+
 
   // Subir backup a Google Drive (crea o actualiza el archivo, robusto)
   async function uploadBackupToDrive(content) {
+    console.log('🔄 Iniciando upload a Google Drive...');
+    
     // Siempre refresca el token antes de operar
-    if (!(await ensureGoogleAccessToken())) throw new Error('No hay token de acceso válido.');
+    if (!(await ensureGoogleAccessToken())) {
+      console.error('❌ No se pudo obtener token válido para Google Drive');
+      throw new Error('No hay token de acceso válido. Por favor, inicia sesión nuevamente.');
+    }
+    
     // Cargar gapi solo para Drive API (no auth2)
     await new Promise((resolve) => {
       gapi.load('client', async () => {
@@ -1363,13 +1762,19 @@
         resolve();
       });
     });
+    
     let fileId;
     try {
+      console.log('🔍 Buscando archivo existente en Google Drive...');
       fileId = await findBackupFileId();
+      console.log('📁 Archivo encontrado:', fileId ? 'Sí' : 'No');
     } catch (err) {
+      console.error('❌ Error buscando archivo:', err);
       if (err && err.message && err.message.includes('403')) {
+        console.log('🚫 Permiso denegado, limpiando sesión...');
         googleAccessToken = null;
         localStorage.removeItem('googleAccessToken');
+        localStorage.removeItem('googleTokenTimestamp');
         enableGoogleDriveButtons(false);
         throw new Error('Permiso denegado por Google Drive. Por favor, cierra sesión y vuelve a iniciar sesión con tu cuenta Google.');
       } else {
@@ -1401,6 +1806,7 @@
       url += '?uploadType=multipart';
     }
 
+    console.log('📤 Subiendo archivo a Google Drive...');
     const res = await fetch(url, {
       method,
       headers: {
@@ -1409,24 +1815,48 @@
       },
       body: multipartRequestBody,
     });
+    
+    console.log('📊 Respuesta de Google Drive:', res.status, res.statusText);
+    
     if (res.status === 403) {
+      console.log('🚫 Permiso denegado por Google Drive, limpiando sesión...');
       googleAccessToken = null;
       localStorage.removeItem('googleAccessToken');
+      localStorage.removeItem('googleTokenTimestamp');
       enableGoogleDriveButtons(false);
       throw new Error('Permiso denegado por Google Drive. Por favor, cierra sesión y vuelve a iniciar sesión con tu cuenta Google.');
     }
+    
+    if (res.status === 401) {
+      console.log('🔑 Token no autorizado, solicitando nuevo token...');
+      googleAccessToken = null;
+      localStorage.removeItem('googleAccessToken');
+      localStorage.removeItem('googleTokenTimestamp');
+      throw new Error('Token de acceso no autorizado. Por favor, inicia sesión nuevamente.');
+    }
+    
     if (!res.ok) {
       let msg = 'Error subiendo backup: ' + res.statusText;
       try {
         const errJson = await res.json();
-        if (errJson && errJson.error && errJson.error.message) msg += ' - ' + errJson.error.message;
-      } catch(e){}
+        if (errJson && errJson.error && errJson.error.message) {
+          msg += ' - ' + errJson.error.message;
+          console.error('📋 Detalles del error:', errJson.error);
+        }
+      } catch(e){
+        console.error('❌ Error parseando respuesta de error:', e);
+      }
+      console.error('❌ Error en upload:', msg);
       throw new Error(msg);
     }
+    
+    console.log('✅ Backup subido exitosamente a Google Drive');
   }
 
   // Buscar si ya existe el archivo de backup
   async function findBackupFileId() {
+    console.log('🔍 Buscando archivo de backup en Google Drive...');
+    
     // Cargar gapi solo para Drive API (no auth2)
     await new Promise((resolve) => {
       gapi.load('client', async () => {
@@ -1436,22 +1866,33 @@
         resolve();
       });
     });
+    
     let res;
     try {
+      console.log('📋 Consultando archivos en Google Drive...');
       res = await gapi.client.drive.files.list({
         q: `name='${BACKUP_FILENAME}' and trashed=false`,
         fields: 'files(id, name)',
         spaces: 'drive',
       });
+      console.log('📁 Archivos encontrados:', res.result.files ? res.result.files.length : 0);
     } catch (err) {
+      console.error('❌ Error consultando archivos:', err);
       if (err && err.status && err.status === 403) {
         throw new Error('403 - Permiso denegado por Google Drive.');
       }
+      if (err && err.status && err.status === 401) {
+        throw new Error('401 - Token no autorizado.');
+      }
       throw err;
     }
+    
     if (res.result.files && res.result.files.length > 0) {
+      console.log('✅ Archivo de backup encontrado:', res.result.files[0].id);
       return res.result.files[0].id;
     }
+    
+    console.log('📝 No se encontró archivo de backup existente');
     return null;
   }
 
@@ -1487,6 +1928,99 @@
     if (typeof renderInventory === 'function') renderInventory();
   }
 
+  // Función para verificar el estado de los backups
+  function checkBackupStatus() {
+    const status = {
+      telegram: {
+        lastBackup: localStorage.getItem('lastTelegramBackup'),
+        lastError: localStorage.getItem('lastTelegramBackupError'),
+        lastErrorMsg: localStorage.getItem('lastTelegramBackupErrorMsg'),
+        isActive: telegramBackupTimer !== null
+      },
+      googleDrive: {
+        lastBackup: localStorage.getItem('lastGoogleDriveBackup'),
+        lastError: localStorage.getItem('lastGoogleDriveBackupError'),
+        lastErrorMsg: localStorage.getItem('lastGoogleDriveBackupErrorMsg'),
+        isActive: googleDriveBackupTimer !== null,
+        tokenValid: false
+      }
+    };
+    
+    // Verificar si el token de Google es válido
+    const tokenTimestamp = localStorage.getItem('googleTokenTimestamp');
+    if (tokenTimestamp) {
+      const tokenAge = Date.now() - parseInt(tokenTimestamp);
+      const tokenMaxAge = 50 * 60 * 1000; // 50 minutos
+      status.googleDrive.tokenValid = tokenAge < tokenMaxAge;
+    }
+    
+    return status;
+  }
+  
+  // Función para limpiar historial de errores de backups
+  function clearBackupErrorHistory() {
+    // Limpiar errores de Telegram
+    localStorage.removeItem('lastTelegramBackupError');
+    localStorage.removeItem('lastTelegramBackupErrorMsg');
+    
+    // Limpiar errores de Google Drive
+    localStorage.removeItem('lastGoogleDriveBackupError');
+    localStorage.removeItem('lastGoogleDriveBackupErrorMsg');
+    
+    console.log('Historial de errores de backups limpiado');
+    Swal.fire('Limpiado', 'El historial de errores de backups ha sido limpiado.', 'success');
+  }
+  
+  // Función para mostrar el estado de los backups
+  function showBackupStatus() {
+    const status = checkBackupStatus();
+    
+    const formatTime = (timestamp) => {
+      if (!timestamp) return 'Nunca';
+      const date = new Date(parseInt(timestamp));
+      return date.toLocaleString('es-EC');
+    };
+    
+    const getStatusIcon = (isActive, lastBackup, lastError) => {
+      if (!isActive) return '🔴';
+      if (lastError && (!lastBackup || parseInt(lastError) > parseInt(lastBackup))) return '⚠️';
+      return '🟢';
+    };
+    
+    const telegramStatus = getStatusIcon(status.telegram.isActive, status.telegram.lastBackup, status.telegram.lastError);
+    const googleStatus = getStatusIcon(status.googleDrive.isActive, status.googleDrive.lastBackup, status.googleDrive.lastError);
+    
+    Swal.fire({
+      icon: 'info',
+      title: 'Estado de Backups Automáticos',
+      html: `
+        <div class="text-start">
+          <h6>📱 Telegram ${telegramStatus}</h6>
+          <p><strong>Estado:</strong> ${status.telegram.isActive ? 'Activo' : 'Inactivo'}</p>
+          <p><strong>Último backup:</strong> ${formatTime(status.telegram.lastBackup)}</p>
+          ${status.telegram.lastError ? `<p><strong>Último error:</strong> ${formatTime(status.telegram.lastError)}</p>` : ''}
+          ${status.telegram.lastErrorMsg ? `<p><strong>Error:</strong> ${status.telegram.lastErrorMsg}</p>` : ''}
+          
+          <hr>
+          
+          <h6>☁️ Google Drive ${googleStatus}</h6>
+          <p><strong>Estado:</strong> ${status.googleDrive.isActive ? 'Activo' : 'Inactivo'}</p>
+          <p><strong>Token válido:</strong> ${status.googleDrive.tokenValid ? 'Sí' : 'No'}</p>
+          <p><strong>Último backup:</strong> ${formatTime(status.googleDrive.lastBackup)}</p>
+          ${status.googleDrive.lastError ? `<p><strong>Último error:</strong> ${formatTime(status.googleDrive.lastError)}</p>` : ''}
+          ${status.googleDrive.lastErrorMsg ? `<p><strong>Error:</strong> ${status.googleDrive.lastErrorMsg}</p>` : ''}
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'OK',
+      cancelButtonText: 'Limpiar Errores'
+    }).then((result) => {
+      if (result.dismiss === Swal.DismissReason.cancel) {
+        clearBackupErrorHistory();
+      }
+    });
+  }
+  
   // Al cargar la página, intenta restaurar sesión
   window.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('googleAccessToken');
@@ -1501,80 +2035,21 @@
         if (!isNaN(val) && val >= 5 && val <= 1440) interval = val;
       }
       startGoogleDriveAutoBackup(interval);
-      // El siguiente bloque debe estar en una función async
-      (async () => {
-        try {
-          const data = await getAllAppData();
-          const fileContent = JSON.stringify(data, null, 2);
-          await uploadBackupToDrive(fileContent);
-          Swal.fire('¡Backup subido!', 'Tu backup fue guardado en Google Drive.', 'success');
-          if (typeof data !== 'object' || Array.isArray(data) || !Object.keys(data).length) {
-            Swal.fire('Error', 'El archivo no tiene el formato esperado.', 'error');
-            return;
-          }
-          // Confirmar antes de reemplazar
-          const { isConfirmed } = await Swal.fire({
-            title: '¿Importar backup?',
-            text: 'Esto reemplazará todos los datos actuales de la app por los del backup. ¿Continuar?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, importar',
-            cancelButtonText: 'Cancelar'
-          });
-          if (!isConfirmed) return;
-          // Limpiar todo localforage antes de restaurar
-          await localforage.clear();
-          // Restaurar solo claves críticas y settings
-          const criticalKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.CRITICAL_DATA) || ['sales','clients','products','debts','movements','chickenSales'];
-          const settingsKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.SETTINGS) || ['theme','viewModes','pricePerPound','costPerPound'];
-          // Restaurar datos críticos
-          for (const key of criticalKeys) {
-            if (data[key] !== undefined) {
-              if (typeof saveToStorage === 'function') {
-                await saveToStorage(key, data[key]);
-                console.debug('Restaurado (saveToStorage):', key, data[key]);
-              } else {
-                await localforage.setItem(key, data[key]);
-                console.debug('Restaurado (localforage):', key, data[key]);
-              }
-            }
-          }
-          // Restaurar settings
-          for (const key of settingsKeys) {
-            if (data[key] !== undefined) {
-              await localforage.setItem(key, data[key]);
-              try { localStorage.setItem(key, JSON.stringify(data[key])); } catch(e){}
-              console.debug('Restaurado setting:', key, data[key]);
-            }
-          }
-          // Recargar datos y actualizar UI tras importar backup
-          if (typeof loadData === 'function') {
-            await loadData();
-            if (typeof initializeChickenData === 'function') initializeChickenData();
-            if (typeof updateChickenSalesList === 'function') updateChickenSalesList();
-            if (typeof updateBalanceUI === 'function') updateBalanceUI();
-            if (typeof renderInventory === 'function') renderInventory();
-            if (typeof renderClients === 'function') renderClients();
-            if (typeof renderDebts === 'function') renderDebts();
-            if (typeof renderSalesProducts === 'function') renderSalesProducts();
-          }
-          Swal.fire('¡Importado!', 'Backup restaurado correctamente. Los datos han sido recargados.', 'success');
-        } catch (err) {
-          let msg = err && err.message ? err.message : String(err);
-          Swal.fire('Error', 'No se pudo subir el backup: ' + msg, 'error');
-        }
-      })();
     }
-});
+  });
 
   // Definir clave de configuración de Telegram (evita ReferenceError)
   const TELEGRAM_CONFIG_KEY = 'telegram_backup_config';
+  let telegramBackupTimer = null;
+  let telegramBackupInterval = 60; // minutos por defecto
+  
   // Cargar configuración al abrir la vista
   document.addEventListener('DOMContentLoaded', () => {
     loadTelegramConfigToForm();
     // Si ya hay config, programa el backup automático
     localforage.getItem(TELEGRAM_CONFIG_KEY).then(cfg => {
       if (cfg && cfg.enabled) {
+        console.log('Iniciando backup automático de Telegram con intervalo:', cfg.interval, 'minutos');
         scheduleTelegramBackup(cfg);
       }
     });
@@ -1590,9 +2065,20 @@
       Swal.fire('Error', 'Completa todos los campos correctamente.', 'error');
       return;
     }
+    
     const config = { token, chatId, interval, enabled: true };
     await localforage.setItem(TELEGRAM_CONFIG_KEY, config);
-    Swal.fire('¡Guardado!', 'La configuración de backup a Telegram ha sido guardada.', 'success');
+    
+    console.log('Configuración de Telegram guardada:', config);
+    Swal.fire({
+      icon: 'success',
+      title: '¡Configuración guardada!',
+      text: `Backup automático configurado cada ${interval} minutos.`,
+      timer: 3000,
+      showConfirmButton: false
+    });
+    
+    // Reiniciar el backup automático con la nueva configuración
     scheduleTelegramBackup(config);
   });
 
@@ -1712,52 +2198,140 @@
 
   // Programar backup automático
   function scheduleTelegramBackup(config) {
-    if (telegramBackupTimer) clearInterval(telegramBackupTimer);
-    telegramBackupTimer = setInterval(() => {
-      (async () => {
-        try {
-          // Siempre obtener los datos más recientes antes de enviar
-          let data = null;
-          if (typeof getAllAppData === 'function') {
-            data = await getAllAppData();
-          } else if (window.localforage) {
-            // Fallback si getAllAppData no está disponible
-            const keys = await localforage.keys();
-            data = {};
-            for (const key of keys) {
-              if (!key.startsWith('_localforage')) {
-                data[key] = await localforage.getItem(key);
-              }
-            }
-          } else {
-            data = {};
-          }
-          if (!data || Object.keys(data).length === 0) {
-            console.warn('Backup automático: datos vacíos, no se envía a Telegram.');
+    console.log('Programando backup automático de Telegram:', config);
+    
+    // Detener timer existente si hay uno
+    if (telegramBackupTimer) {
+      clearInterval(telegramBackupTimer);
+      telegramBackupTimer = null;
+    }
+    
+    // Validar configuración
+    if (!config || !config.token || !config.chatId || !config.interval) {
+      console.error('Configuración de Telegram inválida:', config);
+      return;
+    }
+    
+    const intervalMs = config.interval * 60 * 1000;
+    console.log(`Backup automático de Telegram programado cada ${config.interval} minutos (${intervalMs}ms)`);
+    
+    telegramBackupTimer = setInterval(async () => {
+      console.log('🔍 Verificando si es necesario hacer backup automático de Telegram...');
+      
+      try {
+        // Verificar si hay cambios desde el último backup
+        const lastBackup = localStorage.getItem('lastTelegramBackup');
+        const lastLocalBackup = localStorage.getItem('lastLocalBackup');
+        
+        if (lastBackup && lastLocalBackup) {
+          const backupTime = parseInt(lastBackup);
+          const localTime = parseInt(lastLocalBackup);
+          
+          // Solo hacer backup si los datos locales son más recientes
+          if (localTime <= backupTime) {
+            console.log('📊 No hay cambios nuevos, saltando backup automático de Telegram');
             return;
           }
-          await sendTelegramBackup(config, data);
-          // Opcional: notificación visual
-          // Swal.fire('Backup enviado', 'Backup automático enviado a Telegram.', 'success');
-        } catch (err) {
-          // Opcional: notificación de error
-          // Swal.fire('Error', 'No se pudo enviar el backup automático.', 'error');
-          console.error('Error en backup automático a Telegram:', err);
         }
-      })();
-    }, config.interval * 60 * 1000);
+        
+        // Siempre obtener los datos más recientes antes de enviar
+        let data = null;
+        if (typeof getAllAppData === 'function') {
+          data = await getAllAppData();
+        } else if (window.localforage) {
+          // Fallback si getAllAppData no está disponible
+          const keys = await localforage.keys();
+          data = {};
+          for (const key of keys) {
+            if (!key.startsWith('_localforage')) {
+              data[key] = await localforage.getItem(key);
+            }
+          }
+        } else {
+          data = {};
+        }
+        
+        if (!data || Object.keys(data).length === 0) {
+          console.warn('Backup automático: datos vacíos, no se envía a Telegram.');
+          return;
+        }
+        
+        console.log('📤 Enviando backup automático a Telegram...');
+        await sendTelegramBackup(config, data);
+        console.log('✅ Backup automático de Telegram enviado exitosamente');
+        
+        // Guardar timestamp del último backup exitoso
+        localStorage.setItem('lastTelegramBackup', Date.now().toString());
+        
+      } catch (err) {
+        console.error('❌ Error en backup automático a Telegram:', err);
+        // Guardar timestamp del último error
+        localStorage.setItem('lastTelegramBackupError', Date.now().toString());
+        localStorage.setItem('lastTelegramBackupErrorMsg', err.message || err.toString());
+      }
+    }, intervalMs);
+    
+    // Ejecutar backup inmediatamente si es la primera vez
+    if (!localStorage.getItem('lastTelegramBackup')) {
+      console.log('Ejecutando backup inicial de Telegram...');
+      setTimeout(async () => {
+        try {
+          const data = await getAllAppData();
+          await sendTelegramBackup(config, data);
+          console.log('Backup inicial de Telegram enviado exitosamente');
+          localStorage.setItem('lastTelegramBackup', Date.now().toString());
+        } catch (err) {
+          console.error('Error en backup inicial de Telegram:', err);
+        }
+      }, 5000); // Esperar 5 segundos antes del primer backup
+    }
   }
 
-  // Obtener todos los datos de la app (ajusta según tu estructura)
+  // Obtener todos los datos de la app con metadatos y configuraciones
   async function getAllAppData() {
+    console.log('📊 Recopilando todos los datos de la aplicación...');
+    
     // Excluir claves internas de localforage (como _localforage_config)
     const keys = await localforage.keys();
     const data = {};
+    
     for (const key of keys) {
       if (!key.startsWith('_localforage')) {
         data[key] = await localforage.getItem(key);
       }
     }
+    
+    // Agregar metadatos del backup
+    data.metadata = {
+      lastModified: Date.now(),
+      version: '1.0.0',
+      timestamp: new Date().toISOString(),
+      dataSize: JSON.stringify(data).length
+    };
+    
+    // Agregar configuraciones importantes
+    data.settings = {
+      pricePerPound: localStorage.getItem('pricePerPound') || '2.50',
+      costPerPound: localStorage.getItem('costPerPound') || '0',
+      theme: localStorage.getItem('theme') || 'light',
+      language: localStorage.getItem('language') || 'es'
+    };
+    
+    // Agregar configuraciones de backup
+    data.backupConfig = {
+      googleDriveInterval: localStorage.getItem('googleDriveBackupInterval') || '60',
+      telegramConfig: await localforage.getItem('telegram_backup_config'),
+      lastLocalBackup: localStorage.getItem('lastLocalBackup'),
+      lastGoogleDriveBackup: localStorage.getItem('lastGoogleDriveBackup'),
+      lastTelegramBackup: localStorage.getItem('lastTelegramBackup')
+    };
+    
+    console.log('📊 Datos recopilados:', {
+      totalKeys: Object.keys(data).length,
+      dataSize: data.metadata.dataSize,
+      timestamp: data.metadata.timestamp
+    });
+    
     return data;
   }
 
@@ -1805,6 +2379,11 @@
   // --- Filtro de estado de deudas y buscador ---
 
   window.currentDebtStatusFilter = 'pending'; // 'pending' o 'paid'
+  
+  // --- Funciones globales para backups ---
+  window.showBackupStatus = showBackupStatus;
+  window.checkBackupStatus = checkBackupStatus;
+  window.clearBackupErrorHistory = clearBackupErrorHistory;
 
   function setDebtStatusFilter(status) {
     window.currentDebtStatusFilter = status;
