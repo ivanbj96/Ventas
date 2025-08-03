@@ -191,7 +191,11 @@ function getDistributionChartData(movements) {
 async function loadData() {
   try {
     // Usar el nuevo sistema de persistencia mejorado
-    const data = await loadAllCriticalData();
+    let data = await loadAllCriticalDataFromGoogleDrive();
+    if (!data) {
+      console.log("No se encontraron datos en Google Drive, cargando desde localforage...");
+      data = await loadAllCriticalData();
+    }
     
     // Asignar datos a variables globales
     products = data.products || [];

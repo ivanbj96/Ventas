@@ -8,7 +8,8 @@ const STORAGE_CONFIG = {
   // Configuraciones que pueden usar localStorage
   SETTINGS: ['theme', 'viewModes', 'pricePerPound', 'costPerPound'],
   // Backup automático cada 5 minutos
-  BACKUP_INTERVAL: 5 * 60 * 1000
+  BACKUP_INTERVAL: 5 * 60 * 1000,
+  TIMEZONE: 'America/Guayaquil' // Zona horaria para Santo Domingo de los Tsáchilas, Ecuador
 };
 
 // === Formatear moneda (con soporte a centavos y localización) ===
@@ -192,12 +193,23 @@ function startAutoBackup() {
     try {
       const success = await saveAllCriticalData();
       if (success) {
-        console.debug('Backup automático completado');
+        console.debug("Backup automático completado");
         // Actualizar timestamp del último backup local
-        localStorage.setItem('lastLocalBackup', Date.now().toString());
+        localStorage.setItem("lastLocalBackup", Date.now().toString());
+
+        // Realizar backup a Google Drive
+        // Realizar backup a Google Drive solo si hay un token de acceso válido
+        if (googleAccessToken) {
+          const allData = await loadAllCriticalData();
+          const backupFileName = `tillup_backup_${new Date().toISOString().replace(/[:.-]/g, "_")}.json`;
+          await uploadToGoogleDrive(allData, backupFileName);
+          console.log("Backup subido a Google Drive.");
+        } else {
+          console.log("No se realizó backup a Google Drive: usuario no autenticado.");
+        }
       }
     } catch (error) {
-      console.error('Error en backup automático:', error);
+      console.error("Error en backup automático:", error);
     }
   }, STORAGE_CONFIG.BACKUP_INTERVAL);
   
@@ -267,10 +279,11 @@ function formatDate(date) {
     const dateObj = new Date(date);
     if (isNaN(dateObj.getTime())) return '';
     
-    return dateObj.toLocaleDateString('es-EC', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return dateObj.toLocaleDateString("es-EC", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      timeZone: STORAGE_CONFIG.TIMEZONE
     });
   } catch (error) {
     console.error('Error formateando fecha:', error);
@@ -285,12 +298,13 @@ function formatDateTime(date) {
     const dateObj = new Date(date);
     if (isNaN(dateObj.getTime())) return '';
     
-    return dateObj.toLocaleString('es-EC', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
+    return dateObj.toLocaleString("es-EC", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: STORAGE_CONFIG.TIMEZONE
     });
   } catch (error) {
     console.error('Error formateando fecha y hora:', error);
@@ -811,3 +825,295 @@ window.restoreBackupIfLossDetected = function() {
 };
 
 console.log('✅ Utilidades globales cargadas correctamente');
+
+// === Funciones de Google Drive ===
+async function uploadToGoogleDrive(data, fileName) {
+  try {
+    if (!gapi.client || !gapi.client.drive) {
+      console.error('Google Drive API no cargada o no inicializada.');
+      return null;
+    }
+
+    const boundary = '-------314159265358979323846';
+    const delimiter = "\r\n--" + boundary + "\r\n";
+    const close_delimiter = "\r\n--" + boundary + "--";
+
+    const metadata = {
+      'name': fileName,
+      'mimeType': 'application/json',
+      'parents': ['appDataFolder'] // Guarda en la carpeta de datos de la aplicación
+    };
+
+    const jsonString = JSON.stringify(data);
+    const base64Data = btoa(unescape(encodeURIComponent(jsonString)));
+
+    const multipartRequestBody =
+      delimiter +
+      'Content-Type: application/json\r\n\r\n' +
+      JSON.stringify(metadata) +
+      delimiter +
+      'Content-Type: application/json\r\n' +
+      'Content-Transfer-Encoding: base64\r\n' +
+      '\r\n' +
+      base64Data +
+      close_delimiter;
+
+    const request = gapi.client.request({
+      'path': '/upload/drive/v3/files',
+      'method': 'POST',
+      'params': {'uploadType': 'multipart'},
+      'headers': {
+        'Content-Type': 'multipart/mixed; boundary="' + boundary + '"'
+      },
+      'body': multipartRequestBody
+    });
+
+    const response = await request;
+    console.log('Archivo subido a Google Drive:', response.result);
+    return response.result;
+  } catch (error) {
+    console.error('Error al subir archivo a Google Drive:', error);
+    return null;
+  }
+}
+
+async function downloadFromGoogleDrive(fileId) {
+  try {
+    if (!gapi.client || !gapi.client.drive) {
+      console.error('Google Drive API no cargada o no inicializada.');
+      return null;
+    }
+
+    const response = await gapi.client.drive.files.get({
+      fileId: fileId,
+      alt: 'media'
+    });
+
+    console.log('Archivo descargado de Google Drive:', response.result);
+    return response.result;
+  } catch (error) {
+    console.error('Error al descargar archivo de Google Drive:', error);
+    return null;
+  }
+}
+
+async function listGoogleDriveBackups() {
+  try {
+    if (!gapi.client || !gapi.client.drive) {
+      console.error('Google Drive API no cargada o no inicializada.');
+      return [];
+    }
+
+    const response = await gapi.client.drive.files.list({
+      q: "mimeType='application/json' and 'appDataFolder' in parents",
+      fields: 'files(id, name, modifiedTime)',
+      spaces: 'appDataFolder'
+    });
+
+    return response.result.files;
+  } catch (error) {
+    console.error('Error al listar backups de Google Drive:', error);
+    return [];
+  }
+}
+
+async function deleteGoogleDriveFile(fileId) {
+  try {
+    if (!gapi.client || !gapi.client.drive) {
+      console.error('Google Drive API no cargada o no inicializada.');
+      return false;
+    }
+
+    await gapi.client.drive.files.delete({ fileId: fileId });
+    console.log('Archivo eliminado de Google Drive:', fileId);
+    return true;
+  } catch (error) {
+    console.error('Error al eliminar archivo de Google Drive:', error);
+    return false;
+  }
+}
+
+
+
+
+
+// === Funciones de Google Drive ===
+let googleAccessToken = null;
+let tokenClient;
+
+async function ensureGoogleAccessToken() {
+  if (googleAccessToken) return true;
+
+  const storedToken = localStorage.getItem('googleAccessToken');
+  if (storedToken) {
+    const tokenData = JSON.parse(storedToken);
+    if (tokenData.expires_at > Date.now()) {
+      googleAccessToken = tokenData.access_token;
+      gapi.client.setToken({ access_token: googleAccessToken });
+      return true;
+    } else {
+      // Token expirado, intentar refrescar o solicitar nuevo
+      console.log('Token de Google Drive expirado, solicitando nuevo...');
+      return await requestNewGoogleAccessToken();
+    }
+  }
+  // No hay token almacenado, solicitar uno nuevo
+  return await requestNewGoogleAccessToken();
+}
+
+async function requestNewGoogleAccessToken() {
+  return new Promise((resolve) => {
+    tokenClient.callback = async (resp) => {
+      if (resp.error) {
+        console.error('Error al obtener token de Google Drive:', resp.error);
+        Swal.fire('Error de autenticación', 'No se pudo iniciar sesión en Google Drive. Por favor, inténtalo de nuevo.', 'error');
+        resolve(false);
+      } else {
+        googleAccessToken = resp.access_token;
+        const expires_in = resp.expires_in;
+        const expires_at = Date.now() + (expires_in * 1000);
+        localStorage.setItem('googleAccessToken', JSON.stringify({ access_token: googleAccessToken, expires_at }));
+        console.log('Nuevo token de Google Drive obtenido y almacenado.');
+        resolve(true);
+      }
+    };
+    tokenClient.requestAccessToken();
+  });
+}
+
+async function uploadToGoogleDrive(data, fileName) {
+  if (!(await ensureGoogleAccessToken())) {
+    throw new Error('No se pudo obtener el token de acceso a Google Drive.');
+  }
+
+  const fileContent = JSON.stringify(data, null, 2);
+  const metadata = {
+    name: fileName,
+    mimeType: 'application/json',
+    parents: ['appDataFolder'] // Guarda en la carpeta de datos de la aplicación
+  };
+
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  form.append('file', new Blob([fileContent], { type: 'application/json' }));
+
+  const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: new Headers({ 'Authorization': 'Bearer ' + googleAccessToken }),
+    body: form
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`Error al subir a Google Drive: ${response.status} - ${errorData.error.message}`);
+  }
+  return response.json();
+}
+
+async function downloadBackupFromDrive() {
+  if (!(await ensureGoogleAccessToken())) {
+    throw new Error('No se pudo obtener el token de acceso a Google Drive.');
+  }
+
+  // Buscar el último archivo de backup en la carpeta de la aplicación
+  const response = await fetch('https://www.googleapis.com/drive/v3/files?q=\'appDataFolder\' in parents and mimeType=\'application/json\'&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc&pageSize=1', {
+    headers: new Headers({ 'Authorization': 'Bearer ' + googleAccessToken })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`Error al buscar backups en Google Drive: ${response.status} - ${errorData.error.message}`);
+  }
+
+  const data = await response.json();
+  if (!data.files || data.files.length === 0) {
+    throw new Error('No se encontraron archivos de backup en Google Drive.');
+  }
+
+  const fileId = data.files[0].id;
+
+  // Descargar el contenido del archivo
+  const downloadResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+    headers: new Headers({ 'Authorization': 'Bearer ' + googleAccessToken })
+  });
+
+  if (!downloadResponse.ok) {
+    const errorData = await downloadResponse.json();
+    throw new Error(`Error al descargar backup de Google Drive: ${downloadResponse.status} - ${errorData.error.message}`);
+  }
+
+  return downloadResponse.text();
+}
+
+// Función para obtener todos los datos de la aplicación para backup
+async function getAllAppData() {
+  const data = {};
+  for (const key of STORAGE_CONFIG.CRITICAL_DATA) {
+    data[key] = await loadFromStorage(key);
+  }
+  // Incluir configuraciones adicionales si es necesario
+  data.pricePerPound = await loadFromStorage('pricePerPound');
+  data.costPerPound = await loadFromStorage('costPerPound');
+  data.theme = await loadFromStorage('theme');
+  return data;
+}
+
+// Función para detener el backup automático de Google Drive
+function stopGoogleDriveAutoBackup() {
+  // Lógica para detener el backup automático si está en curso
+  // Esto podría implicar limpiar un setInterval o similar si se implementa un backup específico de Drive
+  console.log('Backup automático de Google Drive detenido.');
+}
+
+// Inicialización de Google API Client
+function initGoogleApi() {
+  gapi.client.init({
+    apiKey: 'AIzaSyAygKPhHeZtg3Vap9lwN6spLPoTHFIgFU4',
+    clientId: '83503843228-lh6tbfvp9q1a3omus30g2i9miadrp6i7.apps.googleusercontent.com',
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+  }).then(() => {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: '83503843228-lh6tbfvp9q1a3omus30g2i9miadrp6i7.apps.googleusercontent.com',
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      callback: '', // Se define dinámicamente en requestNewGoogleAccessToken
+    });
+    console.log('Google API Client y Token Client inicializados.');
+    // Intentar cargar token existente al inicio
+    ensureGoogleAccessToken().then(loggedIn => {
+      if (typeof updateSidebarGoogleDriveUI === 'function') {
+        updateSidebarGoogleDriveUI(loggedIn);
+      }
+    });
+  }).catch(err => {
+    console.error('Error al inicializar Google API Client:', err);
+    Swal.fire('Error', 'No se pudo inicializar la integración con Google Drive. Revisa tu conexión o la configuración de la API.', 'error');
+  });
+}
+
+// Cargar la librería de Google API
+gapi.load('client', initGoogleApi);
+
+
+
+
+async function loadAllCriticalDataFromGoogleDrive() {
+  try {
+    const backupDataString = await downloadBackupFromDrive();
+    if (backupDataString) {
+      const backupData = JSON.parse(backupDataString);
+      console.log('Datos cargados desde Google Drive:', backupData);
+      return backupData;
+    } else {
+      console.log('No se encontró backup en Google Drive.');
+      return null;
+    }
+  } catch (error) {
+    console.error('Error cargando datos desde Google Drive:', error);
+    return null;
+  }
+}
+
+window.loadAllCriticalDataFromGoogleDrive = loadAllCriticalDataFromGoogleDrive;
+
+
