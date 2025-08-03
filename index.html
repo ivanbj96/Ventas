@@ -260,8 +260,7 @@
             try {
               const data = await getAllAppData();
               const fileContent = JSON.stringify(data, null, 2);
-              const backupFileName = `tillup_backup_${new Date().toISOString().replace(/[:.-]/g, "_")}.json`;
-              await uploadToGoogleDrive(data, backupFileName);
+              await uploadBackupToDrive(fileContent);
               Swal.fire('¡Backup subido!', 'Tu backup fue guardado en Google Drive.', 'success');
             } catch (err) {
               if (err && err.message && err.message.includes('403')) {
@@ -284,8 +283,8 @@
           restoreBtn.onclick = async function() {
             if (!(await ensureGoogleAccessToken())) return;
             try {
-              const backupDataString = await downloadBackupFromDrive();
-              const data = JSON.parse(backupDataString);
+              const fileContent = await downloadBackupFromDrive();
+              const data = JSON.parse(fileContent);
               if (typeof data !== 'object' || Array.isArray(data) || !Object.keys(data).length) {
                 Swal.fire('Error', 'El archivo no tiene el formato esperado.', 'error');
                 return;
@@ -1220,7 +1219,7 @@
 
   // --- Google Drive Backup/Restore con Google Identity Services (GIS) ---
   const GOOGLE_CLIENT_ID = '83503843228-lh6tbfvp9q1a3omus30g2i9miadrp6i7.apps.googleusercontent.com';
-const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';.file';
+  const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
   const BACKUP_FILENAME = 'backup-tillup.json';
   let googleAccessToken = null;
   let tokenClient = null;
