@@ -7,8 +7,12 @@ const STORAGE_CONFIG = {
   CRITICAL_DATA: ['sales', 'clients', 'products', 'debts', 'movements', 'chickenSales'],
   // Configuraciones que pueden usar localStorage
   SETTINGS: ['theme', 'viewModes', 'pricePerPound', 'costPerPound'],
+  // Intervalo de sincronización (30 segundos)
+  SYNC_INTERVAL: 30 * 1000,
   // Backup automático cada 5 minutos
-  BACKUP_INTERVAL: 5 * 60 * 1000
+  BACKUP_INTERVAL: 5 * 60 * 1000,
+  // Tiempo mínimo entre verificaciones de cambios en Drive
+  DRIVE_CHECK_INTERVAL: 30 * 1000
 };
 
 // === Formatear moneda (con soporte a centavos y localización) ===
@@ -180,37 +184,173 @@ async function loadAllCriticalData() {
   }
 }
 
-// === Sistema de backup automático ===
+// === Sistema de sincronización y backup mejorado ===
+let syncInterval = null;
 let backupInterval = null;
+let lastBackupTime = null;
+let lastSyncTime = null;
+let lastDriveCheck = null;
+let isBackupInProgress = false;
+let isSyncInProgress = false;
+let pendingSync = false;
+let deviceId = localStorage.getItem('deviceId') || generateId('device-');
 
-function startAutoBackup() {
-  if (backupInterval) {
+// Guardar deviceId si es nuevo
+if (!localStorage.getItem('deviceId')) {
+    localStorage.setItem('deviceId', deviceId);
+}
+
+async function syncWithDrive() {
+  if (isSyncInProgress) {
+    pendingSync = true;
+    return;
+  }
+
+  try {
+    isSyncInProgress = true;
+
+    // Verificar si tenemos acceso a Drive
+    if (!window.googleAccessToken) {
+      console.debug('❌ No hay acceso a Google Drive');
+      return;
+    }
+
+    // 1. Verificar cambios en Drive
+    const driveChanges = await window.checkDriveChanges();
+    if (driveChanges && driveChanges.timestamp > lastSyncTime) {
+      // Hay cambios más recientes en Drive, restaurar
+      await window.restoreFromGoogleDrive();
+      console.debug('✅ Datos actualizados desde Drive');
+      lastSyncTime = Date.now();
+    }
+
+    // 2. Verificar cambios locales
+    const localChanges = await validateLocalChanges();
+    if (localChanges) {
+      // Subir cambios locales a Drive
+      await window.backupToGoogleDrive({
+        deviceId,
+        timestamp: Date.now(),
+        changes: localChanges
+      });
+      console.debug('✅ Cambios locales sincronizados con Drive');
+      lastBackupTime = Date.now();
+    }
+
+  } catch (error) {
+    console.error('❌ Error en sincronización:', error);
+  } finally {
+    isSyncInProgress = false;
+    if (pendingSync) {
+      pendingSync = false;
+      setTimeout(syncWithDrive, 1000);
+    }
+  }
+}
+
+// Función para validar cambios locales
+async function validateLocalChanges() {
+  const changes = {};
+  let hasChanges = false;
+
+  for (const key of STORAGE_CONFIG.CRITICAL_DATA) {
+    const localData = await loadFromStorage(key);
+    const lastSync = localStorage.getItem(`lastSync_${key}`);
+    
+    if (!lastSync || JSON.stringify(localData) !== lastSync) {
+      changes[key] = localData;
+      hasChanges = true;
+      localStorage.setItem(`lastSync_${key}`, JSON.stringify(localData));
+    }
+  }
+
+  return hasChanges ? changes : null;
+}
+
+async function performBackup(forceBackup = false) {
+  if (isBackupInProgress) {
+    pendingSync = true;
+    return;
+  }
+
+  try {
+    isBackupInProgress = true;
+
+    // Guardar localmente primero
+    await saveAllCriticalData();
+    
+    // Sincronizar con Drive
+    await syncWithDrive();
+
+  } catch (error) {
+    console.error('❌ Error en backup:', error);
+  } finally {
+    isBackupInProgress = false;
+  }
+}
+
+async function startAutoBackup() {
+  if (backupInterval || syncInterval) {
     clearInterval(backupInterval);
+    clearInterval(syncInterval);
   }
   
-  backupInterval = setInterval(async () => {
-    try {
-      const success = await saveAllCriticalData();
-      if (success) {
-        console.debug('Backup automático completado');
-        // Actualizar timestamp del último backup local
-        localStorage.setItem('lastLocalBackup', Date.now().toString());
+  // Verificar si hay datos en Drive al iniciar
+  try {
+    if (window.googleAccessToken) {
+      const driveData = await window.checkDriveChanges();
+      if (driveData && (!lastSyncTime || driveData.timestamp > lastSyncTime)) {
+        await window.restoreFromGoogleDrive();
+        console.log('✅ Datos iniciales restaurados desde Drive');
       }
-    } catch (error) {
-      console.error('Error en backup automático:', error);
     }
-  }, STORAGE_CONFIG.BACKUP_INTERVAL);
+  } catch (error) {
+    console.error('❌ Error en verificación inicial de Drive:', error);
+  }
+
+  // Iniciar sincronización continua
+  syncInterval = setInterval(syncWithDrive, STORAGE_CONFIG.SYNC_INTERVAL);
   
-  console.log('Backup automático iniciado');
+  // Configurar intervalo de backup local
+  backupInterval = setInterval(() => performBackup(), STORAGE_CONFIG.BACKUP_INTERVAL);
+  
+  console.log('✅ Sistema de sincronización y backup iniciado');
+
+  // Realizar primer backup
+  await performBackup(true);
 }
 
 function stopAutoBackup() {
   if (backupInterval) {
     clearInterval(backupInterval);
     backupInterval = null;
-    console.log('Backup automático detenido');
   }
+  if (syncInterval) {
+    clearInterval(syncInterval);
+    syncInterval = null;
+  }
+  
+  lastBackupTime = null;
+  lastSyncTime = null;
+  isBackupInProgress = false;
+  isSyncInProgress = false;
+  pendingSync = false;
+  
+  console.log('Sistema de sincronización y backup detenido');
 }
+
+// Función para verificar el estado del backup
+function getBackupStatus() {
+  return {
+    isRunning: backupInterval !== null,
+    lastBackup: lastBackupTime ? new Date(lastBackupTime) : null,
+    isInProgress: isBackupInProgress,
+    hasPendingBackup: pendingBackup
+  };
+}
+
+// Exportar la nueva función de estado
+window.getBackupStatus = getBackupStatus;
 
 // === Generar ID único mejorado ===
 function generateId(prefix = '') {
