@@ -7,12 +7,16 @@ const STORAGE_CONFIG = {
   CRITICAL_DATA: ['sales', 'clients', 'products', 'debts', 'movements', 'chickenSales'],
   // Configuraciones que pueden usar localStorage
   SETTINGS: ['theme', 'viewModes', 'pricePerPound', 'costPerPound'],
-  // Intervalo de sincronización (30 segundos)
-  SYNC_INTERVAL: 30 * 1000,
+  // Intervalo de sincronización (10 segundos para más rapidez)
+  SYNC_INTERVAL: 10 * 1000,
   // Backup automático cada 5 minutos
   BACKUP_INTERVAL: 5 * 60 * 1000,
-  // Tiempo mínimo entre verificaciones de cambios en Drive
-  DRIVE_CHECK_INTERVAL: 30 * 1000
+  // Tiempo mínimo entre verificaciones de cambios en Drive (15 segundos)
+  DRIVE_CHECK_INTERVAL: 15 * 1000,
+  // Nombre del archivo en Drive donde se guardan los datos
+  DRIVE_FILE_NAME: 'tillup_data.json',
+  // Carpeta en Drive para los backups
+  DRIVE_FOLDER_NAME: 'TillUp_Backups'
 };
 
 // === Formatear moneda (con soporte a centavos y localización) ===
@@ -215,30 +219,77 @@ async function syncWithDrive() {
       return;
     }
 
-    // 1. Verificar cambios en Drive
-    const driveChanges = await window.checkDriveChanges();
-    if (driveChanges && driveChanges.timestamp > lastSyncTime) {
-      // Hay cambios más recientes en Drive, restaurar
-      await window.restoreFromGoogleDrive();
-      console.debug('✅ Datos actualizados desde Drive');
-      lastSyncTime = Date.now();
+    // 1. Obtener el archivo de datos de Drive
+    const driveFile = await window.getDriveFile(STORAGE_CONFIG.DRIVE_FILE_NAME);
+    
+    if (driveFile) {
+      const driveData = JSON.parse(driveFile.content);
+      const driveTimestamp = driveData.metadata?.timestamp || 0;
+      
+      // Comparar con nuestro último sync
+      if (driveTimestamp > (lastSyncTime || 0)) {
+        console.debug('📥 Nuevos cambios detectados en Drive');
+        
+        // Combinar datos remotos con locales
+        for (const key of STORAGE_CONFIG.CRITICAL_DATA) {
+          const remoteData = driveData[key] || [];
+          const localData = await loadFromStorage(key) || [];
+          
+          // Combinar arrays eliminando duplicados por ID
+          const combined = [...localData, ...remoteData].reduce((acc, item) => {
+            const existing = acc.find(x => x.id === item.id);
+            if (!existing || (item.updatedAt > existing.updatedAt)) {
+              // Mantener el item más reciente
+              acc = acc.filter(x => x.id !== item.id);
+              acc.push(item);
+            }
+            return acc;
+          }, []);
+          
+          // Guardar datos combinados
+          await saveToStorage(key, combined);
+        }
+        
+        lastSyncTime = Date.now();
+        console.debug('✅ Datos sincronizados desde Drive');
+      }
     }
 
-    // 2. Verificar cambios locales
+    // 2. Verificar y subir cambios locales
     const localChanges = await validateLocalChanges();
     if (localChanges) {
-      // Subir cambios locales a Drive
-      await window.backupToGoogleDrive({
-        deviceId,
-        timestamp: Date.now(),
-        changes: localChanges
+      const uploadData = {
+        ...await exportAllData(),
+        metadata: {
+          deviceId,
+          timestamp: Date.now(),
+          origin: window.location.origin,
+          version: '1.4.0'
+        }
+      };
+
+      // Subir a Drive
+      await window.uploadToDrive({
+        fileName: STORAGE_CONFIG.DRIVE_FILE_NAME,
+        folderName: STORAGE_CONFIG.DRIVE_FOLDER_NAME,
+        content: JSON.stringify(uploadData, null, 2)
       });
-      console.debug('✅ Cambios locales sincronizados con Drive');
+
+      console.debug('📤 Cambios locales subidos a Drive');
       lastBackupTime = Date.now();
     }
 
   } catch (error) {
     console.error('❌ Error en sincronización:', error);
+    // Notificar al usuario del error
+    if (window.Swal) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de sincronización',
+        text: 'Hubo un problema al sincronizar con Google Drive. Por favor, verifica tu conexión.',
+        confirmButtonText: 'Entendido'
+      });
+    }
   } finally {
     isSyncInProgress = false;
     if (pendingSync) {
@@ -253,18 +304,42 @@ async function validateLocalChanges() {
   const changes = {};
   let hasChanges = false;
 
-  for (const key of STORAGE_CONFIG.CRITICAL_DATA) {
-    const localData = await loadFromStorage(key);
-    const lastSync = localStorage.getItem(`lastSync_${key}`);
-    
-    if (!lastSync || JSON.stringify(localData) !== lastSync) {
-      changes[key] = localData;
-      hasChanges = true;
-      localStorage.setItem(`lastSync_${key}`, JSON.stringify(localData));
-    }
-  }
+  try {
+    for (const key of STORAGE_CONFIG.CRITICAL_DATA) {
+      const localData = await loadFromStorage(key);
+      if (!localData) continue;
 
-  return hasChanges ? changes : null;
+      const lastSyncData = localStorage.getItem(`lastSync_${key}`);
+      const lastSyncParsed = lastSyncData ? JSON.parse(lastSyncData) : null;
+      
+      // Comparar datos actuales con última sincronización
+      if (!lastSyncParsed || JSON.stringify(localData) !== JSON.stringify(lastSyncParsed)) {
+        // Añadir timestamp a cada elemento modificado
+        const updatedData = localData.map(item => ({
+          ...item,
+          updatedAt: item.updatedAt || Date.now(),
+          deviceId: item.deviceId || deviceId,
+          origin: item.origin || window.location.origin
+        }));
+        
+        changes[key] = updatedData;
+        hasChanges = true;
+        
+        // Guardar estado de sincronización
+        localStorage.setItem(`lastSync_${key}`, JSON.stringify(updatedData));
+      }
+    }
+
+    // Si hay cambios, actualizar el timestamp global
+    if (hasChanges) {
+      localStorage.setItem('lastChangeTimestamp', Date.now().toString());
+    }
+
+    return hasChanges ? changes : null;
+  } catch (error) {
+    console.error('Error validando cambios locales:', error);
+    return null;
+  }
 }
 
 async function performBackup(forceBackup = false) {
