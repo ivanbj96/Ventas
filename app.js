@@ -1277,13 +1277,21 @@ document.addEventListener('DOMContentLoaded', function() {
 function editChickenSale(index) {
   const sale = chickenSales[index];
   if (!sale) return;
+  
+  // Obtener la lista de clientes para el selector
+  const clientOptions = clients.map(client => 
+    `<option value="${client.id}" ${client.id === sale.clientId ? 'selected' : ''}>${client.name}</option>`
+  ).join('');
+  
   Swal.fire({
     title: 'Editar Venta de Pollos',
     html: `
       <form id="editChickenSaleForm">
         <div class="mb-2">
           <label class="form-label">Cliente</label>
-          <input type="text" class="form-control" id="editChickenClient" value="${sale.clientName}" readonly>
+          <select class="form-select" id="editChickenClient" required>
+            ${clientOptions}
+          </select>
         </div>
         <div class="mb-2">
           <label class="form-label">Cantidad</label>
@@ -1324,6 +1332,7 @@ function editChickenSale(index) {
     confirmButtonText: 'Guardar',
     cancelButtonText: 'Cancelar',
     preConfirm: () => {
+      const clientId = document.getElementById('editChickenClient').value;
       const quantity = parseInt(document.getElementById('editChickenQuantity').value);
       const weight = parseFloat(document.getElementById('editChickenWeight').value);
       const pricePerPound = parseFloat(document.getElementById('editChickenPricePerPound').value);
@@ -1331,19 +1340,38 @@ function editChickenSale(index) {
       const paymentType = document.getElementById('editChickenPaymentType').value;
       const abono = parseFloat(document.getElementById('editChickenAbono').value) || 0;
       const date = document.getElementById('editChickenDate').value;
-      if (!quantity || !weight || !pricePerPound || !date) {
+      
+      if (!clientId || !quantity || !weight || !pricePerPound || !date) {
         Swal.showValidationMessage('Todos los campos son obligatorios');
         return false;
       }
-      return { quantity, weight, pricePerPound, costPerPound, paymentType, abono, date };
+      return { clientId, quantity, weight, pricePerPound, costPerPound, paymentType, abono, date };
     }
   }).then(async (result) => {
     if (result.isConfirmed && result.value) {
-      const { quantity, weight, pricePerPound, costPerPound, paymentType, abono, date } = result.value;
+      const { clientId, quantity, weight, pricePerPound, costPerPound, paymentType, abono, date } = result.value;
       const total = pricePerPound * weight;
       const profit = (pricePerPound - costPerPound) * weight;
+      
+      // Obtener el cliente seleccionado
+      const selectedClient = clients.find(c => c.id === clientId);
+      
+      // Crear fecha local correcta manteniendo la hora original
+      const originalDate = new Date(sale.date);
+      const [year, month, day] = date.split('-');
+      const newDate = new Date(
+        parseInt(year),
+        parseInt(month) - 1,
+        parseInt(day),
+        originalDate.getHours(),
+        originalDate.getMinutes(),
+        originalDate.getSeconds()
+      );
+      
       chickenSales[index] = {
         ...sale,
+        clientId,
+        clientName: selectedClient.name,
         quantity,
         weight,
         pricePerPound,
@@ -1353,7 +1381,10 @@ function editChickenSale(index) {
         paymentType,
         abono,
         debt: paymentType === 'credit' ? total - abono : 0,
-        date: date,
+        date: newDate.toISOString().split('T')[0] + 'T' + 
+              newDate.getHours().toString().padStart(2,'0') + ':' +
+              newDate.getMinutes().toString().padStart(2,'0') + ':' +
+              newDate.getSeconds().toString().padStart(2,'0'),
       };
       await saveToStorage('chickenSales', chickenSales);
       updateChickenStats();
