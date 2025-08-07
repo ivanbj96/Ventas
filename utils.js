@@ -440,127 +440,66 @@ function generateId(prefix = '') {
   }
 }
 
-// === Validaciones mejoradas ===
-function isValidEmail(email) {
+// === Validaciones unificadas ===
+function isValid(type, value) {
   try {
-    if (!email || typeof email !== 'string') return false;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    if (type === 'email') {
+      return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    }
+    if (type === 'phone') {
+      return typeof value === 'string' && /^[0-9]{7,15}$/.test(value.replace(/\s/g, ''));
+    }
+    if (type === 'number') {
+      const num = parseFloat(value);
+      return value !== null && value !== undefined && value !== '' && !isNaN(num) && isFinite(num);
+    }
+    return false;
   } catch (error) {
-    console.error('Error validando email:', error);
+    console.error(`Error validando ${type}:`, error);
     return false;
   }
 }
 
-function isValidPhone(phone) {
-  try {
-    if (!phone || typeof phone !== 'string') return false;
-    const phoneRegex = /^[0-9]{7,15}$/;
-    return phoneRegex.test(phone.replace(/\s/g, ''));
-  } catch (error) {
-    console.error('Error validando teléfono:', error);
-    return false;
-  }
+// Alias para compatibilidad
+const isValidEmail = v => isValid('email', v);
+const isValidPhone = v => isValid('phone', v);
+const isValidNumber = v => isValid('number', v);
+
+// === Funciones de fecha y tiempo simplificadas ===
+function parseDate(date) {
+  const d = new Date(date);
+  return isNaN(d.getTime()) ? null : d;
 }
 
-function isValidNumber(value) {
-  try {
-    if (value === null || value === undefined || value === '') return false;
-    const num = parseFloat(value);
-    return !isNaN(num) && isFinite(num);
-  } catch (error) {
-    console.error('Error validando número:', error);
-    return false;
-  }
-}
-
-// === Funciones de fecha y tiempo ===
 function formatDate(date) {
-  try {
-    if (!date) return '';
-    
-    const dateObj = new Date(date);
-    if (isNaN(dateObj.getTime())) return '';
-    
-    return dateObj.toLocaleDateString('es-EC', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  } catch (error) {
-    console.error('Error formateando fecha:', error);
-    return '';
-  }
+  const d = parseDate(date);
+  return d ? d.toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
 }
 
 function formatDateTime(date) {
-  try {
-    if (!date) return '';
-    
-    const dateObj = new Date(date);
-    if (isNaN(dateObj.getTime())) return '';
-    
-    return dateObj.toLocaleString('es-EC', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  } catch (error) {
-    console.error('Error formateando fecha y hora:', error);
-    return '';
-  }
+  const d = parseDate(date);
+  return d ? d.toLocaleString('es-EC', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
 }
 
 function isToday(date) {
-  try {
-    if (!date) return false;
-    
-    const dateObj = new Date(date);
-    const today = new Date();
-    
-    return dateObj.toDateString() === today.toDateString();
-  } catch (error) {
-    console.error('Error verificando si es hoy:', error);
-    return false;
-  }
+  const d = parseDate(date);
+  const today = new Date();
+  return d ? d.toDateString() === today.toDateString() : false;
 }
 
 function isThisWeek(date) {
-  try {
-    if (!date) return false;
-    
-    const dateObj = new Date(date);
-    const today = new Date();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-    
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
-    
-    return dateObj >= startOfWeek && dateObj <= endOfWeek;
-  } catch (error) {
-    console.error('Error verificando si es esta semana:', error);
-    return false;
-  }
+  const d = parseDate(date);
+  if (!d) return false;
+  const today = new Date();
+  const startOfWeek = new Date(today); startOfWeek.setDate(today.getDate() - today.getDay()); startOfWeek.setHours(0,0,0,0);
+  const endOfWeek = new Date(startOfWeek); endOfWeek.setDate(startOfWeek.getDate() + 6); endOfWeek.setHours(23,59,59,999);
+  return d >= startOfWeek && d <= endOfWeek;
 }
 
 function isThisMonth(date) {
-  try {
-    if (!date) return false;
-    
-    const dateObj = new Date(date);
-    const today = new Date();
-    
-    return dateObj.getMonth() === today.getMonth() && 
-           dateObj.getFullYear() === today.getFullYear();
-  } catch (error) {
-    console.error('Error verificando si es este mes:', error);
-    return false;
-  }
+  const d = parseDate(date);
+  const today = new Date();
+  return d ? d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear() : false;
 }
 
 // === Funciones de cálculo ===

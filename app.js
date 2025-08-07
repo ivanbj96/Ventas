@@ -667,11 +667,7 @@ function validateField(field) {
   }
 }
 
-// Función para validar email
-function isValidEmail(email) {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
+// Se elimina la función local isValidEmail, se usará la versión global de utils.js
 
 // Función para mejorar la experiencia de carga
 function setupLoadingEnhancements() {
