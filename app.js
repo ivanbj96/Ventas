@@ -33,6 +33,18 @@ let chickenSales = [];
 let pricePerPound = 0;
 let costPerPound = 0;
 
+// Función helper para obtener la fecha actual de Ecuador (UTC-5)
+function getEcuadorDate() {
+  const now = new Date();
+  const ecuadorOffset = -5 * 60; // UTC-5 en minutos
+  return new Date(now.getTime() + (ecuadorOffset * 60 * 1000));
+}
+
+// Función helper para obtener la fecha de Ecuador en formato YYYY-MM-DD
+function getEcuadorDateString() {
+  return getEcuadorDate().toISOString().slice(0, 10);
+}
+
 // Función helper para normalizar fechas
 function normalizeDate(dateInput) {
   if (!dateInput) return null;
@@ -1053,8 +1065,8 @@ function initializeChickenData() {
   if (priceInput) priceInput.value = pricePerPound.toFixed(2);
   if (costInput) costInput.value = costPerPound.toFixed(2);
   if (saleDateInput) {
-    const today = new Date();
-    saleDateInput.value = today.toISOString().slice(0,10);
+    // Usar fecha local de Ecuador
+    saleDateInput.value = getEcuadorDateString();
   }
   
   // Actualizar cálculo inicial
@@ -1167,9 +1179,14 @@ async function handleChickenSale(e) {
   const total = pricePerPound * weight;
   const profit = (pricePerPound - costPerPound) * weight;
   
-  // Crear objeto de venta con fecha y hora local
+  // Crear objeto de venta con fecha y hora local de Ecuador
   let now = new Date();
-  let [year, month, day] = (saleDate || now.toLocaleDateString('es-EC')).split('-');
+  // Asegurar que usamos la fecha seleccionada o la fecha actual de Ecuador
+  let dateToUse = saleDate;
+  if (!dateToUse) {
+    dateToUse = getEcuadorDateString();
+  }
+  let [year, month, day] = dateToUse.split('-');
   let localDate = new Date(
     parseInt(year),
     parseInt(month) - 1,
@@ -1496,7 +1513,7 @@ async function finalizeChickenSale() {
   const totalCost = weight * costPerPound;
   const profit = total - totalCost;
   
-  // Crear objeto de venta con fecha y hora local
+  // Crear objeto de venta con fecha y hora local de Ecuador
   const now = new Date();
   const [year, month, day] = saleDate.split('-');
   const localDate = new Date(
@@ -1556,7 +1573,8 @@ async function finalizeChickenSale() {
     
     // Limpiar formulario
     document.getElementById('chickenSaleForm').reset();
-    document.getElementById('chickenSaleDate').value = new Date().toISOString().split('T')[0];
+    // Usar fecha local de Ecuador al limpiar el formulario
+    document.getElementById('chickenSaleDate').value = getEcuadorDateString();
     document.getElementById('chickenQuantity').value = '1';
     document.getElementById('chickenAbonoSection').style.display = 'none';
     
@@ -1988,8 +2006,8 @@ function updateChickenStats(opts = {}) {
   if (opts && opts.fecha) {
     todayStr = opts.fecha;
   } else {
-    const today = new Date();
-    todayStr = today.toISOString().split('T')[0];
+    // Usar fecha local de Ecuador
+    todayStr = getEcuadorDateString();
   }
   
   // Verificar que chickenSales sea un array válido
@@ -2535,10 +2553,10 @@ function updateChickenSalesList(opts = {}) {
       sale && sale.date && sale.date.startsWith(opts.fecha)
     );
   } else {
-    // Por defecto, mostrar solo ventas de hoy
-    const today = new Date().toISOString().split('T')[0];
+    // Por defecto, mostrar solo ventas de hoy (fecha de Ecuador)
+    const todayStr = getEcuadorDateString();
     filteredSales = chickenSales.filter(sale => 
-      sale && sale.date && sale.date.startsWith(today)
+      sale && sale.date && sale.date.startsWith(todayStr)
     );
   }
   
@@ -3976,7 +3994,7 @@ async function finalizeSale() {
       
       // Obtener fecha local (del drawer o actual)
       let now = new Date();
-      let saleDateStr = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
+      let saleDateStr = getEcuadorDateString(); // Usar fecha de Ecuador
       const dateInput = document.getElementById('saleDateDrawer');
       if (dateInput && dateInput.value) {
         saleDateStr = dateInput.value;
@@ -7796,8 +7814,8 @@ function updateDrawerClientSelector() {
 function updateDrawerDate() {
   const dateInput = document.getElementById('saleDateDrawer');
   if (dateInput) {
-    const today = new Date();
-    dateInput.value = today.toISOString().slice(0,10);
+    // Usar fecha local de Ecuador
+    dateInput.value = getEcuadorDateString();
   }
 }
 // Inicializar selectores al cargar
@@ -8064,7 +8082,8 @@ async function processChickenSale(sale) {
     
     // Limpiar formulario
     document.getElementById('chickenSaleForm').reset();
-    document.getElementById('chickenSaleDate').value = new Date().toISOString().split('T')[0];
+    // Usar fecha local de Ecuador al limpiar el formulario
+    document.getElementById('chickenSaleDate').value = getEcuadorDateString();
     document.getElementById('chickenQuantity').value = '1';
     document.getElementById('chickenAbonoSection').style.display = 'none';
     
