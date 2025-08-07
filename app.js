@@ -2206,6 +2206,16 @@ function updateChickenClientSelector() {
   // Verificar que clients sea un array válido
   if (!clients || !Array.isArray(clients)) return;
   
+  // Agregar opción de búsqueda si hay muchos clientes
+  if (clients.length > 10) {
+    const searchOption = document.createElement('option');
+    searchOption.value = 'search';
+    searchOption.className = 'search-option';
+    searchOption.innerHTML = '<i class="bi bi-search"></i> Buscar cliente...';
+    selector.appendChild(searchOption);
+  }
+  
+  // Agregar clientes al select
   clients.forEach(client => {
     if (client && client.id && client.name) {
       const option = document.createElement('option');
@@ -2214,6 +2224,287 @@ function updateChickenClientSelector() {
       selector.appendChild(option);
     }
   });
+  
+  // Configurar event listener para el select
+  setupChickenClientSelectListener();
+}
+
+// Configurar event listener para el select de clientes
+function setupChickenClientSelectListener() {
+  const selector = document.getElementById('chickenClient');
+  if (!selector) return;
+  
+  // Remover event listeners previos
+  selector.removeEventListener('change', handleChickenClientSelect);
+  selector.addEventListener('change', handleChickenClientSelect);
+}
+
+// Manejar la selección en el select de clientes
+function handleChickenClientSelect(event) {
+  const selectedValue = event.target.value;
+  
+  if (selectedValue === 'search') {
+    // Abrir modal de búsqueda
+    openClientSearchModal();
+    // Resetear el select
+    event.target.value = '';
+  }
+}
+
+// Abrir modal de búsqueda de clientes
+function openClientSearchModal() {
+  const modal = document.getElementById('clientSearchModal');
+  const searchInput = document.getElementById('clientSearchInput');
+  const resultsContainer = document.getElementById('clientSearchResults');
+  
+  if (!modal || !searchInput || !resultsContainer) return;
+  
+  // Mostrar modal
+  modal.classList.add('show');
+  
+  // Limpiar búsqueda anterior
+  searchInput.value = '';
+  resultsContainer.innerHTML = '';
+  
+  // Mostrar todos los clientes inicialmente
+  renderClientSearchResults('');
+  
+  // Enfocar el input de búsqueda
+  setTimeout(() => {
+    searchInput.focus();
+  }, 100);
+  
+  // Configurar event listeners
+  setupClientSearchEventListeners();
+}
+
+// Cerrar modal de búsqueda de clientes
+function closeClientSearchModal() {
+  const modal = document.getElementById('clientSearchModal');
+  if (modal) {
+    modal.classList.remove('show');
+  }
+}
+
+// Configurar event listeners para la búsqueda
+function setupClientSearchEventListeners() {
+  const searchInput = document.getElementById('clientSearchInput');
+  const modal = document.getElementById('clientSearchModal');
+  
+  if (!searchInput || !modal) return;
+  
+  // Búsqueda en tiempo real
+  searchInput.addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase().trim();
+    renderClientSearchResults(searchTerm);
+  });
+  
+  // Cerrar modal con Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal.classList.contains('show')) {
+      closeClientSearchModal();
+    }
+  });
+  
+  // Cerrar modal al hacer clic fuera
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) {
+      closeClientSearchModal();
+    }
+  });
+}
+
+// Renderizar resultados de búsqueda
+function renderClientSearchResults(searchTerm) {
+  const resultsContainer = document.getElementById('clientSearchResults');
+  if (!resultsContainer) return;
+  
+  // Verificar que clients sea un array válido
+  if (!clients || !Array.isArray(clients)) {
+    resultsContainer.innerHTML = '<div class="no-results">No hay clientes disponibles</div>';
+    return;
+  }
+  
+  // Filtrar clientes
+  const filteredClients = clients.filter(client => 
+    client && client.name && client.name.toLowerCase().includes(searchTerm)
+  );
+  
+  if (filteredClients.length === 0) {
+    resultsContainer.innerHTML = `
+      <div class="no-results">
+        <i class="bi bi-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+        No se encontraron clientes
+      </div>
+    `;
+    return;
+  }
+  
+  // Renderizar resultados
+  resultsContainer.innerHTML = filteredClients.map(client => {
+    const initials = getClientInitials(client.name);
+    const details = client.phone ? `📱 ${client.phone}` : '';
+    
+    return `
+      <div class="search-result-item" onclick="selectClientFromSearch('${client.id}')">
+        <div class="client-avatar">${initials}</div>
+        <div class="client-info">
+          <div class="client-name">${client.name}</div>
+          ${details ? `<div class="client-details">${details}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Obtener iniciales del cliente
+function getClientInitials(name) {
+  if (!name) return '?';
+  return name.split(' ')
+    .map(word => word.charAt(0).toUpperCase())
+    .slice(0, 2)
+    .join('');
+}
+
+// Seleccionar cliente desde la búsqueda
+function selectClientFromSearch(clientId) {
+  const selector = document.getElementById('chickenClient');
+  if (selector) {
+    selector.value = clientId;
+    // Disparar evento change para activar cálculos
+    selector.dispatchEvent(new Event('change'));
+  }
+  
+  // Cerrar modal
+  closeClientSearchModal();
+}
+
+// ===== FUNCIONES PARA BÚSQUEDA EN SECCIÓN DE CLIENTES =====
+
+// Abrir modal de búsqueda de clientes para la sección de clientes
+function openClientsSearchModal() {
+  const modal = document.getElementById('clientsSearchModal');
+  const searchInput = document.getElementById('clientsSearchInput');
+  const resultsContainer = document.getElementById('clientsSearchResults');
+  
+  if (!modal || !searchInput || !resultsContainer) return;
+  
+  // Mostrar modal
+  modal.classList.add('show');
+  
+  // Limpiar búsqueda anterior
+  searchInput.value = '';
+  resultsContainer.innerHTML = '';
+  
+  // Mostrar todos los clientes inicialmente
+  renderClientsSearchResults('');
+  
+  // Enfocar el input de búsqueda
+  setTimeout(() => {
+    searchInput.focus();
+  }, 100);
+  
+  // Configurar event listeners
+  setupClientsSearchEventListeners();
+}
+
+// Cerrar modal de búsqueda de clientes para la sección de clientes
+function closeClientsSearchModal() {
+  const modal = document.getElementById('clientsSearchModal');
+  if (modal) {
+    modal.classList.remove('show');
+  }
+}
+
+// Configurar event listeners para la búsqueda de clientes
+function setupClientsSearchEventListeners() {
+  const searchInput = document.getElementById('clientsSearchInput');
+  const modal = document.getElementById('clientsSearchModal');
+  
+  if (!searchInput || !modal) return;
+  
+  // Búsqueda en tiempo real
+  searchInput.addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase().trim();
+    renderClientsSearchResults(searchTerm);
+  });
+  
+  // Cerrar modal con Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal.classList.contains('show')) {
+      closeClientsSearchModal();
+    }
+  });
+  
+  // Cerrar modal al hacer clic fuera
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) {
+      closeClientsSearchModal();
+    }
+  });
+}
+
+// Renderizar resultados de búsqueda para la sección de clientes
+function renderClientsSearchResults(searchTerm) {
+  const resultsContainer = document.getElementById('clientsSearchResults');
+  if (!resultsContainer) return;
+  
+  // Verificar que clients sea un array válido
+  if (!clients || !Array.isArray(clients)) {
+    resultsContainer.innerHTML = '<div class="no-results">No hay clientes disponibles</div>';
+    return;
+  }
+  
+  // Filtrar clientes
+  const filteredClients = clients.filter(client => 
+    client && client.name && client.name.toLowerCase().includes(searchTerm)
+  );
+  
+  if (filteredClients.length === 0) {
+    resultsContainer.innerHTML = `
+      <div class="no-results">
+        <i class="bi bi-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+        No se encontraron clientes
+      </div>
+    `;
+    return;
+  }
+  
+  // Renderizar resultados
+  resultsContainer.innerHTML = filteredClients.map(client => {
+    const initials = getClientInitials(client.name);
+    const details = client.phone ? `📱 ${client.phone}` : '';
+    const address = client.address ? `📍 ${client.address}` : '';
+    
+    return `
+      <div class="search-result-item" onclick="selectClientFromClientsSearch('${client.id}')">
+        <div class="client-avatar">${initials}</div>
+        <div class="client-info">
+          <div class="client-name">${client.name}</div>
+          <div class="client-details">
+            ${details}${details && address ? ' • ' : ''}${address}
+          </div>
+        </div>
+        <div class="client-actions">
+          <button class="btn btn-sm btn-outline-primary" onclick="showClientDetails('${client.id}'); event.stopPropagation();" title="Ver detalles">
+            <i class="bi bi-eye"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="editClient('${client.id}'); event.stopPropagation();" title="Editar">
+            <i class="bi bi-pencil"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Seleccionar cliente desde la búsqueda de la sección de clientes
+function selectClientFromClientsSearch(clientId) {
+  // Cerrar modal
+  closeClientsSearchModal();
+  
+  // Mostrar detalles del cliente
+  showClientDetails(clientId);
 }
 
 // Actualizar lista de ventas de pollos
@@ -7315,6 +7606,12 @@ function filtrarPorFecha(fechaStr) {
 window.updateChickenCalculation = updateChickenCalculation;
 window.filtrarPorFecha = filtrarPorFecha;
 window.updateChickenClientSelector = updateChickenClientSelector;
+window.openClientSearchModal = openClientSearchModal;
+window.closeClientSearchModal = closeClientSearchModal;
+window.selectClientFromSearch = selectClientFromSearch;
+window.openClientsSearchModal = openClientsSearchModal;
+window.closeClientsSearchModal = closeClientsSearchModal;
+window.selectClientFromClientsSearch = selectClientFromClientsSearch;
 window.updateChickenStats = updateChickenStats;
 window.updateChickenSalesList = updateChickenSalesList;
 window.setupChickenEventListeners = setupChickenEventListeners;

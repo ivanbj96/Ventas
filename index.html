@@ -581,6 +581,9 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0">Clientes</h2>
     <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary btn-sm" type="button" onclick="openClientsSearchModal()">
+        <i class="bi bi-search"></i> Buscar
+      </button>
       <button id="toggleClientsView" class="btn btn-outline-primary btn-sm" type="button" onclick="toggleClientsView()">
         <i class="bi bi-grid-3x3-gap-fill"></i> <span id="toggleClientsViewText">Cuadrícula</span>
       </button>
@@ -926,6 +929,9 @@
               </label>
               <select id="chickenClient" class="form-select form-select-treinta" required>
                 <option value="">Seleccionar cliente...</option>
+                <option value="search" class="search-option" style="display: none;">
+                  <i class="bi bi-search"></i> Buscar cliente...
+                </option>
               </select>
             </div>
             <div class="col-md-3">
@@ -1185,6 +1191,50 @@
 </section>
 
   </main>
+
+  <!-- Modal de búsqueda de clientes para pollos -->
+  <div id="clientSearchModal" class="search-modal">
+    <div class="search-modal-content">
+      <div class="search-modal-header">
+        <h5 class="search-modal-title">
+          <i class="bi bi-search"></i> Buscar Cliente
+        </h5>
+        <button type="button" class="search-modal-close" onclick="closeClientSearchModal()">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      <div class="search-input-container">
+        <input type="text" id="clientSearchInput" class="search-input" 
+               placeholder="Escribe el nombre del cliente..." autocomplete="off">
+        <i class="bi bi-search search-icon"></i>
+      </div>
+      <div id="clientSearchResults" class="search-results">
+        <!-- Los resultados se generarán dinámicamente -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de búsqueda de clientes para la sección de clientes -->
+  <div id="clientsSearchModal" class="search-modal">
+    <div class="search-modal-content">
+      <div class="search-modal-header">
+        <h5 class="search-modal-title">
+          <i class="bi bi-search"></i> Buscar Cliente
+        </h5>
+        <button type="button" class="search-modal-close" onclick="closeClientsSearchModal()">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      <div class="search-input-container">
+        <input type="text" id="clientsSearchInput" class="search-input" 
+               placeholder="Escribe el nombre del cliente..." autocomplete="off">
+        <i class="bi bi-search search-icon"></i>
+      </div>
+      <div id="clientsSearchResults" class="search-results">
+        <!-- Los resultados se generarán dinámicamente -->
+      </div>
+    </div>
+  </div>
 
   <!-- Navegación inferior tipo Treinta.co -->
   <nav class="navbar navbar-expand navbar-treinta">
