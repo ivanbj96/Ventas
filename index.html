@@ -2506,23 +2506,22 @@
         const badge = debtDiv.querySelector('.badge');
         const isPaid = badge && badge.textContent.trim().toLowerCase().includes('pagad');
         if ((currentDebtStatusFilter === 'paid' && isPaid) || (currentDebtStatusFilter === 'pending' && !isPaid)) {
-          // Buscar monto en el texto de la deuda (mejorando el parseo para miles y decimales)
-          // Busca el primer span o elemento con clase que contenga el monto, si existe
-          let amountText = '';
-          // Busca span con clase 'debt-amount' o similar
-          const amountSpan = debtDiv.querySelector('.debt-amount');
-          if (amountSpan) {
-            amountText = amountSpan.textContent;
+          // Buscar el saldo en lugar del monto total
+          let saldoText = '';
+          // Busca span con clase 'debt-saldo' que contiene el saldo real
+          const saldoSpan = debtDiv.querySelector('.debt-saldo');
+          if (saldoSpan) {
+            saldoText = saldoSpan.textContent;
           } else {
-            // Si no, busca el primer $ en el texto
-            const match = debtDiv.textContent.match(/\$\s*([\d.,]+)/);
-            if (match) amountText = match[1];
+            // Si no encuentra debt-saldo, busca "Saldo: $" en el texto
+            const match = debtDiv.textContent.match(/Saldo:\s*\$\s*([\d.,]+)/i);
+            if (match) saldoText = match[1];
           }
-          if (amountText) {
+          if (saldoText) {
             // Elimina espacios, separadores de miles y normaliza decimales
-            let clean = amountText.replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(/,/g, '.');
+            let clean = saldoText.replace(/\s/g, '').replace(/Saldo:\s*\$/i, '').replace(/\$/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(/,/g, '.');
             let amount = parseFloat(clean);
-            if (!isNaN(amount)) total += amount;
+            if (!isNaN(amount) && amount >= 0) total += amount;
           }
         }
       });

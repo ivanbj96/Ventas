@@ -5156,7 +5156,7 @@ function calculateBalanceData(period, customDate) {
         const fecha = new Date(s.date);
         if (checkPeriod(fecha)) {
           income += s.total || 0;
-          profit += s.total || 0; // Para pollos, el total es la utilidad
+          profit += s.profit || 0; // Usar la ganancia real, no el total de la venta
         }
       }
     });
@@ -6791,6 +6791,27 @@ function getMovementsByDateRange(startDate, endDate) {
     });
   }
   
+  // Agregar ventas de pollos del rango
+  if (chickenSales && Array.isArray(chickenSales)) {
+    chickenSales.forEach(sale => {
+      if (sale && sale.date && sale.id && sale.clientName && sale.total !== undefined) {
+        const saleDate = new Date(sale.date);
+        if (saleDate >= startDate && saleDate <= endDate) {
+          movements.push({
+            type: 'chicken_sale',
+            icon: 'bi-egg-fried',
+            title: `Venta Pollos #${sale.id}`,
+            subtitle: `${sale.clientName} - ${saleDate.toLocaleDateString()}`,
+            amount: sale.total,
+            amountClass: 'positive',
+            date: saleDate,
+            data: sale
+          });
+        }
+      }
+    });
+  }
+  
   // Agregar deudas del rango
   if (debts && Array.isArray(debts)) {
     debts.forEach(debt => {
@@ -6986,6 +7007,9 @@ window.showFilteredMovementDetail = function(idx) {
 
   if (movement.type === 'sale') {
     showReceipt(movement.data);
+  } else if (movement.type === 'chicken_sale') {
+    // Mostrar comprobante de venta de pollos
+    showChickenReceipt(movement.data);
   } else if (movement.type === 'debt') {
     showDebtDetailModal(movement.data.id);
   } else if (movement.type === 'payment') {
@@ -7019,6 +7043,9 @@ window.showMovementDetail = function(idx) {
     const saleId = movement.title.match(/Venta #(\w+)/)?.[1];
     const sale = sales.find(s => s.id == saleId);
     if (sale) showReceipt(sale);
+  } else if (movement.type === 'chicken_sale') {
+    // Mostrar comprobante de venta de pollos usando directamente los datos del movimiento
+    showChickenReceipt(movement.data);
   } else if (movement.type === 'debt') {
     // Buscar la deuda por id
     const debtId = movement.title.match(/Deuda #(\w+)/)?.[1];
