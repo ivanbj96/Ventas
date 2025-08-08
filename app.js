@@ -1380,7 +1380,13 @@ function editChickenSale(index) {
         originalDate.getMinutes(),
         originalDate.getSeconds()
       );
+
+      // Guardar datos originales para comparación
+      const originalPaymentType = sale.paymentType;
+      const originalClientId = sale.clientId;
+      const originalTotal = sale.total;
       
+      // Actualizar la venta
       chickenSales[index] = {
         ...sale,
         clientId,
@@ -1399,15 +1405,94 @@ function editChickenSale(index) {
               newDate.getMinutes().toString().padStart(2,'0') + ':' +
               newDate.getSeconds().toString().padStart(2,'0'),
       };
+
+      // Manejar cambios en deudas
+      if (originalPaymentType === 'credit' && paymentType !== 'credit') {
+        // Si cambió de crédito a otro tipo de pago, eliminar la deuda
+        const debtIndex = debts.findIndex(d => d.saleId === sale.id);
+        if (debtIndex !== -1) {
+          debts.splice(debtIndex, 1);
+        }
+      } else if (originalPaymentType !== 'credit' && paymentType === 'credit') {
+        // Si cambió a crédito, crear nueva deuda
+        const debt = {
+          id: Date.now().toString(),
+          clientId: clientId,
+          clientName: selectedClient.name,
+          amount: total - abono,
+          originalAmount: total - abono,
+          description: `Venta de pollos - ${quantity} pollo(s), ${weight} lbs`,
+          date: newDate.toISOString(),
+          type: 'chicken_sale',
+          saleId: sale.id,
+          createdAt: new Date().toISOString()
+        };
+        debts.push(debt);
+      } else if (originalPaymentType === 'credit' && paymentType === 'credit') {
+        // Si sigue siendo crédito, actualizar la deuda existente
+        const debtIndex = debts.findIndex(d => d.saleId === sale.id);
+        if (debtIndex !== -1) {
+          debts[debtIndex] = {
+            ...debts[debtIndex],
+            clientId: clientId,
+            clientName: selectedClient.name,
+            amount: total - abono,
+            originalAmount: total - abono,
+            description: `Venta de pollos - ${quantity} pollo(s), ${weight} lbs`
+          };
+        }
+      }
+
+      // Actualizar movimiento relacionado
+      const movementIndex = movements.findIndex(m => 
+        m.type === 'chicken_sale' && 
+        m.details && 
+        m.description && 
+        m.description.includes(`Venta de pollos - ${sale.clientName}`) &&
+        Math.abs(new Date(m.date) - new Date(sale.date)) < 60000 // Dentro de 1 minuto
+      );
+      
+      if (movementIndex !== -1) {
+        movements[movementIndex] = {
+          ...movements[movementIndex],
+          amount: total,
+          description: `Venta de pollos - ${selectedClient.name}`,
+          date: newDate.toISOString(),
+          details: {
+            quantity: quantity,
+            weight: weight,
+            pricePerPound: pricePerPound,
+            profit: profit,
+            paymentType: paymentType,
+            abono: abono
+          }
+        };
+      }
+
+      // Guardar todos los cambios
       await saveToStorage('chickenSales', chickenSales);
+      await saveToStorage('debts', debts);
+      await saveToStorage('movements', movements);
+
+      // Actualizar todas las vistas
       updateChickenStats();
       updateChickenSalesList();
-      Swal.fire({ icon: 'success', title: 'Venta actualizada', text: 'La venta de pollos fue actualizada correctamente.', timer: 1500, showConfirmButton: false });
+      updateBalanceUI();
+      renderBalanceGrid();
+      renderDebts();
+
+      Swal.fire({ 
+        icon: 'success', 
+        title: 'Venta actualizada', 
+        text: 'La venta de pollos fue actualizada correctamente y todos los cambios se aplicaron a la contabilidad.', 
+        timer: 2000, 
+        showConfirmButton: false 
+      });
     }
   });
 }
 
-// Modificar updateChickenSalesList para agregar botón de editar
+// Modificar updateChickenSalesList para agregar botón de editar y eliminar
 function updateChickenSalesList() {
   const container = document.getElementById('chickenSalesList');
   if (!container) return;
@@ -1428,7 +1513,14 @@ function updateChickenSalesList() {
         <div class="chicken-sale-date-treinta">
           ${new Date(sale.date).toLocaleDateString()} ${sale.time}
         </div>
-        <button class="btn btn-sm btn-outline-primary ms-2" title="Editar" onclick="editChickenSale(${chickenSales.indexOf(sale)})"><i class="bi bi-pencil"></i></button>
+        <div class="btn-group ms-2" role="group">
+          <button class="btn btn-sm btn-outline-primary" title="Editar" onclick="editChickenSale(${chickenSales.indexOf(sale)})">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" title="Eliminar" onclick="deleteChickenSale(${chickenSales.indexOf(sale)})">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
       </div>
       <div class="chicken-sale-details-treinta">
         <div class="chicken-sale-detail-treinta">
@@ -1463,6 +1555,82 @@ function updateChickenSalesList() {
 
 // Exponer la función globalmente
 window.editChickenSale = editChickenSale;
+
+// === Eliminación de ventas de pollos ===
+async function deleteChickenSale(index) {
+  const sale = chickenSales[index];
+  if (!sale) return;
+
+  // Confirmar eliminación
+  const result = await Swal.fire({
+    title: '¿Eliminar venta?',
+    text: `¿Estás seguro de que quieres eliminar la venta de pollos a ${sale.clientName} por $${sale.total.toFixed(2)}?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#dc3545',
+    cancelButtonColor: '#6c757d'
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    // 1. Eliminar la venta de pollos
+    chickenSales.splice(index, 1);
+    await saveToStorage('chickenSales', chickenSales);
+
+    // 2. Eliminar deuda relacionada si existe
+    const debtIndex = debts.findIndex(d => d.saleId === sale.id);
+    if (debtIndex !== -1) {
+      debts.splice(debtIndex, 1);
+      await saveToStorage('debts', debts);
+    }
+
+    // 3. Eliminar movimiento relacionado
+    const movementIndex = movements.findIndex(m => 
+      m.type === 'chicken_sale' && 
+      m.details && 
+      m.description && 
+      m.description.includes(`Venta de pollos - ${sale.clientName}`) &&
+      Math.abs(new Date(m.date) - new Date(sale.date)) < 60000 // Dentro de 1 minuto
+    );
+    
+    if (movementIndex !== -1) {
+      movements.splice(movementIndex, 1);
+      await saveToStorage('movements', movements);
+    }
+
+    // 4. Actualizar todas las vistas
+    updateChickenStats();
+    updateChickenSalesList();
+    updateBalanceUI();
+    renderBalanceGrid();
+    renderDebts();
+
+    // 5. Mostrar confirmación
+    Swal.fire({
+      icon: 'success',
+      title: 'Venta eliminada',
+      text: 'La venta de pollos fue eliminada completamente de la aplicación.',
+      timer: 2000,
+      showConfirmButton: false
+    });
+
+  } catch (error) {
+    console.error('Error eliminando venta de pollos:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No se pudo eliminar la venta. Inténtalo de nuevo.',
+      confirmButtonText: 'Aceptar'
+    });
+  }
+}
+
+// Exponer la función globalmente
+window.deleteChickenSale = deleteChickenSale;
+
 // Finalizar venta de pollos desde el resumen
 async function finalizeChickenSale() {
   // Obtener datos del formulario
@@ -5697,155 +5865,6 @@ async function checkBackupStatus() {
 
   console.log('📊 Estado de backups:', status);
   return status;
-}
-
-// Función para mostrar el estado de backups en una interfaz amigable
-async function showBackupStatus() {
-  const status = await checkBackupStatus();
-  
-  let html = `
-    <div class="backup-status-container">
-      <h5 class="mb-3">Estado de Backups Automáticos</h5>
-      
-      <div class="row">
-        <div class="col-md-4">
-          <div class="card ${status.local.enabled ? 'border-success' : 'border-secondary'}">
-            <div class="card-header">
-              <h6 class="mb-0">📱 Backup Local</h6>
-            </div>
-            <div class="card-body">
-              <p class="mb-1"><strong>Estado:</strong> ${status.local.enabled ? '✅ Activo' : '❌ Inactivo'}</p>
-              ${status.local.enabled ? `
-                <p class="mb-1"><strong>Intervalo:</strong> ${status.local.interval} minutos</p>
-                <p class="mb-1"><strong>Último backup:</strong> ${status.local.lastBackup ? new Date(parseInt(status.local.lastBackup)).toLocaleString() : 'Nunca'}</p>
-              ` : ''}
-            </div>
-          </div>
-        </div>
-        
-        <div class="col-md-4">
-          <div class="card ${status.telegram.enabled ? 'border-success' : 'border-secondary'}">
-            <div class="card-header">
-              <h6 class="mb-0">📱 Telegram</h6>
-            </div>
-            <div class="card-body">
-              <p class="mb-1"><strong>Estado:</strong> ${status.telegram.enabled ? '✅ Activo' : status.telegram.configured ? '⚠️ Configurado pero inactivo' : '❌ No configurado'}</p>
-              ${status.telegram.enabled ? `
-                <p class="mb-1"><strong>Intervalo:</strong> ${status.telegram.interval} minutos</p>
-                <p class="mb-1"><strong>Último backup:</strong> ${status.telegram.lastBackup ? new Date(parseInt(status.telegram.lastBackup)).toLocaleString() : 'Nunca'}</p>
-                ${status.telegram.nextBackup ? `<p class="mb-1"><strong>Próximo backup:</strong> ${new Date(status.telegram.nextBackup).toLocaleString()}</p>` : ''}
-                ${status.telegram.lastError ? `<p class="mb-1 text-danger"><strong>Último error:</strong> ${localStorage.getItem('lastTelegramBackupErrorMsg') || 'Error desconocido'}</p>` : ''}
-              ` : ''}
-            </div>
-          </div>
-        </div>
-        
-        <div class="col-md-4">
-          <div class="card ${status.googleDrive.enabled && status.googleDrive.tokenValid ? 'border-success' : 'border-secondary'}">
-            <div class="card-header">
-              <h6 class="mb-0">☁️ Google Drive</h6>
-            </div>
-            <div class="card-body">
-              <p class="mb-1"><strong>Estado:</strong> ${status.googleDrive.enabled && status.googleDrive.tokenValid ? '✅ Activo' : status.googleDrive.configured ? '⚠️ Configurado pero token inválido' : '❌ No configurado'}</p>
-              ${status.googleDrive.enabled ? `
-                <p class="mb-1"><strong>Intervalo:</strong> ${status.googleDrive.interval} minutos</p>
-                <p class="mb-1"><strong>Token válido:</strong> ${status.googleDrive.tokenValid ? '✅ Sí' : '❌ No'}</p>
-                <p class="mb-1"><strong>Último backup:</strong> ${status.googleDrive.lastBackup ? new Date(parseInt(status.googleDrive.lastBackup)).toLocaleString() : 'Nunca'}</p>
-                ${status.googleDrive.nextBackup ? `<p class="mb-1"><strong>Próximo backup:</strong> ${new Date(status.googleDrive.nextBackup).toLocaleString()}</p>` : ''}
-                ${status.googleDrive.lastError ? `<p class="mb-1 text-danger"><strong>Último error:</strong> ${localStorage.getItem('lastGoogleDriveBackupErrorMsg') || 'Error desconocido'}</p>` : ''}
-              ` : ''}
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="mt-3">
-        <button class="btn btn-primary btn-sm" onclick="checkBackupStatus().then(console.log)">
-          🔄 Actualizar Estado
-        </button>
-        <button class="btn btn-warning btn-sm" onclick="forceBackupTest()">
-          🧪 Probar Backups
-        </button>
-      </div>
-    </div>
-  `;
-  
-  Swal.fire({
-    title: 'Estado de Backups',
-    html: html,
-    width: '800px',
-    showConfirmButton: true,
-    confirmButtonText: 'Cerrar'
-  });
-}
-
-// Función para forzar una prueba de todos los backups
-async function forceBackupTest() {
-  console.log('🧪 Iniciando prueba de backups...');
-  
-  const results = {
-    local: false,
-    telegram: false,
-    googleDrive: false
-  };
-  
-  try {
-    // Probar backup local
-    const localSuccess = await saveAllCriticalData();
-    results.local = localSuccess;
-    console.log('✅ Backup local:', localSuccess ? 'Exitoso' : 'Falló');
-  } catch (error) {
-    console.error('❌ Error en backup local:', error);
-  }
-  
-  try {
-    // Probar backup de Telegram
-    const telegramConfig = await localforage.getItem('telegram_backup_config');
-    if (telegramConfig && telegramConfig.enabled) {
-      const data = await getAllAppData();
-      await sendTelegramBackup(telegramConfig, data);
-      results.telegram = true;
-      console.log('✅ Backup de Telegram: Exitoso');
-    } else {
-      console.log('⚠️ Backup de Telegram: No configurado');
-    }
-  } catch (error) {
-    console.error('❌ Error en backup de Telegram:', error);
-  }
-  
-  try {
-    // Probar backup de Google Drive
-    if (typeof ensureGoogleAccessToken === 'function') {
-      const tokenValid = await ensureGoogleAccessToken();
-      if (tokenValid) {
-        const data = await getAllAppData();
-        const fileContent = JSON.stringify(data, null, 2);
-        await uploadBackupToDrive(fileContent);
-        results.googleDrive = true;
-        console.log('✅ Backup de Google Drive: Exitoso');
-      } else {
-        console.log('❌ Backup de Google Drive: Token inválido');
-      }
-    } else {
-      console.log('⚠️ Backup de Google Drive: Función no disponible');
-    }
-  } catch (error) {
-    console.error('❌ Error en backup de Google Drive:', error);
-  }
-  
-  console.log('📊 Resultados de prueba:', results);
-  
-  Swal.fire({
-    title: 'Prueba de Backups Completada',
-    html: `
-      <div class="text-left">
-        <p><strong>Backup Local:</strong> ${results.local ? '✅ Exitoso' : '❌ Falló'}</p>
-        <p><strong>Backup Telegram:</strong> ${results.telegram ? '✅ Exitoso' : '❌ Falló'}</p>
-        <p><strong>Backup Google Drive:</strong> ${results.googleDrive ? '✅ Exitoso' : '❌ Falló'}</p>
-      </div>
-    `,
-    icon: 'info'
-  });
 }
 
 // Función para mostrar el estado de backups en una interfaz amigable
