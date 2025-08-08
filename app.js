@@ -1336,7 +1336,7 @@ function editChickenSale(index) {
         </div>
         <div class="mb-2">
           <label class="form-label">Fecha</label>
-          <input type="date" class="form-control" id="editChickenDate" value="${sale.date ? sale.date.slice(0,10) : ''}" required>
+          <input type="date" class="form-control" id="editChickenDate" value="${sale.date ? sale.date.split('T')[0] : ''}" required>
         </div>
       </form>
     `,
@@ -1369,9 +1369,14 @@ function editChickenSale(index) {
       // Obtener el cliente seleccionado
       const selectedClient = clients.find(c => c.id === clientId);
       
-      // Crear fecha local correcta manteniendo la hora original
+      // Crear fecha usando el mismo formato que en la creación original
       const originalDate = new Date(sale.date);
       const [year, month, day] = date.split('-');
+      
+      // Usar el mismo formato que en handleChickenSale original
+      const newDateString = `${year}-${month}-${day}T${originalDate.getHours().toString().padStart(2,'0')}:${originalDate.getMinutes().toString().padStart(2,'0')}:${originalDate.getSeconds().toString().padStart(2,'0')}`;
+      
+      // Para crear el objeto Date para movimientos y deudas
       const newDate = new Date(
         parseInt(year),
         parseInt(month) - 1,
@@ -1400,10 +1405,7 @@ function editChickenSale(index) {
         paymentType,
         abono,
         debt: paymentType === 'credit' ? total - abono : 0,
-        date: newDate.toISOString().split('T')[0] + 'T' + 
-              newDate.getHours().toString().padStart(2,'0') + ':' +
-              newDate.getMinutes().toString().padStart(2,'0') + ':' +
-              newDate.getSeconds().toString().padStart(2,'0'),
+        date: newDateString,
       };
 
       // Manejar cambios en deudas
