@@ -4650,10 +4650,30 @@ function showDebtDetailModal(debtId) {
   }).then(result => {
     if (result.isConfirmed) {
       // Pagar todo
-      d.abono = (d.abono || 0) + d.amount;
+      const paymentAmount = d.amount;
+      
+      // Crear registro de pago
+      if (!d.payments) d.payments = [];
+      d.payments.push({
+        id: Date.now().toString(),
+        amount: paymentAmount,
+        date: new Date().toISOString(),
+        type: 'full_payment',
+        createdAt: new Date().toISOString()
+      });
+      
+      d.abono = (d.abono || 0) + paymentAmount;
       d.amount = 0;
       saveToStorage('debts', debts);
       renderDebts();
+      updateBalanceUI(); // Actualizar estadísticas
+      
+      // Actualizar vista de movimientos si está activa
+      const movementsView = document.getElementById('view-movements');
+      if (movementsView && !movementsView.classList.contains('d-none')) {
+        loadMovementData(currentMovementFilter || 'today');
+      }
+      
       Swal.fire({ icon: 'success', title: 'Deuda pagada', text: 'La deuda ha sido pagada en su totalidad.' });
     } else if (result.isDenied) {
       // Abonar
@@ -4675,11 +4695,29 @@ function showDebtDetailModal(debtId) {
       }).then((abonoResult) => {
         if (abonoResult.isConfirmed) {
           const abono = abonoResult.value;
+          
+          // Crear registro de pago
+          if (!d.payments) d.payments = [];
+          d.payments.push({
+            id: Date.now().toString(),
+            amount: abono,
+            date: new Date().toISOString(),
+            type: 'partial_payment',
+            createdAt: new Date().toISOString()
+          });
+          
           d.abono = (d.abono || 0) + abono;
           d.amount -= abono;
           if (d.amount < 0) d.amount = 0;
           saveToStorage('debts', debts);
           renderDebts();
+          updateBalanceUI(); // Actualizar estadísticas
+          
+          // Actualizar vista de movimientos si está activa
+          const movementsView = document.getElementById('view-movements');
+          if (movementsView && !movementsView.classList.contains('d-none')) {
+            loadMovementData(currentMovementFilter || 'today');
+          }
           Swal.fire({ icon: 'success', title: 'Abono registrado', text: `Abono registrado: ${formatCurrency(abono)}` });
         }
       });
@@ -5475,6 +5513,17 @@ function showClientDebts(clientId) {
             if (remainingAbono <= 0) break;
             if (debt.amount > 0) {
               const abonoToApply = Math.min(remainingAbono, debt.amount);
+              
+              // Crear registro de pago
+              if (!debt.payments) debt.payments = [];
+              debt.payments.push({
+                id: Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9),
+                amount: abonoToApply,
+                date: new Date().toISOString(),
+                type: abonoToApply === debt.amount ? 'full_payment' : 'partial_payment',
+                createdAt: new Date().toISOString()
+              });
+              
               debt.abono = (debt.abono || 0) + abonoToApply;
               debt.amount -= abonoToApply;
               remainingAbono -= abonoToApply;
@@ -5484,6 +5533,14 @@ function showClientDebts(clientId) {
           saveToStorage('debts', debts);
           renderDebts();
           renderClients();
+          updateBalanceUI(); // Actualizar estadísticas
+          
+          // Actualizar vista de movimientos si está activa
+          const movementsView = document.getElementById('view-movements');
+          if (movementsView && !movementsView.classList.contains('d-none')) {
+            loadMovementData(currentMovementFilter || 'today');
+          }
+          
           Swal.fire({ 
             icon: 'success', 
             title: 'Abono registrado', 
@@ -7343,45 +7400,65 @@ function registerDebtPayment(debtId) {
     return;
   }
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const { debt: paidDebt, payment } = data;
-  
-  // Configurar fuente
-  doc.setFont('helvetica');
-  doc.setFontSize(12);
-  
-  // Título
-  doc.setFontSize(18);
-  doc.text('COMPROBANTE DE PAGO', 105, 20, { align: 'center' });
-  
-  // Información del pago
-  doc.setFontSize(12);
-  doc.text(`Pago de Deuda #${paidDebt.id}`, 14, 35);
-  doc.text(`Fecha: ${new Date(payment.date).toLocaleDateString()}`, 14, 45);
-  doc.text(`Cliente: ${paidDebt.clientName}`, 14, 55);
-  doc.text(`Monto pagado: $${payment.amount.toFixed(2)}`, 14, 65);
-  
-  // Información de la deuda original
-  doc.text(`Deuda original: $${paidDebt.amount.toFixed(2)}`, 14, 80);
-  
-  // Calcular monto restante
-  const totalPaid = (paidDebt.payments || []).reduce((sum, p) => sum + p.amount, 0);
-  const remainingAmount = paidDebt.amount - totalPaid;
-  doc.text(`Monto restante: $${remainingAmount.toFixed(2)}`, 14, 90);
-  
-  // Descripción si existe
-  if (paidDebt.description) {
-    doc.text(`Descripción: ${paidDebt.description}`, 14, 105);
-  }
-  
-  // Pie de página
-  doc.setFontSize(10);
-  doc.setTextColor(128, 128, 128);
-  doc.text('Generado por TillUp POS', 105, 280, { align: 'center' });
-  
-  // Descargar PDF
-  doc.save(`pago_deuda_${paidDebt.id}_${new Date(payment.date).getTime()}.pdf`);
+  // Mostrar modal para registrar el pago
+  Swal.fire({
+    title: 'Registrar Pago',
+    html: `
+      <div class="mb-3">
+        <label for="paymentAmount" class="form-label">Monto a pagar</label>
+        <input type="number" id="paymentAmount" class="form-control" min="1" max="${debt.amount}" placeholder="Ingrese el monto">
+        <div class="form-text">Saldo actual: $${debt.amount.toFixed(2)}</div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Registrar Pago',
+    cancelButtonText: 'Cancelar',
+    preConfirm: () => {
+      const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
+      if (amount <= 0 || amount > debt.amount) {
+        Swal.showValidationMessage('El monto debe ser mayor a 0 y no mayor al saldo de la deuda');
+        return false;
+      }
+      return amount;
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      const paymentAmount = result.value;
+      
+      // Crear registro de pago
+      if (!debt.payments) debt.payments = [];
+      debt.payments.push({
+        id: Date.now().toString(),
+        amount: paymentAmount,
+        date: new Date().toISOString(),
+        type: paymentAmount === debt.amount ? 'full_payment' : 'partial_payment',
+        createdAt: new Date().toISOString()
+      });
+      
+      // Actualizar saldos
+      debt.abono = (debt.abono || 0) + paymentAmount;
+      debt.amount -= paymentAmount;
+      if (debt.amount < 0) debt.amount = 0;
+      
+      // Guardar cambios
+      saveToStorage('debts', debts);
+      renderDebts();
+      updateBalanceUI();
+      
+      // Actualizar vista de movimientos si está activa
+      const movementsView = document.getElementById('view-movements');
+      if (movementsView && !movementsView.classList.contains('d-none')) {
+        loadMovementData(currentMovementFilter || 'today');
+      }
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Pago Registrado',
+        text: `Se registró un pago de $${paymentAmount.toFixed(2)}`,
+        confirmButtonText: 'Aceptar'
+      });
+    }
+  });
 }
 
 // Nueva función para actualizar estadísticas de pollos por rango de fechas
@@ -8472,27 +8549,32 @@ function getAllMovementsInRange(startDate, endDate) {
       }
     });
     
-    // Agregar pagos de deudas
-    debts.forEach(debt => {
-      if (debt.payments && debt.payments.length > 0) {
-        debt.payments.forEach(payment => {
-          const paymentDate = new Date(payment.date);
-          if (paymentDate >= startDate && paymentDate <= endDate) {
-            movements.push({
-              type: 'payment',
-              icon: 'bi-cash-coin',
-              title: `Pago Deuda #${debt.id}`,
-              subtitle: `${debt.clientName} - ${paymentDate.toLocaleDateString()}`,
-              amount: payment.amount,
-              amountClass: 'positive',
-              date: paymentDate,
-              data: { debt, payment },
-              category: 'pagos'
-            });
-          }
-        });
-      }
-    });
+      // Agregar pagos de deudas
+  let paymentsAdded = 0;
+  debts.forEach(debt => {
+    if (debt.payments && debt.payments.length > 0) {
+      debt.payments.forEach(payment => {
+        const paymentDate = new Date(payment.date);
+        if (paymentDate >= startDate && paymentDate <= endDate) {
+          movements.push({
+            type: 'payment',
+            icon: 'bi-cash-coin',
+            title: `Pago Deuda #${debt.id}`,
+            subtitle: `${debt.clientName} - ${paymentDate.toLocaleDateString()}`,
+            amount: payment.amount,
+            amountClass: 'positive',
+            date: paymentDate,
+            data: { debt, payment },
+            category: 'pagos'
+          });
+          paymentsAdded++;
+        }
+      });
+    }
+  });
+  
+  console.log('Pagos agregados:', paymentsAdded);
+  console.log('Total deudas con pagos:', debts.filter(d => d.payments && d.payments.length > 0).length);
   }
   
   // Ordenar por fecha más reciente
@@ -8584,7 +8666,9 @@ function updateMovementStats(movements, startDate = null, endDate = null) {
   console.log('Estadísticas calculadas:', {
     ventasNormales: stats.totalSalesAmount,
     ventasPollos: stats.totalChickenAmount,
+    deudas: stats.totalDebtsAmount,
     pagos: stats.totalPaymentsAmount,
+    cantidadPagos: stats.totalPayments,
     gananciasVentasNormales: totalSalesProfit,
     gananciasVentasPollos: totalChickenProfit,
     ingresosTotales: totalRevenue
