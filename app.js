@@ -6783,6 +6783,7 @@ function getMovementsByDateRange(startDate, endDate) {
           title: `Venta #${sale.id}`,
           subtitle: `${sale.clientName} - ${saleDate.toLocaleDateString()}`,
           amount: sale.total,
+          profit: sale.profit || 0,
           amountClass: 'positive',
           date: saleDate,
           data: sale
@@ -6803,6 +6804,7 @@ function getMovementsByDateRange(startDate, endDate) {
             title: `Venta Pollos #${sale.id}`,
             subtitle: `${sale.clientName} - ${saleDate.toLocaleDateString()}`,
             amount: sale.total,
+            profit: sale.profit || 0,
             amountClass: 'positive',
             date: saleDate,
             data: sale
@@ -6865,6 +6867,7 @@ function calculatePeriodSummary(movements) {
     totalDebts: 0,
     totalPayments: 0,
     sales: 0,
+    chickenSales: 0,
     debts: 0,
     payments: 0
   };
@@ -6874,6 +6877,9 @@ function calculatePeriodSummary(movements) {
       if (movement.type === 'sale') {
         summary.totalIncome += movement.amount;
         summary.sales++;
+      } else if (movement.type === 'chicken_sale') {
+        summary.totalIncome += movement.amount;
+        summary.chickenSales++;
       } else if (movement.type === 'debt') {
         summary.totalDebts += movement.amount;
         summary.debts++;
@@ -6884,7 +6890,10 @@ function calculatePeriodSummary(movements) {
     });
   }
   
-  summary.totalExpenses = summary.totalIncome - summary.totalPayments;
+  // Las deudas representan gastos pendientes de cobro (no gastos reales)
+  // Los ingresos reales son: ventas + ventas de pollos + pagos de deudas
+  // Los gastos no se calculan aquí ya que no tenemos esa información en los movimientos
+  summary.totalExpenses = 0; // No calculamos gastos aquí, solo movimientos de ingresos
   
   return summary;
 }
@@ -6892,6 +6901,9 @@ function calculatePeriodSummary(movements) {
 // Función para renderizar resumen del período
 function renderPeriodSummary(summary) {
   const container = document.getElementById('periodSummary');
+  
+  const totalSales = summary.sales + summary.chickenSales;
+  const totalSalesAmount = summary.totalIncome;
   
   container.innerHTML = `
     <div class="row g-3">
@@ -6901,9 +6913,9 @@ function renderPeriodSummary(summary) {
             <i class="bi bi-cart-check"></i>
           </div>
           <div class="summary-content">
-            <div class="summary-value">${summary.sales}</div>
-            <div class="summary-label">Ventas</div>
-            <div class="summary-amount">$${summary.totalIncome.toFixed(2)}</div>
+            <div class="summary-value">${totalSales}</div>
+            <div class="summary-label">Ventas (${summary.sales} + ${summary.chickenSales})</div>
+            <div class="summary-amount">$${totalSalesAmount.toFixed(2)}</div>
           </div>
         </div>
       </div>
@@ -8306,7 +8318,7 @@ async function loadMovementData(filterType) {
   console.log('Movimientos encontrados:', movements.length);
   
   // Actualizar estadísticas
-  updateMovementStats(movements);
+  updateMovementStats(movements, startDate, endDate);
   
   // Actualizar gráficas
   updateChartsWithData(movements);
@@ -8393,6 +8405,7 @@ function getAllMovementsInRange(startDate, endDate) {
           title: `Venta #${sale.id}`,
           subtitle: `${sale.clientName || 'Cliente no especificado'} - ${saleDate.toLocaleDateString()}`,
           amount: sale.total,
+          profit: sale.profit || 0,
           amountClass: 'positive',
           date: saleDate,
           data: sale,
@@ -8428,6 +8441,7 @@ function getAllMovementsInRange(startDate, endDate) {
           title: `Venta Pollos #${sale.id}`,
           subtitle: `${sale.clientName || 'Cliente no especificado'} - ${saleDate.toLocaleDateString()}`,
           amount: sale.total,
+          profit: sale.profit || 0,
           amountClass: 'positive',
           date: saleDate,
           data: sale,
@@ -8493,7 +8507,7 @@ function getAllMovementsInRange(startDate, endDate) {
 }
 
 // Actualizar estadísticas de movimientos
-function updateMovementStats(movements) {
+function updateMovementStats(movements, startDate = null, endDate = null) {
   const stats = {
     totalSales: 0,
     totalSalesAmount: 0,
@@ -8530,8 +8544,8 @@ function updateMovementStats(movements) {
   let totalSalesProfit = 0;
   let totalChickenProfit = 0;
   
-  // Calcular ganancias de ventas normales
-  if (sales && Array.isArray(sales)) {
+  // Si tenemos fechas definidas, calcular ganancias de ventas normales en el rango
+  if (sales && Array.isArray(sales) && startDate && endDate) {
     totalSalesProfit = sales.reduce((sum, sale) => {
       const saleDate = normalizeDate(sale.date);
       if (saleDate && saleDate >= startDate && saleDate <= endDate) {
@@ -8539,10 +8553,15 @@ function updateMovementStats(movements) {
       }
       return sum;
     }, 0);
+  } else {
+    // Si no hay rango de fechas, usar las ganancias de los movimientos ya filtrados
+    totalSalesProfit = movements
+      .filter(m => m.type === 'sale')
+      .reduce((sum, movement) => sum + (movement.profit || 0), 0);
   }
   
-  // Calcular ganancias de ventas de pollos
-  if (chickenSales && Array.isArray(chickenSales)) {
+  // Si tenemos fechas definidas, calcular ganancias de ventas de pollos en el rango
+  if (chickenSales && Array.isArray(chickenSales) && startDate && endDate) {
     totalChickenProfit = chickenSales.reduce((sum, sale) => {
       const saleDate = normalizeDate(sale.date);
       if (saleDate && saleDate >= startDate && saleDate <= endDate) {
@@ -8550,6 +8569,11 @@ function updateMovementStats(movements) {
       }
       return sum;
     }, 0);
+  } else {
+    // Si no hay rango de fechas, usar las ganancias de los movimientos ya filtrados
+    totalChickenProfit = movements
+      .filter(m => m.type === 'chicken_sale')
+      .reduce((sum, movement) => sum + (movement.profit || 0), 0);
   }
   
   // Los ingresos totales representan las ganancias netas reales: ganancias de ventas + pagos de deudas
