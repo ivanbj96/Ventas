@@ -237,6 +237,9 @@ async function loadData() {
     // Configurar detección de cambios para backup automático
     setupDataChangeDetection();
     
+    // Inicializar sincronización WebSocket
+    initWebSocketSync();
+    
   } catch (error) {
     console.error('Error cargando datos:', error);
     // Inicializar arrays vacíos en caso de error
@@ -1215,6 +1218,9 @@ async function handleChickenSale(e) {
   
   // Procesar la venta
   await processChickenSale(sale);
+  
+  // Sincronizar cambios
+  syncDataChange('chicken_sale_added', sale);
 }
 
 // === Cálculo de Merma de Pollo ===
@@ -9644,3 +9650,258 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+// === SISTEMA DE SINCRONIZACIÓN WEBSOCKET INTEGRADO ===
+let wsConnection = null;
+let syncIndicator = null;
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 5;
+
+function initWebSocketSync() {
+  if (!window.TILLUP_SYNC_CONFIG) return;
+  
+  const wsUrl = window.TILLUP_SYNC_CONFIG.WEBSOCKET_URL;
+  const userId = localStorage.getItem('tillup_user_id') || generateId('user_');
+  const deviceId = localStorage.getItem('tillup_device_id') || generateId('device_');
+  
+  localStorage.setItem('tillup_user_id', userId);
+  localStorage.setItem('tillup_device_id', deviceId);
+  
+  connectWebSocket(wsUrl, userId, deviceId);
+}
+
+function connectWebSocket(wsUrl, userId, deviceId) {
+  try {
+    wsConnection = new WebSocket(`${wsUrl}?userId=${userId}&deviceId=${deviceId}`);
+    
+    wsConnection.onopen = () => {
+      reconnectAttempts = 0;
+      showSyncIndicator('Conectado', 'success');
+      setTimeout(hideSyncIndicator, 2000);
+    };
+    
+    wsConnection.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        handleSyncMessage(data);
+      } catch (e) {
+        console.log('Mensaje WebSocket:', event.data);
+      }
+    };
+    
+    wsConnection.onclose = () => {
+      showSyncIndicator('Desconectado', 'error');
+      scheduleReconnect(wsUrl, userId, deviceId);
+    };
+    
+    wsConnection.onerror = () => {
+      showSyncIndicator('Error de conexión', 'error');
+    };
+    
+  } catch (error) {
+    console.error('Error conectando WebSocket:', error);
+  }
+}
+
+function scheduleReconnect(wsUrl, userId, deviceId) {
+  if (reconnectAttempts < maxReconnectAttempts) {
+    reconnectAttempts++;
+    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+    setTimeout(() => connectWebSocket(wsUrl, userId, deviceId), delay);
+  }
+}
+
+function handleSyncMessage(data) {
+  if (data.type === 'data_sync' && data.payload.sourceDeviceId !== localStorage.getItem('tillup_device_id')) {
+    showSyncIndicator('Sincronizando...', 'info');
+    applySyncData(data.payload);
+  }
+}
+
+async function applySyncData(payload) {
+  try {
+    if (payload.dataType === 'full_sync') {
+      // Sincronización completa
+      const keys = ['products', 'clients', 'sales', 'debts', 'chickenSales'];
+      for (const key of keys) {
+        if (payload.data[key]) {
+          await saveToStorage(key, payload.data[key]);
+          window[key] = payload.data[key];
+        }
+      }
+      
+      // Actualizar UI
+      updateAllViews();
+      showSyncIndicator('Datos actualizados', 'success');
+    }
+  } catch (error) {
+    console.error('Error aplicando sincronización:', error);
+    showSyncIndicator('Error sincronizando', 'error');
+  }
+  
+  setTimeout(hideSyncIndicator, 3000);
+}
+
+function syncDataChange(action, data) {
+  if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) return;
+  
+  const message = {
+    type: 'data_sync',
+    payload: {
+      action,
+      data,
+      sourceDeviceId: localStorage.getItem('tillup_device_id'),
+      timestamp: Date.now()
+    }
+  };
+  
+  wsConnection.send(JSON.stringify(message));
+  showSyncIndicator('Enviando...', 'info');
+  setTimeout(hideSyncIndicator, 2000);
+}
+
+function showSyncIndicator(message, type = 'info') {
+  // Remover indicador anterior
+  if (syncIndicator) {
+    syncIndicator.remove();
+  }
+  
+  const colors = {
+    success: '#28a745',
+    error: '#dc3545',
+    info: '#17a2b8'
+  };
+  
+  syncIndicator = document.createElement('div');
+  syncIndicator.innerHTML = `<i class="bi bi-arrow-repeat"></i> ${message}`;
+  syncIndicator.style.cssText = `
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    background: ${colors[type]};
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    z-index: 99999;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  `;
+  
+  document.body.appendChild(syncIndicator);
+}
+
+function hideSyncIndicator() {
+  if (syncIndicator) {
+    syncIndicator.remove();
+    syncIndicator = null;
+  }
+}
+
+function updateAllViews() {
+  const updateFunctions = [
+    'renderInventory',
+    'renderClients', 
+    'renderSalesProducts',
+    'updateBalanceUI',
+    'renderDebts',
+    'updateChickenStats',
+    'updateChickenSalesList'
+  ];
+  
+  updateFunctions.forEach(funcName => {
+    if (typeof window[funcName] === 'function') {
+      try {
+        window[funcName]();
+      } catch (e) {
+        console.log(`Error actualizando ${funcName}:`, e);
+      }
+    }
+  });
+}
+
+// Interceptar funciones principales para sincronización automática
+function setupSyncInterceptors() {
+  // Interceptar addProduct
+  const originalAddProduct = window.addProduct;
+  if (originalAddProduct) {
+    window.addProduct = async function(...args) {
+      const result = await originalAddProduct.apply(this, args);
+      if (result && window.products?.length) {
+        const lastProduct = window.products[window.products.length - 1];
+        syncDataChange('product_added', lastProduct);
+      }
+      return result;
+    };
+  }
+  
+  // Interceptar addClient
+  const originalAddClient = window.addClient;
+  if (originalAddClient) {
+    window.addClient = async function(...args) {
+      const result = await originalAddClient.apply(this, args);
+      if (result && window.clients?.length) {
+        const lastClient = window.clients[window.clients.length - 1];
+        syncDataChange('client_added', lastClient);
+      }
+      return result;
+    };
+  }
+  
+  // Interceptar finalizeSale
+  const originalFinalizeSale = window.finalizeSale;
+  if (originalFinalizeSale) {
+    window.finalizeSale = async function(...args) {
+      const result = await originalFinalizeSale.apply(this, args);
+      if (result && window.sales?.length) {
+        const lastSale = window.sales[window.sales.length - 1];
+        syncDataChange('sale_completed', lastSale);
+      }
+      return result;
+    };
+  }
+}
+
+// Inicializar interceptores cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(setupSyncInterceptors, 3000);
+});
+// === FUNCIÓN DE SINCRONIZACIÓN MANUAL ===
+function forceSyncData() {
+  if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) {
+    showSyncIndicator('Sin conexión', 'error');
+    setTimeout(hideSyncIndicator, 2000);
+    return;
+  }
+  
+  showSyncIndicator('Sincronizando...', 'info');
+  
+  // Enviar todos los datos actuales
+  const allData = {
+    products: window.products || [],
+    clients: window.clients || [],
+    sales: window.sales || [],
+    debts: window.debts || [],
+    chickenSales: window.chickenSales || []
+  };
+  
+  const message = {
+    type: 'data_sync',
+    payload: {
+      dataType: 'full_sync',
+      data: allData,
+      sourceDeviceId: localStorage.getItem('tillup_device_id'),
+      timestamp: Date.now()
+    }
+  };
+  
+  wsConnection.send(JSON.stringify(message));
+  
+  setTimeout(() => {
+    showSyncIndicator('Sincronizado', 'success');
+    setTimeout(hideSyncIndicator, 2000);
+  }, 1000);
+}
+
+// Exponer función globalmente
+window.forceSyncData = forceSyncData;

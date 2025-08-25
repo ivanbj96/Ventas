@@ -2,70 +2,282 @@
 
 ## 📱 PWA Moderna para Gestión de Negocios
 
-TillUp es una aplicación web progresiva (PWA) para la gestión completa de ventas, inventario, clientes, reportes financieros y ventas especializadas de pollos. Optimizada para dispositivos móviles y experiencia nativa.
+TillUp es una aplicación web progresiva (PWA) completa para la gestión integral de negocios, especializada en ventas, inventario, clientes, reportes financieros y ventas de pollos. Diseñada con tecnología moderna y optimizada para dispositivos móviles con experiencia nativa.
 
-## ✨ Características Actuales
+## ✨ Características Principales
 
-### 🐔 Gestión de Ventas de Pollos
-- Registro y edición de ventas de pollos (cantidad, peso, precio, cliente, abono, etc.)
-- Estadísticas y reportes especializados
-- Corrección de ventas para mantener estadísticas precisas
+### 🐔 Gestión Especializada de Pollos
+- **Ventas por peso y cantidad**: Registro detallado con peso, precio por libra, cantidad
+- **Configuración de precios**: Precio de venta y costo por libra configurable
+- **Cálculo de merma**: Herramienta para calcular merma de pollo en pluma vs pelado
+- **Estadísticas diarias**: Filtros por fecha, totales vendidos, ganancias
+- **Métodos de pago**: Contado y crédito con sistema de abonos
+- **Reportes especializados**: PDF con estadísticas completas de pollos
 
-### 🛒 Ventas y Clientes
-- Carrito de compras intuitivo
-- Múltiples métodos de pago (efectivo, crédito, transferencia)
-- Base de datos de clientes con historial y deudas
-- Seguimiento de pagos y abonos
+### 🛒 Sistema de Ventas Avanzado
+- **Carrito tipo e-commerce**: Interfaz moderna estilo Temu/Amazon
+- **Múltiples métodos de pago**: Efectivo, tarjeta, transferencia, crédito
+- **Gestión de stock en tiempo real**: Control automático de inventario
+- **Comprobantes digitales**: Tickets de venta profesionales
+- **Ventas rápidas**: Botón flotante de acciones rápidas
 
-### 📦 Inventario
-- Gestión de productos con imágenes
-- Control de stock y alertas
+### 👥 Gestión de Clientes
+- **Base de datos completa**: Nombre, teléfono, dirección, foto
+- **Geolocalización**: Captura automática de ubicación del cliente
+- **Historial de compras**: Seguimiento completo de transacciones
+- **Sistema de deudas**: Control de créditos, abonos y saldos pendientes
+- **Vistas flexibles**: Modo cuadrícula y lista
+- **Búsqueda avanzada**: Filtros por nombre y estado de deuda
 
-### 📊 Balance y Reportes
-- Dashboard financiero en tiempo real
-- Filtros por período (día, semana, mes, año)
-- Reportes PDF y exportación de datos
+### 📦 Inventario Inteligente
+- **Gestión de productos**: Nombre, precio, costo, categoría, stock
+- **Imágenes de productos**: Subida y vista previa de imágenes
+- **Control de stock**: Alertas de productos agotados
+- **Categorización**: Organización por categorías personalizables
+- **Vistas adaptables**: Cuadrícula y lista según preferencia
 
-### 🔒 Seguridad y Backup
-- Backup automático descargable cada 5 minutos (opcional)
-- Backup manual tras operaciones críticas
-- Exportación/importación de datos en JSON
-- Restauración fácil desde backup descargado
-- Protección de datos con localForage/IndexedDB
-- Opción de activar/desactivar backup automático desde el menú
+### 📊 Dashboard y Reportes
+- **Balance en tiempo real**: Ingresos, gastos, ganancias del período
+- **Filtros temporales**: Hoy, semana, mes, año, período personalizado
+- **Movimientos detallados**: Historial completo de transacciones
+- **Gráficos interactivos**: Tendencias y distribución de ventas
+- **Exportación PDF**: Reportes profesionales de ventas, balance, deudas y pollos
+- **Estadísticas avanzadas**: Márgenes de ganancia, productos más vendidos
 
-### ⚡ Experiencia Móvil y PWA
-- Gestos táctiles y feedback háptico
-- Pull-to-refresh, navegación por swipe
-- Instalación como app nativa
-- Funcionamiento offline
-- Notificaciones y actualizaciones automáticas
+### 🔄 Sincronización en Tiempo Real
+- **WebSocket AWS**: Sincronización automática entre dispositivos
+- **API Gateway**: Infraestructura serverless en AWS
+- **Lambda Functions**: Procesamiento de mensajes en tiempo real
+- **DynamoDB**: Base de datos NoSQL para conexiones activas
+- **Multi-dispositivo**: Trabajo colaborativo en tiempo real
 
-## 🗂️ Estructura de Archivos
+### ☁️ Backup y Seguridad
+- **Google Drive Integration**: Backup automático en la nube
+- **Backup local**: Descarga automática cada 5 minutos (configurable)
+- **Protección de datos**: Sistema híbrido localStorage + IndexedDB
+- **Validación de integridad**: Verificación automática de datos
+- **Recuperación automática**: Restauración en caso de pérdida de datos
+- **Exportación/Importación**: Formato JSON para migración de datos
+
+### 📱 Experiencia Móvil Nativa
+- **PWA Completa**: Instalación como app nativa
+- **Gestos táctiles**: Swipe, pull-to-refresh, feedback háptico
+- **Modo offline**: Funcionamiento sin conexión a internet
+- **Notificaciones push**: Alertas y actualizaciones automáticas
+- **Shortcuts de app**: Accesos rápidos desde el launcher
+- **Responsive design**: Adaptado a móviles, tablets y desktop
+
+### 🎨 Interfaz Moderna
+- **Diseño tipo Treinta.co**: Interfaz profesional y moderna
+- **Tema claro optimizado**: Diseño limpio y profesional
+- **Sidebar navegación**: Menú lateral con todas las funciones
+- **Animaciones fluidas**: Transiciones suaves y feedback visual
+- **Iconografía Bootstrap**: Iconos consistentes y reconocibles
+
+## 🏗️ Arquitectura Técnica
+
+### Frontend
+- **HTML5 + CSS3**: Estructura semántica y estilos modernos
+- **JavaScript ES6+**: Código modular y orientado a objetos
+- **Bootstrap 5.3**: Framework CSS responsive
+- **Chart.js**: Gráficos interactivos y visualización de datos
+- **SweetAlert2**: Modales y notificaciones elegantes
+
+### Backend/Infraestructura
+- **AWS API Gateway**: WebSocket API para tiempo real
+- **AWS Lambda**: Funciones serverless (Python 3.11)
+- **AWS DynamoDB**: Base de datos NoSQL para conexiones
+- **AWS CloudFormation**: Infraestructura como código
+
+### Persistencia
+- **LocalStorage**: Almacenamiento rápido local
+- **IndexedDB (LocalForage)**: Base de datos local robusta
+- **Google Drive API**: Backup en la nube
+- **Service Worker**: Cache inteligente y modo offline
+
+### Generación de Reportes
+- **jsPDF**: Generación de PDFs del lado cliente
+- **jsPDF AutoTable**: Tablas profesionales en PDF
+- **Plantillas personalizadas**: Diseño tipo Treinta.co
+
+## 🗂️ Estructura del Proyecto
 
 ```
 Ventas/
-├── index.html
-├── app.js
-├── utils.js
-├── pdf-generator.js
-├── style.css
-├── manifest.json
-├── sw.js
-├── icons/
-├── libs/
-├── offline.html
-├── README.md
-├── CHANGELOG.md
-├── LICENSE
+├── 📄 index.html              # Aplicación principal
+├── 🎯 app.js                  # Lógica de la aplicación
+├── 🔧 utils.js                # Utilidades y persistencia
+├── 📊 pdf-generator.js        # Generación de reportes PDF
+├── 🎨 style.css               # Estilos tipo Treinta.co
+├── 📱 manifest.json           # Configuración PWA
+├── ⚙️ sw.js                   # Service Worker
+├── 🖼️ icons/                  # Iconos de la aplicación
+│   ├── icon-192.png
+│   ├── icon-512.png
+│   └── descarga.png
+├── 🔄 websocket-sync/         # Sistema de sincronización
+│   ├── 📋 template.yaml       # CloudFormation template
+│   ├── 🚀 deploy.bat          # Script de despliegue
+│   ├── 🧪 test-connection.html # Test de WebSocket
+│   ├── 🔗 tillup-sync.js      # Cliente WebSocket
+│   └── 📁 lambda/             # Funciones Lambda
+│       ├── connect.py
+│       ├── disconnect.py
+│       └── message.py
+├── 📖 README.md               # Documentación
+├── 📋 CHANGELOG.md            # Historial de cambios
+└── ⚖️ LICENSE                 # Licencia del proyecto
 ```
 
-## 🚀 Instalación y Uso
+## 🚀 Instalación y Configuración
 
-1. Clona o descarga el repositorio
-2. Abre `index.html` en un servidor web
-3. Instala como PWA desde el navegador
-4. Configura precios y datos iniciales
+### Instalación Local
+1. **Clonar repositorio**:
+   ```bash
+   git clone [repository-url]
+   cd Ventas
+   ```
+
+2. **Servidor local**:
+   ```bash
+   # Con Python
+   python -m http.server 8000
+   
+   # Con Node.js
+   npx serve .
+   
+   # Con PHP
+   php -S localhost:8000
+   ```
+
+3. **Acceder a la aplicación**:
+   - Abrir `http://localhost:8000` en el navegador
+   - Instalar como PWA desde el menú del navegador
+
+### Configuración de Sincronización (Opcional)
+1. **Desplegar infraestructura AWS**:
+   ```bash
+   cd websocket-sync
+   ./deploy.bat
+   ```
+
+2. **Configurar Google Drive**:
+   - Crear proyecto en Google Cloud Console
+   - Habilitar Google Drive API
+   - Configurar OAuth 2.0
+   - Actualizar credenciales en la app
+
+### Configuración Inicial
+1. **Precios de pollos**: Configurar precio y costo por libra
+2. **Productos**: Agregar inventario inicial
+3. **Clientes**: Registrar base de clientes
+4. **Backup**: Activar sincronización automática
+
+## 🎯 Casos de Uso
+
+### Para Pollería/Carnicería
+- Venta de pollos por peso con cálculo automático
+- Control de merma y costos reales
+- Gestión de clientes frecuentes
+- Reportes de ganancias diarias
+
+### Para Tienda General
+- Inventario de productos variados
+- Sistema de ventas con carrito
+- Control de stock automático
+- Múltiples métodos de pago
+
+### Para Negocio Multi-dispositivo
+- Sincronización en tiempo real
+- Trabajo colaborativo
+- Backup automático en la nube
+- Acceso desde cualquier dispositivo
+
+## 📊 Reportes Disponibles
+
+### Reporte de Balance
+- Ingresos totales del período
+- Gastos y costos
+- Ganancia neta
+- Desglose por método de pago
+
+### Reporte de Ventas
+- Lista detallada de todas las ventas
+- Totales por cliente
+- Análisis por producto
+- Tendencias de venta
+
+### Reporte de Pollos
+- Pollos vendidos por período
+- Peso total comercializado
+- Ganancias por libra
+- Estadísticas de merma
+
+### Reporte de Deudas
+- Clientes con saldo pendiente
+- Historial de abonos
+- Análisis de cartera
+- Proyección de cobros
+
+## 🔧 Tecnologías Utilizadas
+
+### Frontend
+- HTML5, CSS3, JavaScript ES6+
+- Bootstrap 5.3.3
+- Bootstrap Icons 1.10.5
+- Chart.js 4.4.0
+- SweetAlert2 11.x
+- jsPDF 2.5.1 + AutoTable 3.5.28
+
+### Backend/Cloud
+- AWS API Gateway (WebSocket)
+- AWS Lambda (Python 3.11)
+- AWS DynamoDB
+- AWS CloudFormation
+- Google Drive API
+- Google Identity Services
+
+### PWA/Mobile
+- Service Worker
+- Web App Manifest
+- LocalForage (IndexedDB)
+- Geolocation API
+- Vibration API
+- Notification API
+
+## 📱 Características PWA
+
+### Instalación Nativa
+- Instalable desde cualquier navegador
+- Icono en el launcher del dispositivo
+- Pantalla de splash personalizada
+- Funcionamiento como app nativa
+
+### Funcionalidades Offline
+- Cache inteligente de recursos
+- Funcionamiento sin internet
+- Sincronización al reconectar
+- Almacenamiento local robusto
+
+### Integración del Sistema
+- Shortcuts de aplicación
+- Compartir contenido
+- Manejo de archivos JSON
+- Protocolo personalizado web+tillup
+
+## 🔐 Seguridad y Privacidad
+
+### Protección de Datos
+- Almacenamiento local encriptado
+- Backup automático seguro
+- Validación de integridad
+- Recuperación ante fallos
+
+### Privacidad
+- Sin recolección de datos personales
+- Procesamiento local de información
+- Backup opcional en Google Drive
+- Control total del usuario
 
 ## 📄 Documentos Legales
 
@@ -86,8 +298,32 @@ Si deseas usar, modificar o distribuir este software, debes contactar al autor y
 
 Ver el archivo `LICENSE` para más detalles.
 
+## 🚀 Roadmap
+
+### Próximas Funcionalidades
+- [ ] Integración con impresoras térmicas
+- [ ] Sistema de empleados y permisos
+- [ ] Análisis predictivo de ventas
+- [ ] Integración con bancos (API)
+- [ ] App móvil nativa (React Native)
+- [ ] Dashboard web administrativo
+- [ ] Integración con WhatsApp Business
+- [ ] Sistema de fidelización de clientes
+
+### Mejoras Técnicas
+- [ ] Optimización de rendimiento
+- [ ] Pruebas automatizadas
+- [ ] Documentación de API
+- [ ] Monitoreo y analytics
+- [ ] Escalabilidad horizontal
+- [ ] Backup incremental
+
 ---
 
 **TillUp POS** - Transformando la gestión de negocios con tecnología moderna y experiencia de usuario excepcional.
 
-*Desarrollado con ❤️ para emprendedores y pequeños negocios.* 
+*Desarrollado con ❤️ para emprendedores y pequeños negocios.*
+
+**Versión**: 1.4.0  
+**Última actualización**: Diciembre 2024  
+**Compatibilidad**: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+

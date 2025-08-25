@@ -48,6 +48,9 @@
   <script src="https://apis.google.com/js/api.js"></script>
   <!-- Google Identity Services para OAuth 2.0 -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- WebSocket Sync -->
+  <script src="websocket-sync/config.js"></script>
+  <script src="websocket-sync/tillup-instant-sync.js"></script>
 </head>
 <body class="bg-light">
   <!-- Google Tag Manager (noscript) -->
@@ -399,6 +402,9 @@
         <div class="d-flex gap-2">
           <button onclick="generatePDF('balance')" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-download"></i> Exportar PDF
+          </button>
+          <button onclick="forceSyncData()" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-arrow-repeat"></i> Sincronizar
           </button>
         </div>
       </div>
@@ -1279,6 +1285,11 @@
   
   <!-- localForage CDN (recomendado) -->
   <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+  
+  <!-- Sistema de Sincronización en Tiempo Real -->
+  <script src="websocket-sync/config.js"></script>
+  <script src="websocket-sync/tillup-realtime-sync.js"></script>
+  
   <!-- App JS -->
   <script src="app.js"></script>
 
@@ -1484,6 +1495,23 @@
     googleAccessToken = resp.access_token;
     localStorage.setItem('googleAccessToken', googleAccessToken);
     localStorage.setItem('googleTokenTimestamp', Date.now().toString());
+    
+    // Obtener información del usuario para sincronización
+    try {
+      const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { 'Authorization': `Bearer ${googleAccessToken}` }
+      });
+      if (userResponse.ok) {
+        const userInfo = await userResponse.json();
+        localStorage.setItem('googleUserEmail', userInfo.email);
+        console.log('Email de usuario guardado para sincronización:', userInfo.email);
+        
+        // Disparar evento para reinicializar sincronización
+        window.dispatchEvent(new CustomEvent('googleSignIn'));
+      }
+    } catch (error) {
+      console.error('Error obteniendo información del usuario:', error);
+    }
     
     console.log('Token de Google guardado exitosamente');
     enableGoogleDriveButtons(true);

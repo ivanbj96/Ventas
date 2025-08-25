@@ -1,5 +1,5 @@
 {
-    "livePreview.defaultPreviewPath": "/index.html",
+    "livePreview.defaultPreviewPath": "/websocket-sync/test-sync.html",
     "ai-features.AiEnable.enableAI": true,
     "ai-features.google.apiKey": "AIzaSyDfyt4faxk8JYaYKt-DM_rbsuY-zEG9a7Q",
     "ai-features.codeCompletion.automaticCodeCompletion": true

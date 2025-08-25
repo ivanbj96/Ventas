@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Conexión WebSocket - TillUp</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        #log { background: #f8f9fa; padding: 15px; border: 1px solid #dee2e6; border-radius: 5px; height: 300px; overflow-y: auto; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>🔌 Test de Conexión WebSocket API Gateway</h1>
+    
+    <div id="connectionStatus" class="status info">
+        Estado: Desconectado
+    </div>
+    
+    <div>
+        <button onclick="testConnection()">🔗 Probar Conexión</button>
+        <button onclick="sendTestMessage()">📤 Enviar Mensaje de Prueba</button>
+        <button onclick="disconnect()">❌ Desconectar</button>
+        <button onclick="clearLog()">🗑️ Limpiar Log</button>
+    </div>
+    
+    <h3>📋 Log de Conexión:</h3>
+    <div id="log"></div>
+    
+    <script>
+        const WS_URL = 'wss://yxn4kg5pjh.execute-api.us-east-1.amazonaws.com/prod';
+        let ws = null;
+        let connectionStartTime = null;
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = {
+                'info': '#0c5460',
+                'success': '#155724',
+                'error': '#721c24',
+                'warning': '#856404'
+            }[type] || '#000';
+            
+            logDiv.innerHTML += `<div style="color: ${color};">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function updateStatus(message, type) {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.textContent = `Estado: ${message}`;
+            statusDiv.className = `status ${type}`;
+        }
+        
+        function testConnection() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('⚠️ Ya hay una conexión activa', 'warning');
+                return;
+            }
+            
+            log('🔄 Iniciando conexión a: ' + WS_URL, 'info');
+            connectionStartTime = Date.now();
+            
+            const userId = 'test_user_' + Date.now();
+            const deviceId = 'test_device_' + Date.now();
+            const url = `${WS_URL}?userId=${userId}&deviceId=${deviceId}`;
+            
+            ws = new WebSocket(url);
+            
+            ws.onopen = function(event) {
+                const connectionTime = Date.now() - connectionStartTime;
+                log(`✅ Conexión establecida en ${connectionTime}ms`, 'success');
+                updateStatus('Conectado', 'success');
+                
+                // Enviar mensaje de prueba automático
+                setTimeout(() => {
+                    sendTestMessage();
+                }, 1000);
+            };
+            
+            ws.onmessage = function(event) {
+                log(`📥 Mensaje recibido: ${event.data}`, 'success');
+                try {
+                    const data = JSON.parse(event.data);
+                    log(`📊 Datos parseados: ${JSON.stringify(data, null, 2)}`, 'info');
+                } catch (e) {
+                    log(`📄 Mensaje de texto: ${event.data}`, 'info');
+                }
+            };
+            
+            ws.onclose = function(event) {
+                log(`❌ Conexión cerrada. Código: ${event.code}, Razón: ${event.reason}`, 'error');
+                updateStatus('Desconectado', 'error');
+                ws = null;
+            };
+            
+            ws.onerror = function(error) {
+                log(`💥 Error de conexión: ${error}`, 'error');
+                updateStatus('Error de conexión', 'error');
+            };
+            
+            // Timeout de conexión
+            setTimeout(() => {
+                if (ws && ws.readyState === WebSocket.CONNECTING) {
+                    log('⏰ Timeout de conexión (10s)', 'error');
+                    ws.close();
+                }
+            }, 10000);
+        }
+        
+        function sendTestMessage() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('❌ No hay conexión activa para enviar mensaje', 'error');
+                return;
+            }
+            
+            const testMessage = {
+                type: 'sync_update',
+                payload: {
+                    type: 'test_message',
+                    data: { test: true, timestamp: Date.now() },
+                    userId: 'test_user',
+                    deviceId: 'test_device',
+                    timestamp: Date.now()
+                }
+            };
+            
+            log(`📤 Enviando mensaje de prueba: ${JSON.stringify(testMessage)}`, 'info');
+            ws.send(JSON.stringify(testMessage));
+        }
+        
+        function disconnect() {
+            if (ws) {
+                log('🔌 Cerrando conexión manualmente', 'warning');
+                ws.close();
+            } else {
+                log('⚠️ No hay conexión activa', 'warning');
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // Test automático al cargar la página
+        window.onload = function() {
+            log('🚀 Test de conexión WebSocket iniciado', 'info');
+            log('🎯 Endpoint: ' + WS_URL, 'info');
+        };
+    </script>
+</body>
+</html>

@@ -903,9 +903,19 @@ function getStorageStats() {
   }
 }
 
+// === Funciones de sincronización mejoradas ===
+async function saveToStorageWithSync(key, data) {
+  const success = await saveToStorage(key, data);
+  if (success && window.syncDataChange) {
+    window.syncDataChange('data_updated', { key, timestamp: Date.now() });
+  }
+  return success;
+}
+
 // === Exportar funciones para uso global ===
 window.formatCurrency = formatCurrency;
 window.saveToStorage = saveToStorage;
+window.saveToStorageWithSync = saveToStorageWithSync;
 window.loadFromStorage = loadFromStorage;
 window.generateId = generateId;
 window.isValidEmail = isValidEmail;
