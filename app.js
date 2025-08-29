@@ -1,3 +1,14 @@
+// ========================================
+// 🌟 TILLUP POS - APLICACIÓN PRINCIPAL
+// ========================================
+// Sistema de gestión de ventas, inventario, clientes y pollos
+// Desarrollado con JavaScript ES6+ y tecnologías web modernas
+
+// ========================================
+// 🐔 EVENTOS DE POLLOS
+// ========================================
+
+// === FILTRO POR FECHA ===
 // Evento para filtrar pollos por fecha seleccionada
 document.addEventListener('DOMContentLoaded', function() {
   const btnFilterChickenDate = document.getElementById('btnFilterChickenDate');
@@ -16,36 +27,39 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
-// === Arrays globales ===
-let products = [];
-let clients = [];
-let sales = [];
-let debts = [];
-let movements = [];
-let cart = [];
-let currentClientId = null;
-let inventoryViewMode = 'grid';
-let clientsViewMode = 'grid';
+// ========================================
+// 📊 VARIABLES GLOBALES Y ESTADO
+// ========================================
+
+// === DATOS PRINCIPALES ===
+let products = [];           // Inventario de productos
+let clients = [];            // Base de datos de clientes
+let sales = [];              // Historial de ventas normales
+let debts = [];              // Gestión de deudas y créditos
+let movements = [];          // Movimientos financieros
+let cart = [];               // Carrito de compras actual
+
+// === ESTADO DE LA APLICACIÓN ===
+let currentClientId = null;  // Cliente seleccionado en el carrito
+let inventoryViewMode = 'grid';  // Modo de vista del inventario
+let clientsViewMode = 'grid';    // Modo de vista de clientes
+
+// === GESTIÓN DE POLLOS ===
+let chickenSales = [];       // Ventas especializadas de pollos
+let pricePerPound = 0;       // Precio por libra de pollo
+let costPerPound = 0;        // Costo por libra de pollo
+
+// === CONFIGURACIÓN DE VISTAS ===
+// Cargar preferencias de vista desde almacenamiento local
 localforage.getItem('inventoryViewMode').then(val => { if(val) inventoryViewMode = val; });
 localforage.getItem('clientsViewMode').then(val => { if(val) clientsViewMode = val; });
-// Variables globales para pollos
-let chickenSales = [];
-let pricePerPound = 0;
-let costPerPound = 0;
 
-// Función helper para obtener la fecha actual de Ecuador (UTC-5)
-function getEcuadorDate() {
-  const now = new Date();
-  const ecuadorOffset = -5 * 60; // UTC-5 en minutos
-  return new Date(now.getTime() + (ecuadorOffset * 60 * 1000));
-}
+// ========================================
+// 🔧 UTILIDADES Y HELPERS
+// ========================================
 
-// Función helper para obtener la fecha de Ecuador en formato YYYY-MM-DD
-function getEcuadorDateString() {
-  return getEcuadorDate().toISOString().slice(0, 10);
-}
-
-// Función helper para normalizar fechas
+// === NORMALIZACIÓN DE FECHAS ===
+// Función helper para normalizar fechas a formato ISO
 function normalizeDate(dateInput) {
   if (!dateInput) return null;
   
@@ -63,13 +77,17 @@ function normalizeDate(dateInput) {
   }
 }
 
-// Variables globales para movimientos
-let movementsViewMode = 'list'; // 'list' o 'grid'
-let currentMovementFilter = 'today';
-let currentChartType = 'trend';
-let movementCharts = {};
-let mainChart = null;
-let movementsViewInitialized = false; // Bandera para evitar inicializaciones múltiples
+// ========================================
+// 📈 SISTEMA DE MOVIMIENTOS Y GRÁFICOS
+// ========================================
+
+// === VARIABLES DE MOVIMIENTOS ===
+let movementsViewMode = 'list';           // Modo de vista: 'list' o 'grid'
+let currentMovementFilter = 'today';      // Filtro temporal actual
+let currentChartType = 'trend';           // Tipo de gráfico: 'trend' o 'distribution'
+let movementCharts = {};                  // Cache de gráficos
+let mainChart = null;                     // Instancia del gráfico principal
+let movementsViewInitialized = false;     // Control de inicialización
 
 // Función para actualizar el display del período
 function updatePeriodDisplay(period) {
@@ -199,7 +217,12 @@ function getDistributionChartData(movements) {
   };
 }
 
-// === FUNCIÓN DE CARGA DE DATOS MEJORADA ===
+// ========================================
+// 💾 SISTEMA DE PERSISTENCIA Y CARGA DE DATOS
+// ========================================
+
+// === CARGA PRINCIPAL DE DATOS ===
+// Función mejorada para cargar todos los datos críticos
 async function loadData() {
   try {
     // Usar el nuevo sistema de persistencia mejorado
@@ -237,9 +260,6 @@ async function loadData() {
     // Configurar detección de cambios para backup automático
     setupDataChangeDetection();
     
-    // Inicializar sincronización WebSocket
-    initWebSocketSync();
-    
   } catch (error) {
     console.error('Error cargando datos:', error);
     // Inicializar arrays vacíos en caso de error
@@ -253,9 +273,12 @@ async function loadData() {
   }
 }
 
-// === MEJORAS PARA EXPERIENCIA NATIVA ===
+// ========================================
+// 📱 EXPERIENCIA MÓVIL NATIVA
+// ========================================
 
-// Configuración de gestos táctiles
+// === GESTOS TÁCTILES ===
+// Variables para detección de gestos de swipe
 let touchStartX = 0;
 let touchStartY = 0;
 let touchEndX = 0;
@@ -682,28 +705,19 @@ function validateField(field) {
   }
 }
 
-// Se elimina la función local isValidEmail, se usará la versión global de utils.js
 
-// Función para mejorar la experiencia de carga
+
 function setupLoadingEnhancements() {
-  // Mostrar spinner de carga
-  function showLoading(element) {
+  window.showLoading = function(element) {
     const spinner = document.createElement('div');
     spinner.className = 'loading-spinner';
     element.appendChild(spinner);
-  }
+  };
   
-  // Ocultar spinner de carga
-  function hideLoading(element) {
+  window.hideLoading = function(element) {
     const spinner = element.querySelector('.loading-spinner');
-    if (spinner) {
-      spinner.remove();
-    }
-  }
-  
-  // Exponer funciones globalmente
-  window.showLoading = showLoading;
-  window.hideLoading = hideLoading;
+    if (spinner) spinner.remove();
+  };
 }
 
 // Función para mejorar la experiencia de errores
@@ -767,9 +781,12 @@ function setupOfflineEnhancements() {
   });
 }
 
-// === GESTIÓN DE POLLOS ===
+// ========================================
+// 🚀 INICIALIZACIÓN PRINCIPAL
+// ========================================
 
-// === Inicialización y Validación de Datos ===
+// === INICIALIZACIÓN DE DATOS ===
+// Función principal para inicializar todos los datos de la aplicación
 async function initializeData() {
   try {
     // Usar el nuevo sistema de carga de datos mejorado
@@ -799,10 +816,8 @@ async function initializeData() {
   }
 }
 
-// Función para forzar verificación de actualizaciones
 window.forceUpdateCheck = function() {
   hapticFeedback('medium');
-  // Recargar la página para verificar actualizaciones
   window.location.reload();
 };
 
@@ -822,11 +837,9 @@ function initializeNativeEnhancements() {
   setupOfflineEnhancements();
   setupQuickActions();
   
-  // Configurar pull-to-refresh en contenedores principales
   const mainContainer = document.getElementById('mainContent');
   if (mainContainer) {
     setupPullToRefresh(mainContainer, () => {
-      // En lugar de recargar la página, solo actualizar los datos
       loadData().then(() => {
         updateBalanceUI();
         renderInventory();
@@ -837,10 +850,7 @@ function initializeNativeEnhancements() {
     });
   }
   
-  // Prevenir recarga accidental en dispositivos móviles
   preventMobileReload();
-  
-  // Solicitar permisos de notificación
   requestNotificationPermission();
 }
 
@@ -1056,9 +1066,12 @@ function quickAction(action) {
   }
 }
 
-// === GESTIÓN DE POLLOS ===
+// ========================================
+// 🐔 GESTIÓN ESPECIALIZADA DE POLLOS
+// ========================================
 
-// Inicializar datos de pollos
+// === INICIALIZACIÓN DE POLLOS ===
+// Configurar campos iniciales y valores por defecto
 function initializeChickenData() {
   // Inicializar campos de configuración de precio
   const priceInput = document.getElementById('pricePerPound');
@@ -1068,8 +1081,8 @@ function initializeChickenData() {
   if (priceInput) priceInput.value = pricePerPound.toFixed(2);
   if (costInput) costInput.value = costPerPound.toFixed(2);
   if (saleDateInput) {
-    // Usar fecha local de Ecuador
-    saleDateInput.value = getEcuadorDateString();
+    const today = new Date();
+    saleDateInput.value = today.toISOString().slice(0,10);
   }
   
   // Actualizar cálculo inicial
@@ -1182,14 +1195,9 @@ async function handleChickenSale(e) {
   const total = pricePerPound * weight;
   const profit = (pricePerPound - costPerPound) * weight;
   
-  // Crear objeto de venta con fecha y hora local de Ecuador
+  // Crear objeto de venta con fecha y hora local
   let now = new Date();
-  // Asegurar que usamos la fecha seleccionada o la fecha actual de Ecuador
-  let dateToUse = saleDate;
-  if (!dateToUse) {
-    dateToUse = getEcuadorDateString();
-  }
-  let [year, month, day] = dateToUse.split('-');
+  let [year, month, day] = (saleDate || now.toLocaleDateString('es-EC')).split('-');
   let localDate = new Date(
     parseInt(year),
     parseInt(month) - 1,
@@ -1218,9 +1226,6 @@ async function handleChickenSale(e) {
   
   // Procesar la venta
   await processChickenSale(sale);
-  
-  // Sincronizar cambios
-  syncDataChange('chicken_sale_added', sale);
 }
 
 // === Cálculo de Merma de Pollo ===
@@ -1342,7 +1347,7 @@ function editChickenSale(index) {
         </div>
         <div class="mb-2">
           <label class="form-label">Fecha</label>
-          <input type="date" class="form-control" id="editChickenDate" value="${sale.date ? sale.date.split('T')[0] : ''}" required>
+          <input type="date" class="form-control" id="editChickenDate" value="${sale.date ? sale.date.slice(0,10) : ''}" required>
         </div>
       </form>
     `,
@@ -1375,14 +1380,9 @@ function editChickenSale(index) {
       // Obtener el cliente seleccionado
       const selectedClient = clients.find(c => c.id === clientId);
       
-      // Crear fecha usando el mismo formato que en la creación original
+      // Crear fecha local correcta manteniendo la hora original
       const originalDate = new Date(sale.date);
       const [year, month, day] = date.split('-');
-      
-      // Usar el mismo formato que en handleChickenSale original
-      const newDateString = `${year}-${month}-${day}T${originalDate.getHours().toString().padStart(2,'0')}:${originalDate.getMinutes().toString().padStart(2,'0')}:${originalDate.getSeconds().toString().padStart(2,'0')}`;
-      
-      // Para crear el objeto Date para movimientos y deudas
       const newDate = new Date(
         parseInt(year),
         parseInt(month) - 1,
@@ -1391,13 +1391,7 @@ function editChickenSale(index) {
         originalDate.getMinutes(),
         originalDate.getSeconds()
       );
-
-      // Guardar datos originales para comparación
-      const originalPaymentType = sale.paymentType;
-      const originalClientId = sale.clientId;
-      const originalTotal = sale.total;
       
-      // Actualizar la venta
       chickenSales[index] = {
         ...sale,
         clientId,
@@ -1411,96 +1405,20 @@ function editChickenSale(index) {
         paymentType,
         abono,
         debt: paymentType === 'credit' ? total - abono : 0,
-        date: newDateString,
+        date: newDate.toISOString().split('T')[0] + 'T' + 
+              newDate.getHours().toString().padStart(2,'0') + ':' +
+              newDate.getMinutes().toString().padStart(2,'0') + ':' +
+              newDate.getSeconds().toString().padStart(2,'0'),
       };
-
-      // Manejar cambios en deudas
-      if (originalPaymentType === 'credit' && paymentType !== 'credit') {
-        // Si cambió de crédito a otro tipo de pago, eliminar la deuda
-        const debtIndex = debts.findIndex(d => d.saleId === sale.id);
-        if (debtIndex !== -1) {
-          debts.splice(debtIndex, 1);
-        }
-      } else if (originalPaymentType !== 'credit' && paymentType === 'credit') {
-        // Si cambió a crédito, crear nueva deuda
-        const debt = {
-          id: Date.now().toString(),
-          clientId: clientId,
-          clientName: selectedClient.name,
-          amount: total - abono,
-          originalAmount: total - abono,
-          description: `Venta de pollos - ${quantity} pollo(s), ${weight} lbs`,
-          date: newDate.toISOString(),
-          type: 'chicken_sale',
-          saleId: sale.id,
-          createdAt: new Date().toISOString()
-        };
-        debts.push(debt);
-      } else if (originalPaymentType === 'credit' && paymentType === 'credit') {
-        // Si sigue siendo crédito, actualizar la deuda existente
-        const debtIndex = debts.findIndex(d => d.saleId === sale.id);
-        if (debtIndex !== -1) {
-          debts[debtIndex] = {
-            ...debts[debtIndex],
-            clientId: clientId,
-            clientName: selectedClient.name,
-            amount: total - abono,
-            originalAmount: total - abono,
-            description: `Venta de pollos - ${quantity} pollo(s), ${weight} lbs`
-          };
-        }
-      }
-
-      // Actualizar movimiento relacionado
-      const movementIndex = movements.findIndex(m => 
-        m.type === 'chicken_sale' && 
-        m.details && 
-        m.description && 
-        m.description.includes(`Venta de pollos - ${sale.clientName}`) &&
-        Math.abs(new Date(m.date) - new Date(sale.date)) < 60000 // Dentro de 1 minuto
-      );
-      
-      if (movementIndex !== -1) {
-        movements[movementIndex] = {
-          ...movements[movementIndex],
-          amount: total,
-          description: `Venta de pollos - ${selectedClient.name}`,
-          date: newDate.toISOString(),
-          details: {
-            quantity: quantity,
-            weight: weight,
-            pricePerPound: pricePerPound,
-            profit: profit,
-            paymentType: paymentType,
-            abono: abono
-          }
-        };
-      }
-
-      // Guardar todos los cambios
       await saveToStorage('chickenSales', chickenSales);
-      await saveToStorage('debts', debts);
-      await saveToStorage('movements', movements);
-
-      // Actualizar todas las vistas
       updateChickenStats();
       updateChickenSalesList();
-      updateBalanceUI();
-      renderBalanceGrid();
-      renderDebts();
-
-      Swal.fire({ 
-        icon: 'success', 
-        title: 'Venta actualizada', 
-        text: 'La venta de pollos fue actualizada correctamente y todos los cambios se aplicaron a la contabilidad.', 
-        timer: 2000, 
-        showConfirmButton: false 
-      });
+      Swal.fire({ icon: 'success', title: 'Venta actualizada', text: 'La venta de pollos fue actualizada correctamente.', timer: 1500, showConfirmButton: false });
     }
   });
 }
 
-// Modificar updateChickenSalesList para agregar botón de editar y eliminar
+// Modificar updateChickenSalesList para agregar botón de editar
 function updateChickenSalesList() {
   const container = document.getElementById('chickenSalesList');
   if (!container) return;
@@ -1521,14 +1439,7 @@ function updateChickenSalesList() {
         <div class="chicken-sale-date-treinta">
           ${new Date(sale.date).toLocaleDateString()} ${sale.time}
         </div>
-        <div class="btn-group ms-2" role="group">
-          <button class="btn btn-sm btn-outline-primary" title="Editar" onclick="editChickenSale(${chickenSales.indexOf(sale)})">
-            <i class="bi bi-pencil"></i>
-          </button>
-          <button class="btn btn-sm btn-outline-danger" title="Eliminar" onclick="deleteChickenSale(${chickenSales.indexOf(sale)})">
-            <i class="bi bi-trash"></i>
-          </button>
-        </div>
+        <button class="btn btn-sm btn-outline-primary ms-2" title="Editar" onclick="editChickenSale(${chickenSales.indexOf(sale)})"><i class="bi bi-pencil"></i></button>
       </div>
       <div class="chicken-sale-details-treinta">
         <div class="chicken-sale-detail-treinta">
@@ -1563,82 +1474,6 @@ function updateChickenSalesList() {
 
 // Exponer la función globalmente
 window.editChickenSale = editChickenSale;
-
-// === Eliminación de ventas de pollos ===
-async function deleteChickenSale(index) {
-  const sale = chickenSales[index];
-  if (!sale) return;
-
-  // Confirmar eliminación
-  const result = await Swal.fire({
-    title: '¿Eliminar venta?',
-    text: `¿Estás seguro de que quieres eliminar la venta de pollos a ${sale.clientName} por $${sale.total.toFixed(2)}?`,
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonText: 'Sí, eliminar',
-    cancelButtonText: 'Cancelar',
-    confirmButtonColor: '#dc3545',
-    cancelButtonColor: '#6c757d'
-  });
-
-  if (!result.isConfirmed) return;
-
-  try {
-    // 1. Eliminar la venta de pollos
-    chickenSales.splice(index, 1);
-    await saveToStorage('chickenSales', chickenSales);
-
-    // 2. Eliminar deuda relacionada si existe
-    const debtIndex = debts.findIndex(d => d.saleId === sale.id);
-    if (debtIndex !== -1) {
-      debts.splice(debtIndex, 1);
-      await saveToStorage('debts', debts);
-    }
-
-    // 3. Eliminar movimiento relacionado
-    const movementIndex = movements.findIndex(m => 
-      m.type === 'chicken_sale' && 
-      m.details && 
-      m.description && 
-      m.description.includes(`Venta de pollos - ${sale.clientName}`) &&
-      Math.abs(new Date(m.date) - new Date(sale.date)) < 60000 // Dentro de 1 minuto
-    );
-    
-    if (movementIndex !== -1) {
-      movements.splice(movementIndex, 1);
-      await saveToStorage('movements', movements);
-    }
-
-    // 4. Actualizar todas las vistas
-    updateChickenStats();
-    updateChickenSalesList();
-    updateBalanceUI();
-    renderBalanceGrid();
-    renderDebts();
-
-    // 5. Mostrar confirmación
-    Swal.fire({
-      icon: 'success',
-      title: 'Venta eliminada',
-      text: 'La venta de pollos fue eliminada completamente de la aplicación.',
-      timer: 2000,
-      showConfirmButton: false
-    });
-
-  } catch (error) {
-    console.error('Error eliminando venta de pollos:', error);
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'No se pudo eliminar la venta. Inténtalo de nuevo.',
-      confirmButtonText: 'Aceptar'
-    });
-  }
-}
-
-// Exponer la función globalmente
-window.deleteChickenSale = deleteChickenSale;
-
 // Finalizar venta de pollos desde el resumen
 async function finalizeChickenSale() {
   // Obtener datos del formulario
@@ -1689,7 +1524,7 @@ async function finalizeChickenSale() {
   const totalCost = weight * costPerPound;
   const profit = total - totalCost;
   
-  // Crear objeto de venta con fecha y hora local de Ecuador
+  // Crear objeto de venta con fecha y hora local
   const now = new Date();
   const [year, month, day] = saleDate.split('-');
   const localDate = new Date(
@@ -1749,8 +1584,7 @@ async function finalizeChickenSale() {
     
     // Limpiar formulario
     document.getElementById('chickenSaleForm').reset();
-    // Usar fecha local de Ecuador al limpiar el formulario
-    document.getElementById('chickenSaleDate').value = getEcuadorDateString();
+    document.getElementById('chickenSaleDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('chickenQuantity').value = '1';
     document.getElementById('chickenAbonoSection').style.display = 'none';
     
@@ -2182,8 +2016,8 @@ function updateChickenStats(opts = {}) {
   if (opts && opts.fecha) {
     todayStr = opts.fecha;
   } else {
-    // Usar fecha local de Ecuador
-    todayStr = getEcuadorDateString();
+    const today = new Date();
+    todayStr = today.toISOString().split('T')[0];
   }
   
   // Verificar que chickenSales sea un array válido
@@ -2729,10 +2563,10 @@ function updateChickenSalesList(opts = {}) {
       sale && sale.date && sale.date.startsWith(opts.fecha)
     );
   } else {
-    // Por defecto, mostrar solo ventas de hoy (fecha de Ecuador)
-    const todayStr = getEcuadorDateString();
+    // Por defecto, mostrar solo ventas de hoy
+    const today = new Date().toISOString().split('T')[0];
     filteredSales = chickenSales.filter(sale => 
-      sale && sale.date && sale.date.startsWith(todayStr)
+      sale && sale.date && sale.date.startsWith(today)
     );
   }
   
@@ -2864,7 +2698,12 @@ function migrateDateFormats() {
 
 
 
-// === Funciones del Sidebar (globales) ===
+// ========================================
+// 🎛️ INTERFAZ DE USUARIO Y NAVEGACIÓN
+// ========================================
+
+// === CONTROL DEL SIDEBAR ===
+// Funciones para manejar el menú lateral
 function openSidebar() {
   document.getElementById('sidebar').classList.add('open');
   document.getElementById('sidebarOverlay').style.display = 'block';
@@ -2909,7 +2748,12 @@ async function setTheme(mode) {
   // No mostrar ningún mensaje ni alerta
 }
 
-// === Funciones de instalación PWA ===
+// ========================================
+// 📱 PROGRESSIVE WEB APP (PWA)
+// ========================================
+
+// === INSTALACIÓN PWA ===
+// Funciones para instalar la aplicación como PWA
 function installPWA() {
   console.log('installPWA() llamada');
   console.log('deferredPrompt:', deferredPrompt);
@@ -3160,7 +3004,7 @@ async function updateInstallButtonVisibility() {
   }
 }
 
-// === Evento beforeinstallprompt (centralizado) ===
+// === Eventos PWA centralizados ===
 window.addEventListener('beforeinstallprompt', async (e) => {
   console.log('beforeinstallprompt event disparado');
   e.preventDefault();
@@ -3170,7 +3014,6 @@ window.addEventListener('beforeinstallprompt', async (e) => {
   await updateInstallButtonVisibility();
 });
 
-// === Evento appinstalled ===
 window.addEventListener('appinstalled', async () => {
   deferredPrompt = null;
   window.deferredPrompt = null;
@@ -3190,12 +3033,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const totalProfitElement = document.getElementById('totalProfit');
   const totalProfitTodayElement = document.getElementById('totalProfitToday');
   const profitCalcElement = document.getElementById('displayTotalProfit');
+  
   if (totalProfitElement) {
     totalProfitElement.classList.add('hidden-profit');
     totalProfitElement.textContent = '•••••';
   }
   if (totalProfitTodayElement) {
-    // Mostrar el valor directamente, sin ocultar ni botón
     totalProfitTodayElement.classList.remove('hidden-profit-today');
     totalProfitTodayElement.textContent = '';
   }
@@ -3204,21 +3047,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     profitCalcElement.textContent = '•••••';
     profitCalcElement.setAttribute('data-actual-value', '$0.00');
   }
+  
   const btnProfit = document.getElementById('toggleChickenProfitBtn');
   if (btnProfit) {
     btnProfit.innerHTML = '<i class="bi bi-eye"></i>';
     btnProfit.onclick = toggleChickenProfitVisibility;
   }
-  // Eliminar el botón de ojo de ganancias hoy si existe
+  
   const btnProfitToday = document.getElementById('toggleChickenProfitTodayBtn');
   if (btnProfitToday && btnProfitToday.parentNode) {
     btnProfitToday.parentNode.removeChild(btnProfitToday);
   }
+  
   const btnProfitCalc = document.getElementById('toggleChickenProfitCalcBtn');
   if (btnProfitCalc) {
     btnProfitCalc.innerHTML = '<i class="bi bi-eye"></i>';
     btnProfitCalc.onclick = toggleChickenProfitCalcVisibility;
   }
+  
   installButton = document.getElementById('installPWA');
   await updateInstallButtonVisibility();
   if (installButton) {
@@ -3226,7 +3072,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-// === Al cargar la app ===
+// ========================================
+// 🚀 INICIALIZACIÓN DE LA APLICACIÓN
+// ========================================
+
+// === EVENTO PRINCIPAL DE CARGA ===
+// Configuración inicial cuando se carga el DOM
 document.addEventListener('DOMContentLoaded', () => {
   // Cargar datos usando la función loadData
   loadData();
@@ -3258,18 +3109,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const formClient = document.getElementById('formClient');
   
   if (formProduct) {
-    // Remover listeners existentes para evitar duplicados
-    formProduct.removeEventListener('submit', addProduct);
-    formProduct.addEventListener('submit', addProduct);
+    formProduct.onsubmit = addProduct;
     console.log('Formulario de producto inicializado');
   } else {
     console.error('No se encontró el formulario de producto');
   }
   
   if (formClient) {
-    // Remover listeners existentes para evitar duplicados
-    formClient.removeEventListener('submit', addClient);
-    formClient.addEventListener('submit', addClient);
+    formClient.onsubmit = addClient;
     console.log('Formulario de cliente inicializado');
   } else {
     console.error('No se encontró el formulario de cliente');
@@ -3358,39 +3205,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // === Inicialización PWA ===
   installButton = document.getElementById('installPWA');
-  
-  // Mostrar botón solo si hay deferredPrompt y no está instalada ni rechazada
-  if (installButton) {
-    if (isAppInstalled() || hasUserRejectedInstallation() || !window.deferredPrompt) {
-      installButton.style.display = 'none';
-    } else {
-      installButton.style.display = 'flex';
-      installButton.classList.add('animate');
-    }
-  }
-
-  // Evento beforeinstallprompt
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    window.deferredPrompt = e;
-    if (installButton && !isAppInstalled() && !hasUserRejectedInstallation()) {
-      installButton.style.display = 'flex';
-      installButton.classList.add('animate');
-    }
-  });
-
-  // Evento appinstalled
-  window.addEventListener('appinstalled', (evt) => {
-    if (installButton) installButton.style.display = 'none';
-    Swal.fire({
-      icon: 'success',
-      title: '¡Instalación completada!',
-      text: 'TillUp POS está ahora instalado en tu dispositivo.',
-      timer: 3000,
-      showConfirmButton: false
-    });
-  });
+  updateInstallButtonVisibility();
 
   // === Detección de actualizaciones del Service Worker ===
   // Desactivado en desarrollo: no mostrar notificaciones ni recargar automáticamente
@@ -3427,11 +3242,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const locationStatus = document.getElementById('locationStatus');
   
   if (btnGetLocation && locationInput && locationStatus) {
-    // Remover listener existente para evitar duplicados
-    btnGetLocation.removeEventListener('click', getCurrentLocation);
-    btnGetLocation.addEventListener('click', getCurrentLocation);
-    
-    function getCurrentLocation() {
+    btnGetLocation.onclick = function() {
       if (!navigator.geolocation) {
         locationStatus.textContent = 'La geolocalización no es soportada por tu navegador.';
         return;
@@ -3446,8 +3257,6 @@ document.addEventListener('DOMContentLoaded', () => {
           locationInput.value = coords;
           locationStatus.textContent = `Ubicación capturada: ${coords}`;
           btnGetLocation.disabled = false;
-          
-          // Feedback táctil
           hapticFeedback('success');
         },
         (error) => {
@@ -3465,17 +3274,11 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           locationStatus.textContent = errorMessage;
           btnGetLocation.disabled = false;
-          
-          // Feedback táctil
           hapticFeedback('error');
         },
-        { 
-          enableHighAccuracy: true, 
-          timeout: 15000,
-          maximumAge: 60000 // Usar ubicación en caché si tiene menos de 1 minuto
-        }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
       );
-    }
+    };
   }
 
   // Inicializar datos de pollos
@@ -3484,11 +3287,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Vista previa de imagen para productos
   const productPhotoInput = document.getElementById('productImage');
   if (productPhotoInput) {
-    // Remover listener existente para evitar duplicados
-    productPhotoInput.removeEventListener('change', handleProductImagePreview);
-    productPhotoInput.addEventListener('change', handleProductImagePreview);
-    
-    function handleProductImagePreview(e) {
+    productPhotoInput.onchange = function(e) {
       const preview = document.getElementById('imagePreview');
       if (!preview) return;
       
@@ -3502,17 +3301,13 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         preview.innerHTML = '';
       }
-    }
+    };
   }
 
   // Vista previa de imagen para clientes
   const clientPhotoInput = document.getElementById('clientPhoto');
   if (clientPhotoInput) {
-    // Remover listener existente para evitar duplicados
-    clientPhotoInput.removeEventListener('change', handleClientImagePreview);
-    clientPhotoInput.addEventListener('change', handleClientImagePreview);
-    
-    function handleClientImagePreview(e) {
+    clientPhotoInput.onchange = function(e) {
       const preview = document.getElementById('clientImagePreview');
       if (!preview) return;
       
@@ -3526,7 +3321,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         preview.innerHTML = '';
       }
-    }
+    };
   }
 
   // Restaurar backup si se detecta pérdida de datos
@@ -3535,7 +3330,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// === Agregar producto con vista previa de imagen ===
+// ========================================
+// 📦 GESTIÓN DE PRODUCTOS E INVENTARIO
+// ========================================
+
+// === AGREGAR/EDITAR PRODUCTOS ===
+// Función para agregar nuevos productos o editar existentes
 async function addProduct(e) {
   e.preventDefault();
   
@@ -3729,42 +3529,7 @@ function getPaymentText(paymentType) {
 }
 
 
-// Vista previa de imagen para productos
-const productPhotoInput = document.getElementById('productImageInput');
-if (productPhotoInput) {
-  productPhotoInput.addEventListener('change', function(e) {
-    const preview = document.getElementById('productImagePreview');
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa">`;
-      };
-      reader.readAsDataURL(file);
-    } else {
-      preview.innerHTML = '';
-    }
-  });
-}
 
-// Vista previa de imagen para clientes
-const clientPhotoInput = document.getElementById('clientPhoto');
-if (clientPhotoInput) {
-  clientPhotoInput.addEventListener('change', function(e) {
-    const preview = document.getElementById('clientImagePreview');
-    if (!preview) return;
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa">`;
-      };
-      reader.readAsDataURL(file);
-    } else {
-      preview.innerHTML = '';
-    }
-  });
-}
 
 // === Mostrar productos en Inventario y Venta ===
 // Renderizar inventario con diseño tipo Treinta.co
@@ -3841,7 +3606,12 @@ async function renderInventory() {
   }
 }
 
-// === Agregar producto al carrito ===
+// ========================================
+// 🛒 SISTEMA DE CARRITO DE COMPRAS
+// ========================================
+
+// === AGREGAR AL CARRITO ===
+// Función para agregar productos al carrito de compras
 function addToCart(productId) {
   // Verificar que products sea un array válido
   if (!products || !Array.isArray(products)) {
@@ -4170,7 +3940,7 @@ async function finalizeSale() {
       
       // Obtener fecha local (del drawer o actual)
       let now = new Date();
-      let saleDateStr = getEcuadorDateString(); // Usar fecha de Ecuador
+      let saleDateStr = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
       const dateInput = document.getElementById('saleDateDrawer');
       if (dateInput && dateInput.value) {
         saleDateStr = dateInput.value;
@@ -4262,7 +4032,12 @@ async function finalizeSale() {
   });
 }
 
-// === Agregar/Editar cliente con validación mejorada ===
+// ========================================
+// 👥 GESTIÓN DE CLIENTES
+// ========================================
+
+// === AGREGAR/EDITAR CLIENTES ===
+// Función para gestionar la base de datos de clientes
 async function addClient(e) {
   e.preventDefault();
   
@@ -4495,6 +4270,8 @@ async function renderClients() {
       </li>
     `).join('');
   }
+}
+
 // Eliminar cliente
 function deleteClient(clientId) {
   const client = clients.find(c => c.id === clientId);
@@ -4509,13 +4286,9 @@ function deleteClient(clientId) {
     reverseButtons: true
   }).then(result => {
     if (result.isConfirmed) {
-      // Eliminar cliente
       clients = clients.filter(c => c.id !== clientId);
-      // Eliminar deudas asociadas
       debts = debts.filter(d => d.clientId !== clientId);
-      // Eliminar proformas asociadas si existe función
       if (typeof deleteProforma === 'function') deleteProforma(clientId);
-      // Si el cliente estaba seleccionado en el carrito, quitarlo
       if (currentClientId === clientId) currentClientId = null;
       saveToStorage('clients', clients);
       saveToStorage('debts', debts);
@@ -4525,7 +4298,6 @@ function deleteClient(clientId) {
       Swal.fire({ icon: 'success', title: 'Eliminado', text: 'Cliente eliminado.' });
     }
   });
-}
 }
 
 // === Selector de cliente en ventas ===
@@ -4544,7 +4316,12 @@ function updateClientSelector() {
   });
 }
 
-// === Mostrar deudas con diseño tipo Treinta.co ===
+// ========================================
+// 💰 SISTEMA DE DEUDAS Y CRÉDITOS
+// ========================================
+
+// === RENDERIZADO DE DEUDAS ===
+// Mostrar deudas agrupadas por cliente
 function renderDebts() {
   const list = document.getElementById('debtList');
   if (!list) return;
@@ -4656,30 +4433,10 @@ function showDebtDetailModal(debtId) {
   }).then(result => {
     if (result.isConfirmed) {
       // Pagar todo
-      const paymentAmount = d.amount;
-      
-      // Crear registro de pago
-      if (!d.payments) d.payments = [];
-      d.payments.push({
-        id: Date.now().toString(),
-        amount: paymentAmount,
-        date: new Date().toISOString(),
-        type: 'full_payment',
-        createdAt: new Date().toISOString()
-      });
-      
-      d.abono = (d.abono || 0) + paymentAmount;
+      d.abono = (d.abono || 0) + d.amount;
       d.amount = 0;
       saveToStorage('debts', debts);
       renderDebts();
-      updateBalanceUI(); // Actualizar estadísticas
-      
-      // Actualizar vista de movimientos si está activa
-      const movementsView = document.getElementById('view-movements');
-      if (movementsView && !movementsView.classList.contains('d-none')) {
-        loadMovementData(currentMovementFilter || 'today');
-      }
-      
       Swal.fire({ icon: 'success', title: 'Deuda pagada', text: 'La deuda ha sido pagada en su totalidad.' });
     } else if (result.isDenied) {
       // Abonar
@@ -4701,29 +4458,11 @@ function showDebtDetailModal(debtId) {
       }).then((abonoResult) => {
         if (abonoResult.isConfirmed) {
           const abono = abonoResult.value;
-          
-          // Crear registro de pago
-          if (!d.payments) d.payments = [];
-          d.payments.push({
-            id: Date.now().toString(),
-            amount: abono,
-            date: new Date().toISOString(),
-            type: 'partial_payment',
-            createdAt: new Date().toISOString()
-          });
-          
           d.abono = (d.abono || 0) + abono;
           d.amount -= abono;
           if (d.amount < 0) d.amount = 0;
           saveToStorage('debts', debts);
           renderDebts();
-          updateBalanceUI(); // Actualizar estadísticas
-          
-          // Actualizar vista de movimientos si está activa
-          const movementsView = document.getElementById('view-movements');
-          if (movementsView && !movementsView.classList.contains('d-none')) {
-            loadMovementData(currentMovementFilter || 'today');
-          }
           Swal.fire({ icon: 'success', title: 'Abono registrado', text: `Abono registrado: ${formatCurrency(abono)}` });
         }
       });
@@ -4731,7 +4470,12 @@ function showDebtDetailModal(debtId) {
   });
 }
 
-// === Mostrar resumen de balance ===
+// ========================================
+// 📊 DASHBOARD Y BALANCE FINANCIERO
+// ========================================
+
+// === ACTUALIZACIÓN DE BALANCE ===
+// Función principal para actualizar el dashboard
 function updateBalanceUI() {
   // Ya no se actualizan los elementos antiguos, solo se renderiza el grid
   renderBalanceGrid();
@@ -4743,32 +4487,24 @@ function updateBalanceUI() {
   }
 }
 
-// === Instalar como PWA ===
-// let deferredPrompt; // ELIMINADA: ya existe declaración global
 
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredPrompt = e;
 
-  // Aquí podrías mostrar un botón para instalar manualmente
-  console.log("App puede instalarse. Ejecuta deferredPrompt.prompt() para instalar.");
-});
+// ========================================
+// 🔧 SERVICE WORKER Y CACHE
+// ========================================
 
-// === Registrar Service Worker ===
-// Función centralizada para registrar el service worker
+// === REGISTRO DEL SERVICE WORKER ===
 async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     try {
       const registration = await navigator.serviceWorker.register('./sw.js');
       console.log("SW registrado:", registration.scope);
       
-      // Escuchar actualizaciones del SW
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
             console.log('Nueva versión del SW instalada');
-            // No mostrar automáticamente el botón de instalación aquí
           }
         });
       });
@@ -4782,7 +4518,6 @@ async function registerServiceWorker() {
   return null;
 }
 
-// Registrar el service worker una sola vez
 registerServiceWorker();
 
 // Modal de detalles de producto
@@ -4934,7 +4669,6 @@ function renderSalesProducts() {
   `).join('');
 }
 
-// Cambiar vista de productos en ventas
 async function toggleSalesView() {
   let currentView = 'grid';
   if (typeof localforage !== 'undefined') {
@@ -4944,29 +4678,29 @@ async function toggleSalesView() {
     currentView = localStorage.getItem('salesView') || 'grid';
   }
   const newView = currentView === 'list' ? 'grid' : 'list';
+  
   if (typeof localforage !== 'undefined') {
     await localforage.setItem('salesView', newView);
   } else {
     localStorage.setItem('salesView', newView);
   }
+  
   const toggleBtn = document.getElementById('toggleSalesView');
-  const toggleText = document.getElementById('toggleSalesViewText');
   if (newView === 'grid') {
     toggleBtn.innerHTML = '<i class="bi bi-list"></i> <span id="toggleSalesViewText">Lista</span>';
   } else {
     toggleBtn.innerHTML = '<i class="bi bi-grid-3x3-gap-fill"></i> <span id="toggleSalesViewText">Cuadrícula</span>';
   }
+  
   await renderSalesProducts();
 }
 
-// Cambiar vista de inventario
 function toggleInventoryView() {
   const currentView = localStorage.getItem('inventoryView');
   const newView = currentView === 'list' ? 'grid' : 'list';
   localStorage.setItem('inventoryView', newView);
   
   const toggleBtn = document.getElementById('toggleInventoryView');
-  const toggleText = document.getElementById('toggleInventoryViewText');
   
   if (newView === 'grid') {
     toggleBtn.innerHTML = '<i class="bi bi-list"></i> <span id="toggleInventoryViewText">Lista</span>';
@@ -5200,7 +4934,7 @@ function calculateBalanceData(period, customDate) {
         const fecha = new Date(s.date);
         if (checkPeriod(fecha)) {
           income += s.total || 0;
-          profit += s.profit || 0; // Usar la ganancia real, no el total de la venta
+          profit += s.total || 0; // Para pollos, el total es la utilidad
         }
       }
     });
@@ -5329,7 +5063,12 @@ function getRecentMovements(period, customDate) {
     .slice(0, 10);
 }
 
-// Función para cambiar de vista
+// ========================================
+// 🔄 NAVEGACIÓN ENTRE VISTAS
+// ========================================
+
+// === CAMBIO DE VISTAS ===
+// Función principal para navegar entre secciones
 function showView(viewName) {
   // Ocultar todas las vistas
   document.querySelectorAll('.app-view').forEach(v => v.classList.add('d-none'));
@@ -5519,17 +5258,6 @@ function showClientDebts(clientId) {
             if (remainingAbono <= 0) break;
             if (debt.amount > 0) {
               const abonoToApply = Math.min(remainingAbono, debt.amount);
-              
-              // Crear registro de pago
-              if (!debt.payments) debt.payments = [];
-              debt.payments.push({
-                id: Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9),
-                amount: abonoToApply,
-                date: new Date().toISOString(),
-                type: abonoToApply === debt.amount ? 'full_payment' : 'partial_payment',
-                createdAt: new Date().toISOString()
-              });
-              
               debt.abono = (debt.abono || 0) + abonoToApply;
               debt.amount -= abonoToApply;
               remainingAbono -= abonoToApply;
@@ -5539,14 +5267,6 @@ function showClientDebts(clientId) {
           saveToStorage('debts', debts);
           renderDebts();
           renderClients();
-          updateBalanceUI(); // Actualizar estadísticas
-          
-          // Actualizar vista de movimientos si está activa
-          const movementsView = document.getElementById('view-movements');
-          if (movementsView && !movementsView.classList.contains('d-none')) {
-            loadMovementData(currentMovementFilter || 'today');
-          }
-          
           Swal.fire({ 
             icon: 'success', 
             title: 'Abono registrado', 
@@ -5615,9 +5335,12 @@ function editClient(clientId) {
   modal.show();
 }
 
-// === Funcionalidades Finales y Optimizaciones ===
+// ========================================
+// 🔍 BÚSQUEDA Y FILTROS
+// ========================================
 
-// Búsqueda global en todas las vistas
+// === BÚSQUEDA GLOBAL ===
+// Sistema de búsqueda en tiempo real para todas las vistas
 function setupGlobalSearch() {
   const searchInputs = document.querySelectorAll('input[type="text"], input[type="search"]');
   searchInputs.forEach(input => {
@@ -5707,7 +5430,12 @@ function filterDebts(searchTerm) {
   });
 }
 
-// Estadísticas adicionales para balance
+// ========================================
+// 📈 ESTADÍSTICAS AVANZADAS
+// ========================================
+
+// === MÉTRICAS AVANZADAS ===
+// Calcular estadísticas detalladas para el dashboard
 function getAdvancedStats(period) {
   const data = calculateBalanceData(period);
   
@@ -5789,7 +5517,12 @@ function getMostValuableClient() {
   return { name: 'Sin ventas', total: 0 };
 }
 
-// Optimización de rendimiento - Lazy loading de imágenes
+// ========================================
+// ⚡ OPTIMIZACIONES DE RENDIMIENTO
+// ========================================
+
+// === LAZY LOADING DE IMÁGENES ===
+// Cargar imágenes solo cuando son visibles
 function setupLazyLoading() {
   const images = document.querySelectorAll('img[data-src]');
   const imageObserver = new IntersectionObserver((entries, observer) => {
@@ -5834,7 +5567,484 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000); // Cada 5 minutos
 
-// Backup automático iniciado
+
+
+  //-- ========================================= --
+  //-- ☁️ INTEGRACIÓN GOOGLE DRIVE EN SIDEBAR --
+  //-- ========================================= --
+  
+    // Inserta la sección de Google Drive en el sidebar al cargar
+    document.addEventListener('DOMContentLoaded', function () {
+      const sidebarContent = document.querySelector('.sidebar-content');
+      if (!sidebarContent) return;
+      // Evita duplicados
+      if (document.getElementById('sidebarGoogleDriveSection')) return;
+      const section = document.createElement('div');
+      section.className = 'sidebar-section';
+      section.id = 'sidebarGoogleDriveSection';
+      section.innerHTML = `
+        <div class="card card-custom mb-2">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-google fs-4 me-2 text-danger"></i>
+              <span class="fw-bold">Google Drive</span>
+            </div>
+            <div id="googleDriveSidebarLoggedOut">
+              <button id="googleSignInBtn" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                <i class="bi bi-google"></i> Iniciar sesión Google
+              </button>
+            </div>
+            <div id="googleDriveSidebarLoggedIn" style="display:none">
+              <div class="mb-2 small text-success"><i class="bi bi-person-check"></i> Sesión activa</div>
+              <button id="googleBackupBtn" class="btn btn-primary btn-sm w-100 mb-2">
+                <i class="bi bi-cloud-upload"></i> Backup a Drive
+              </button>
+              <button id="googleRestoreBtn" class="btn btn-success btn-sm w-100 mb-2">
+                <i class="bi bi-cloud-download"></i> Restaurar Backup
+              </button>
+              <button id="googleSignOutBtn" class="btn btn-outline-danger btn-sm w-100">
+                <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+              </button>
+            </div>
+            <div id="googleUserStatus" class="mt-2 small text-muted"></div>
+          </div>
+        </div>
+      `;
+      sidebarContent.prepend(section);
+
+      // Asignar event listeners dinámicamente
+      function assignGoogleDriveSidebarListeners() {
+        const signInBtn = document.getElementById('googleSignInBtn');
+        const signOutBtn = document.getElementById('googleSignOutBtn');
+        const backupBtn = document.getElementById('googleBackupBtn');
+        const restoreBtn = document.getElementById('googleRestoreBtn');
+        if (signInBtn) {
+          signInBtn.onclick = function () {
+            if (typeof initGoogleTokenClient === 'function') {
+              initGoogleTokenClient();
+              tokenClient.requestAccessToken();
+            }
+          };
+        }
+        if (signOutBtn) {
+          signOutBtn.onclick = function () {
+            googleAccessToken = null;
+            localStorage.removeItem('googleAccessToken');
+            enableGoogleDriveButtons(false);
+            stopGoogleDriveAutoBackup();
+            Swal.fire('Sesión cerrada', 'Has cerrado sesión de Google Drive.', 'info');
+          };
+        }
+        if (backupBtn) {
+          backupBtn.onclick = async function () {
+            if (!(await ensureGoogleAccessToken())) return;
+            try {
+              const data = await getAllAppData();
+              const fileContent = JSON.stringify(data, null, 2);
+              await uploadBackupToDrive(fileContent);
+              Swal.fire('¡Backup subido!', 'Tu backup fue guardado en Google Drive.', 'success');
+            } catch (err) {
+              if (err && err.message && err.message.includes('403')) {
+                googleAccessToken = null;
+                localStorage.removeItem('googleAccessToken');
+                enableGoogleDriveButtons(false);
+                Swal.fire('Permiso denegado',
+                  'No tienes permisos suficientes para acceder a Google Drive.\n' +
+                  '1. Cierra sesión y vuelve a iniciar sesión con tu cuenta Google.\n' +
+                  '2. Asegúrate de aceptar el permiso de acceso a Google Drive.\n' +
+                  '3. Si el problema persiste, revisa la configuración de tu cuenta o contacta al soporte.',
+                  'error');
+              } else {
+                Swal.fire('Error', 'No se pudo subir el backup: ' + (err && err.message ? err.message : err), 'error');
+              }
+            }
+          };
+        }
+        if (restoreBtn) {
+          restoreBtn.onclick = async function () {
+            if (!(await ensureGoogleAccessToken())) return;
+            try {
+              const fileContent = await downloadBackupFromDrive();
+              const data = JSON.parse(fileContent);
+              if (typeof data !== 'object' || Array.isArray(data) || !Object.keys(data).length) {
+                Swal.fire('Error', 'El archivo no tiene el formato esperado.', 'error');
+                return;
+              }
+              // Confirmar antes de reemplazar
+              const { isConfirmed } = await Swal.fire({
+                title: '¿Importar backup?',
+                text: 'Esto reemplazará todos los datos actuales de la app por los del backup. ¿Continuar?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, importar',
+                cancelButtonText: 'Cancelar'
+              });
+              if (!isConfirmed) return;
+              // Limpiar todo localforage antes de restaurar
+              await localforage.clear();
+              // Restaurar solo claves críticas y settings
+              const criticalKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.CRITICAL_DATA) || ['sales', 'clients', 'products', 'debts', 'movements', 'chickenSales'];
+              const settingsKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.SETTINGS) || ['theme', 'viewModes', 'pricePerPound', 'costPerPound'];
+              // Restaurar datos críticos
+              for (const key of criticalKeys) {
+                if (data[key] !== undefined) {
+                  if (typeof saveToStorage === 'function') {
+                    await saveToStorage(key, data[key]);
+                  } else {
+                    await localforage.setItem(key, data[key]);
+                  }
+                }
+              }
+              // Restaurar settings
+              for (const key of settingsKeys) {
+                if (data[key] !== undefined) {
+                  await localforage.setItem(key, data[key]);
+                  try { localStorage.setItem(key, JSON.stringify(data[key])); } catch (e) { }
+                }
+              }
+              // Recargar datos y actualizar UI tras importar backup
+              if (typeof loadData === 'function') {
+                await loadData();
+                if (typeof initializeChickenData === 'function') initializeChickenData();
+                if (typeof updateChickenSalesList === 'function') updateChickenSalesList();
+                if (typeof updateBalanceUI === 'function') updateBalanceUI();
+                if (typeof renderInventory === 'function') renderInventory();
+                if (typeof renderClients === 'function') renderClients();
+                if (typeof renderDebts === 'function') renderDebts();
+                if (typeof renderSalesProducts === 'function') renderSalesProducts();
+              }
+              Swal.fire('¡Importado!', 'Backup restaurado correctamente. Los datos han sido recargados.', 'success');
+            } catch (err) {
+              if (err && err.message && err.message.includes('403')) {
+                googleAccessToken = null;
+                localStorage.removeItem('googleAccessToken');
+                enableGoogleDriveButtons(false);
+                Swal.fire('Permiso denegado',
+                  'No tienes permisos suficientes para acceder a Google Drive.\n' +
+                  '1. Cierra sesión y vuelve a iniciar sesión con tu cuenta Google.\n' +
+                  '2. Asegúrate de aceptar el permiso de acceso a Google Drive.\n' +
+                  '3. Si el problema persiste, revisa la configuración de tu cuenta o contacta al soporte.',
+                  'error');
+              } else {
+                Swal.fire('Error', 'No se pudo restaurar: ' + (err && err.message ? err.message : err), 'error');
+              }
+            }
+          };
+        }
+      }
+
+      // Lógica para mostrar/ocultar según sesión
+      function updateSidebarGoogleDriveUI(loggedIn) {
+        document.getElementById('googleDriveSidebarLoggedOut').style.display = loggedIn ? 'none' : '';
+        document.getElementById('googleDriveSidebarLoggedIn').style.display = loggedIn ? '' : 'none';
+      }
+      // Hookear enableGoogleDriveButtons para actualizar sidebar
+      const origEnableGoogleDriveButtons = window.enableGoogleDriveButtons;
+      window.enableGoogleDriveButtons = function (enabled) {
+        origEnableGoogleDriveButtons(enabled);
+        updateSidebarGoogleDriveUI(enabled);
+        assignGoogleDriveSidebarListeners();
+      };
+      // Estado inicial
+      updateSidebarGoogleDriveUI(!!localStorage.getItem('googleAccessToken'));
+      assignGoogleDriveSidebarListeners();
+    });
+    
+// ========================================
+// 📱 INTEGRACIÓN CON TELEGRAM
+// ========================================
+
+// === CONFIGURACIÓN DE TELEGRAM ===
+// Funciones para configurar y usar Telegram como almacenamiento
+
+// Configurar Telegram desde la interfaz
+function configureTelegram() {
+  const form = document.getElementById('telegramConfigForm');
+  if (!form) return;
+  
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const botToken = document.getElementById('botToken').value.trim();
+    const channelId = document.getElementById('channelId').value.trim();
+    
+    if (!botToken || !channelId) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Campos requeridos',
+        text: 'Por favor completa todos los campos.',
+        confirmButtonText: 'Aceptar'
+      });
+      return;
+    }
+    
+    try {
+      // Configurar el cliente de Telegram
+      window.telegramSync.configure(botToken, channelId);
+      
+      // Probar la conexión
+      const result = await window.telegramSync.testConnection();
+      
+      // Actualizar interfaz
+      updateTelegramStatus(true, result.botInfo);
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Telegram configurado',
+        text: `Bot conectado: ${result.botInfo.first_name}`,
+        confirmButtonText: 'Aceptar'
+      });
+      
+    } catch (error) {
+      console.error('Error configurando Telegram:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de configuración',
+        text: error.message,
+        confirmButtonText: 'Aceptar'
+      });
+    }
+  });
+}
+
+// Actualizar estado de Telegram en la interfaz
+function updateTelegramStatus(configured, botInfo = null) {
+  const statusElement = document.getElementById('telegramStatus');
+  const backupOptions = document.getElementById('backupOptions');
+  const restoreOptions = document.getElementById('restoreOptions');
+  const testButton = document.getElementById('testTelegramConnection');
+  const backupButton = document.getElementById('fullBackupBtn');
+  
+  if (configured) {
+    statusElement.className = 'alert alert-success mb-4';
+    statusElement.innerHTML = `
+      <i class="bi bi-check-circle"></i> 
+      Telegram configurado correctamente. 
+      ${botInfo ? `Bot: ${botInfo.first_name}` : ''}
+    `;
+    
+    if (backupOptions) backupOptions.style.display = 'block';
+    if (restoreOptions) restoreOptions.style.display = 'block';
+    if (testButton) testButton.disabled = false;
+    if (backupButton) backupButton.disabled = false;
+  } else {
+    statusElement.className = 'alert alert-info mb-4';
+    statusElement.innerHTML = `
+      <i class="bi bi-info-circle"></i> 
+      Telegram no configurado. Complete la configuración para habilitar el respaldo automático.
+    `;
+    
+    if (backupOptions) backupOptions.style.display = 'none';
+    if (restoreOptions) restoreOptions.style.display = 'none';
+    if (testButton) testButton.disabled = true;
+    if (backupButton) backupButton.disabled = true;
+  }
+}
+
+// Realizar respaldo completo
+async function performFullBackup() {
+  if (!window.telegramSync.isConfigured) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Telegram no configurado',
+      text: 'Configura Telegram antes de realizar respaldos.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+  
+  try {
+    Swal.fire({
+      title: 'Creando respaldo...',
+      text: 'Enviando datos a Telegram',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    
+    await window.telegramSync.fullBackup();
+    
+    Swal.fire({
+      icon: 'success',
+      title: 'Respaldo completado',
+      text: 'Todos los datos han sido respaldados en Telegram.',
+      confirmButtonText: 'Aceptar'
+    });
+    
+  } catch (error) {
+    console.error('Error en respaldo completo:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error en respaldo',
+      text: error.message,
+      confirmButtonText: 'Aceptar'
+    });
+  }
+}
+
+// Cargar respaldos disponibles
+async function loadAvailableBackups() {
+  if (!window.telegramSync.isConfigured) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Telegram no configurado',
+      text: 'Configura Telegram antes de buscar respaldos.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+  
+  try {
+    Swal.fire({
+      title: 'Buscando respaldos...',
+      text: 'Consultando canal de Telegram',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    
+    const backups = await window.telegramSync.getAvailableBackups();
+    
+    Swal.close();
+    
+    const container = document.getElementById('availableBackups');
+    if (!container) return;
+    
+    if (backups.length === 0) {
+      container.innerHTML = `
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i> No se encontraron respaldos en el canal.
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = backups.map(backup => `
+      <div class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <h6 class="mb-1">${backup.filename}</h6>
+          <small class="text-muted">${backup.date.toLocaleString()}</small>
+          ${backup.caption ? `<p class="mb-0 small">${backup.caption}</p>` : ''}
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="restoreFromTelegram('${backup.fileId}')">
+          <i class="bi bi-download"></i> Restaurar
+        </button>
+      </div>
+    `).join('');
+    
+  } catch (error) {
+    console.error('Error cargando respaldos:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No se pudieron cargar los respaldos: ' + error.message,
+      confirmButtonText: 'Aceptar'
+    });
+  }
+}
+
+// Restaurar desde respaldo de Telegram
+async function restoreFromTelegram(fileId) {
+  const result = await Swal.fire({
+    title: '¿Restaurar respaldo?',
+    text: 'Esto reemplazará todos los datos actuales. ¿Continuar?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, restaurar',
+    cancelButtonText: 'Cancelar'
+  });
+  
+  if (!result.isConfirmed) return;
+  
+  try {
+    Swal.fire({
+      title: 'Restaurando...',
+      text: 'Descargando y aplicando respaldo',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    
+    await window.telegramSync.restoreFromBackup(fileId);
+    
+    // Recargar datos
+    await loadData();
+    
+    // Actualizar todas las vistas
+    renderInventory();
+    renderClients();
+    renderDebts();
+    renderSalesProducts();
+    updateBalanceUI();
+    updateChickenStats();
+    updateChickenSalesList();
+    
+    Swal.fire({
+      icon: 'success',
+      title: 'Respaldo restaurado',
+      text: 'Todos los datos han sido restaurados correctamente.',
+      confirmButtonText: 'Aceptar'
+    });
+    
+  } catch (error) {
+    console.error('Error restaurando respaldo:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error en restauración',
+      text: error.message,
+      confirmButtonText: 'Aceptar'
+    });
+  }
+}
+
+// Inicializar configuración de Telegram
+document.addEventListener('DOMContentLoaded', function() {
+  // Configurar eventos de Telegram
+  configureTelegram();
+  
+  // Verificar si ya está configurado
+  if (window.telegramSync && window.telegramSync.isConfigured) {
+    updateTelegramStatus(true);
+  }
+  
+  // Botón de prueba de conexión
+  const testButton = document.getElementById('testTelegramConnection');
+  if (testButton) {
+    testButton.addEventListener('click', async () => {
+      try {
+        const result = await window.telegramSync.testConnection();
+        Swal.fire({
+          icon: 'success',
+          title: 'Conexión exitosa',
+          text: `Bot conectado: ${result.botInfo.first_name}`,
+          confirmButtonText: 'Aceptar'
+        });
+      } catch (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de conexión',
+          text: error.message,
+          confirmButtonText: 'Aceptar'
+        });
+      }
+    });
+  }
+  
+  // Botón de respaldo completo
+  const backupButton = document.getElementById('fullBackupBtn');
+  if (backupButton) {
+    backupButton.addEventListener('click', performFullBackup);
+  }
+});
+
+// ========================================
+// 💾 SISTEMA DE BACKUP AUTOMÁTICO
+// ========================================
+
+// === INICIALIZACIÓN DE BACKUP ===
 console.log('📝 Backup automático iniciado');
 
 // Función para verificar el estado de los backups automáticos
@@ -5930,6 +6140,155 @@ async function checkBackupStatus() {
 
   console.log('📊 Estado de backups:', status);
   return status;
+}
+
+// Función para mostrar el estado de backups en una interfaz amigable
+async function showBackupStatus() {
+  const status = await checkBackupStatus();
+  
+  let html = `
+    <div class="backup-status-container">
+      <h5 class="mb-3">Estado de Backups Automáticos</h5>
+      
+      <div class="row">
+        <div class="col-md-4">
+          <div class="card ${status.local.enabled ? 'border-success' : 'border-secondary'}">
+            <div class="card-header">
+              <h6 class="mb-0">📱 Backup Local</h6>
+            </div>
+            <div class="card-body">
+              <p class="mb-1"><strong>Estado:</strong> ${status.local.enabled ? '✅ Activo' : '❌ Inactivo'}</p>
+              ${status.local.enabled ? `
+                <p class="mb-1"><strong>Intervalo:</strong> ${status.local.interval} minutos</p>
+                <p class="mb-1"><strong>Último backup:</strong> ${status.local.lastBackup ? new Date(parseInt(status.local.lastBackup)).toLocaleString() : 'Nunca'}</p>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-4">
+          <div class="card ${status.telegram.enabled ? 'border-success' : 'border-secondary'}">
+            <div class="card-header">
+              <h6 class="mb-0">📱 Telegram</h6>
+            </div>
+            <div class="card-body">
+              <p class="mb-1"><strong>Estado:</strong> ${status.telegram.enabled ? '✅ Activo' : status.telegram.configured ? '⚠️ Configurado pero inactivo' : '❌ No configurado'}</p>
+              ${status.telegram.enabled ? `
+                <p class="mb-1"><strong>Intervalo:</strong> ${status.telegram.interval} minutos</p>
+                <p class="mb-1"><strong>Último backup:</strong> ${status.telegram.lastBackup ? new Date(parseInt(status.telegram.lastBackup)).toLocaleString() : 'Nunca'}</p>
+                ${status.telegram.nextBackup ? `<p class="mb-1"><strong>Próximo backup:</strong> ${new Date(status.telegram.nextBackup).toLocaleString()}</p>` : ''}
+                ${status.telegram.lastError ? `<p class="mb-1 text-danger"><strong>Último error:</strong> ${localStorage.getItem('lastTelegramBackupErrorMsg') || 'Error desconocido'}</p>` : ''}
+              ` : ''}
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-4">
+          <div class="card ${status.googleDrive.enabled && status.googleDrive.tokenValid ? 'border-success' : 'border-secondary'}">
+            <div class="card-header">
+              <h6 class="mb-0">☁️ Google Drive</h6>
+            </div>
+            <div class="card-body">
+              <p class="mb-1"><strong>Estado:</strong> ${status.googleDrive.enabled && status.googleDrive.tokenValid ? '✅ Activo' : status.googleDrive.configured ? '⚠️ Configurado pero token inválido' : '❌ No configurado'}</p>
+              ${status.googleDrive.enabled ? `
+                <p class="mb-1"><strong>Intervalo:</strong> ${status.googleDrive.interval} minutos</p>
+                <p class="mb-1"><strong>Token válido:</strong> ${status.googleDrive.tokenValid ? '✅ Sí' : '❌ No'}</p>
+                <p class="mb-1"><strong>Último backup:</strong> ${status.googleDrive.lastBackup ? new Date(parseInt(status.googleDrive.lastBackup)).toLocaleString() : 'Nunca'}</p>
+                ${status.googleDrive.nextBackup ? `<p class="mb-1"><strong>Próximo backup:</strong> ${new Date(status.googleDrive.nextBackup).toLocaleString()}</p>` : ''}
+                ${status.googleDrive.lastError ? `<p class="mb-1 text-danger"><strong>Último error:</strong> ${localStorage.getItem('lastGoogleDriveBackupErrorMsg') || 'Error desconocido'}</p>` : ''}
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-3">
+        <button class="btn btn-primary btn-sm" onclick="checkBackupStatus().then(console.log)">
+          🔄 Actualizar Estado
+        </button>
+        <button class="btn btn-warning btn-sm" onclick="forceBackupTest()">
+          🧪 Probar Backups
+        </button>
+      </div>
+    </div>
+  `;
+  
+  Swal.fire({
+    title: 'Estado de Backups',
+    html: html,
+    width: '800px',
+    showConfirmButton: true,
+    confirmButtonText: 'Cerrar'
+  });
+}
+
+// Función para forzar una prueba de todos los backups
+async function forceBackupTest() {
+  console.log('🧪 Iniciando prueba de backups...');
+  
+  const results = {
+    local: false,
+    telegram: false,
+    googleDrive: false
+  };
+  
+  try {
+    // Probar backup local
+    const localSuccess = await saveAllCriticalData();
+    results.local = localSuccess;
+    console.log('✅ Backup local:', localSuccess ? 'Exitoso' : 'Falló');
+  } catch (error) {
+    console.error('❌ Error en backup local:', error);
+  }
+  
+  try {
+    // Probar backup de Telegram
+    const telegramConfig = await localforage.getItem('telegram_backup_config');
+    if (telegramConfig && telegramConfig.enabled) {
+      const data = await getAllAppData();
+      await sendTelegramBackup(telegramConfig, data);
+      results.telegram = true;
+      console.log('✅ Backup de Telegram: Exitoso');
+    } else {
+      console.log('⚠️ Backup de Telegram: No configurado');
+    }
+  } catch (error) {
+    console.error('❌ Error en backup de Telegram:', error);
+  }
+  
+  try {
+    // Probar backup de Google Drive
+    if (typeof ensureGoogleAccessToken === 'function') {
+      const tokenValid = await ensureGoogleAccessToken();
+      if (tokenValid) {
+        const data = await getAllAppData();
+        const fileContent = JSON.stringify(data, null, 2);
+        await uploadBackupToDrive(fileContent);
+        results.googleDrive = true;
+        console.log('✅ Backup de Google Drive: Exitoso');
+      } else {
+        console.log('❌ Backup de Google Drive: Token inválido');
+      }
+    } else {
+      console.log('⚠️ Backup de Google Drive: Función no disponible');
+    }
+  } catch (error) {
+    console.error('❌ Error en backup de Google Drive:', error);
+  }
+  
+  console.log('📊 Resultados de prueba:', results);
+  
+  Swal.fire({
+    title: 'Prueba de Backups Completada',
+    html: `
+      <div class="text-left">
+        <p><strong>Backup Local:</strong> ${results.local ? '✅ Exitoso' : '❌ Falló'}</p>
+        <p><strong>Backup Telegram:</strong> ${results.telegram ? '✅ Exitoso' : '❌ Falló'}</p>
+        <p><strong>Backup Google Drive:</strong> ${results.googleDrive ? '✅ Exitoso' : '❌ Falló'}</p>
+      </div>
+    `,
+    icon: 'info'
+  });
 }
 
 // Función para mostrar el estado de backups en una interfaz amigable
@@ -6846,33 +7205,10 @@ function getMovementsByDateRange(startDate, endDate) {
           title: `Venta #${sale.id}`,
           subtitle: `${sale.clientName} - ${saleDate.toLocaleDateString()}`,
           amount: sale.total,
-          profit: sale.profit || 0,
           amountClass: 'positive',
           date: saleDate,
           data: sale
         });
-      }
-    });
-  }
-  
-  // Agregar ventas de pollos del rango
-  if (chickenSales && Array.isArray(chickenSales)) {
-    chickenSales.forEach(sale => {
-      if (sale && sale.date && sale.id && sale.clientName && sale.total !== undefined) {
-        const saleDate = new Date(sale.date);
-        if (saleDate >= startDate && saleDate <= endDate) {
-          movements.push({
-            type: 'chicken_sale',
-            icon: 'bi-egg-fried',
-            title: `Venta Pollos #${sale.id}`,
-            subtitle: `${sale.clientName} - ${saleDate.toLocaleDateString()}`,
-            amount: sale.total,
-            profit: sale.profit || 0,
-            amountClass: 'positive',
-            date: saleDate,
-            data: sale
-          });
-        }
       }
     });
   }
@@ -6930,7 +7266,6 @@ function calculatePeriodSummary(movements) {
     totalDebts: 0,
     totalPayments: 0,
     sales: 0,
-    chickenSales: 0,
     debts: 0,
     payments: 0
   };
@@ -6940,9 +7275,6 @@ function calculatePeriodSummary(movements) {
       if (movement.type === 'sale') {
         summary.totalIncome += movement.amount;
         summary.sales++;
-      } else if (movement.type === 'chicken_sale') {
-        summary.totalIncome += movement.amount;
-        summary.chickenSales++;
       } else if (movement.type === 'debt') {
         summary.totalDebts += movement.amount;
         summary.debts++;
@@ -6953,10 +7285,7 @@ function calculatePeriodSummary(movements) {
     });
   }
   
-  // Las deudas representan gastos pendientes de cobro (no gastos reales)
-  // Los ingresos reales son: ventas + ventas de pollos + pagos de deudas
-  // Los gastos no se calculan aquí ya que no tenemos esa información en los movimientos
-  summary.totalExpenses = 0; // No calculamos gastos aquí, solo movimientos de ingresos
+  summary.totalExpenses = summary.totalIncome - summary.totalPayments;
   
   return summary;
 }
@@ -6964,9 +7293,6 @@ function calculatePeriodSummary(movements) {
 // Función para renderizar resumen del período
 function renderPeriodSummary(summary) {
   const container = document.getElementById('periodSummary');
-  
-  const totalSales = summary.sales + summary.chickenSales;
-  const totalSalesAmount = summary.totalIncome;
   
   container.innerHTML = `
     <div class="row g-3">
@@ -6976,9 +7302,9 @@ function renderPeriodSummary(summary) {
             <i class="bi bi-cart-check"></i>
           </div>
           <div class="summary-content">
-            <div class="summary-value">${totalSales}</div>
-            <div class="summary-label">Ventas (${summary.sales} + ${summary.chickenSales})</div>
-            <div class="summary-amount">$${totalSalesAmount.toFixed(2)}</div>
+            <div class="summary-value">${summary.sales}</div>
+            <div class="summary-label">Ventas</div>
+            <div class="summary-amount">$${summary.totalIncome.toFixed(2)}</div>
           </div>
         </div>
       </div>
@@ -7082,9 +7408,6 @@ window.showFilteredMovementDetail = function(idx) {
 
   if (movement.type === 'sale') {
     showReceipt(movement.data);
-  } else if (movement.type === 'chicken_sale') {
-    // Mostrar comprobante de venta de pollos
-    showChickenReceipt(movement.data);
   } else if (movement.type === 'debt') {
     showDebtDetailModal(movement.data.id);
   } else if (movement.type === 'payment') {
@@ -7118,9 +7441,6 @@ window.showMovementDetail = function(idx) {
     const saleId = movement.title.match(/Venta #(\w+)/)?.[1];
     const sale = sales.find(s => s.id == saleId);
     if (sale) showReceipt(sale);
-  } else if (movement.type === 'chicken_sale') {
-    // Mostrar comprobante de venta de pollos usando directamente los datos del movimiento
-    showChickenReceipt(movement.data);
   } else if (movement.type === 'debt') {
     // Buscar la deuda por id
     const debtId = movement.title.match(/Deuda #(\w+)/)?.[1];
@@ -7406,65 +7726,45 @@ function registerDebtPayment(debtId) {
     return;
   }
 
-  // Mostrar modal para registrar el pago
-  Swal.fire({
-    title: 'Registrar Pago',
-    html: `
-      <div class="mb-3">
-        <label for="paymentAmount" class="form-label">Monto a pagar</label>
-        <input type="number" id="paymentAmount" class="form-control" min="1" max="${debt.amount}" placeholder="Ingrese el monto">
-        <div class="form-text">Saldo actual: $${debt.amount.toFixed(2)}</div>
-      </div>
-    `,
-    showCancelButton: true,
-    confirmButtonText: 'Registrar Pago',
-    cancelButtonText: 'Cancelar',
-    preConfirm: () => {
-      const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
-      if (amount <= 0 || amount > debt.amount) {
-        Swal.showValidationMessage('El monto debe ser mayor a 0 y no mayor al saldo de la deuda');
-        return false;
-      }
-      return amount;
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const paymentAmount = result.value;
-      
-      // Crear registro de pago
-      if (!debt.payments) debt.payments = [];
-      debt.payments.push({
-        id: Date.now().toString(),
-        amount: paymentAmount,
-        date: new Date().toISOString(),
-        type: paymentAmount === debt.amount ? 'full_payment' : 'partial_payment',
-        createdAt: new Date().toISOString()
-      });
-      
-      // Actualizar saldos
-      debt.abono = (debt.abono || 0) + paymentAmount;
-      debt.amount -= paymentAmount;
-      if (debt.amount < 0) debt.amount = 0;
-      
-      // Guardar cambios
-      saveToStorage('debts', debts);
-      renderDebts();
-      updateBalanceUI();
-      
-      // Actualizar vista de movimientos si está activa
-      const movementsView = document.getElementById('view-movements');
-      if (movementsView && !movementsView.classList.contains('d-none')) {
-        loadMovementData(currentMovementFilter || 'today');
-      }
-      
-      Swal.fire({
-        icon: 'success',
-        title: 'Pago Registrado',
-        text: `Se registró un pago de $${paymentAmount.toFixed(2)}`,
-        confirmButtonText: 'Aceptar'
-      });
-    }
-  });
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const { debt: paidDebt, payment } = data;
+  
+  // Configurar fuente
+  doc.setFont('helvetica');
+  doc.setFontSize(12);
+  
+  // Título
+  doc.setFontSize(18);
+  doc.text('COMPROBANTE DE PAGO', 105, 20, { align: 'center' });
+  
+  // Información del pago
+  doc.setFontSize(12);
+  doc.text(`Pago de Deuda #${paidDebt.id}`, 14, 35);
+  doc.text(`Fecha: ${new Date(payment.date).toLocaleDateString()}`, 14, 45);
+  doc.text(`Cliente: ${paidDebt.clientName}`, 14, 55);
+  doc.text(`Monto pagado: $${payment.amount.toFixed(2)}`, 14, 65);
+  
+  // Información de la deuda original
+  doc.text(`Deuda original: $${paidDebt.amount.toFixed(2)}`, 14, 80);
+  
+  // Calcular monto restante
+  const totalPaid = (paidDebt.payments || []).reduce((sum, p) => sum + p.amount, 0);
+  const remainingAmount = paidDebt.amount - totalPaid;
+  doc.text(`Monto restante: $${remainingAmount.toFixed(2)}`, 14, 90);
+  
+  // Descripción si existe
+  if (paidDebt.description) {
+    doc.text(`Descripción: ${paidDebt.description}`, 14, 105);
+  }
+  
+  // Pie de página
+  doc.setFontSize(10);
+  doc.setTextColor(128, 128, 128);
+  doc.text('Generado por TillUp POS', 105, 280, { align: 'center' });
+  
+  // Descargar PDF
+  doc.save(`pago_deuda_${paidDebt.id}_${new Date(payment.date).getTime()}.pdf`);
 }
 
 // Nueva función para actualizar estadísticas de pollos por rango de fechas
@@ -7957,8 +8257,8 @@ function updateDrawerClientSelector() {
 function updateDrawerDate() {
   const dateInput = document.getElementById('saleDateDrawer');
   if (dateInput) {
-    // Usar fecha local de Ecuador
-    dateInput.value = getEcuadorDateString();
+    const today = new Date();
+    dateInput.value = today.toISOString().slice(0,10);
   }
 }
 // Inicializar selectores al cargar
@@ -8225,8 +8525,7 @@ async function processChickenSale(sale) {
     
     // Limpiar formulario
     document.getElementById('chickenSaleForm').reset();
-    // Usar fecha local de Ecuador al limpiar el formulario
-    document.getElementById('chickenSaleDate').value = getEcuadorDateString();
+    document.getElementById('chickenSaleDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('chickenQuantity').value = '1';
     document.getElementById('chickenAbonoSection').style.display = 'none';
     
@@ -8401,7 +8700,7 @@ async function loadMovementData(filterType) {
   console.log('Movimientos encontrados:', movements.length);
   
   // Actualizar estadísticas
-  updateMovementStats(movements, startDate, endDate);
+  updateMovementStats(movements);
   
   // Actualizar gráficas
   updateChartsWithData(movements);
@@ -8488,7 +8787,6 @@ function getAllMovementsInRange(startDate, endDate) {
           title: `Venta #${sale.id}`,
           subtitle: `${sale.clientName || 'Cliente no especificado'} - ${saleDate.toLocaleDateString()}`,
           amount: sale.total,
-          profit: sale.profit || 0,
           amountClass: 'positive',
           date: saleDate,
           data: sale,
@@ -8524,7 +8822,6 @@ function getAllMovementsInRange(startDate, endDate) {
           title: `Venta Pollos #${sale.id}`,
           subtitle: `${sale.clientName || 'Cliente no especificado'} - ${saleDate.toLocaleDateString()}`,
           amount: sale.total,
-          profit: sale.profit || 0,
           amountClass: 'positive',
           date: saleDate,
           data: sale,
@@ -8555,32 +8852,27 @@ function getAllMovementsInRange(startDate, endDate) {
       }
     });
     
-      // Agregar pagos de deudas
-  let paymentsAdded = 0;
-  debts.forEach(debt => {
-    if (debt.payments && debt.payments.length > 0) {
-      debt.payments.forEach(payment => {
-        const paymentDate = new Date(payment.date);
-        if (paymentDate >= startDate && paymentDate <= endDate) {
-          movements.push({
-            type: 'payment',
-            icon: 'bi-cash-coin',
-            title: `Pago Deuda #${debt.id}`,
-            subtitle: `${debt.clientName} - ${paymentDate.toLocaleDateString()}`,
-            amount: payment.amount,
-            amountClass: 'positive',
-            date: paymentDate,
-            data: { debt, payment },
-            category: 'pagos'
-          });
-          paymentsAdded++;
-        }
-      });
-    }
-  });
-  
-  console.log('Pagos agregados:', paymentsAdded);
-  console.log('Total deudas con pagos:', debts.filter(d => d.payments && d.payments.length > 0).length);
+    // Agregar pagos de deudas
+    debts.forEach(debt => {
+      if (debt.payments && debt.payments.length > 0) {
+        debt.payments.forEach(payment => {
+          const paymentDate = new Date(payment.date);
+          if (paymentDate >= startDate && paymentDate <= endDate) {
+            movements.push({
+              type: 'payment',
+              icon: 'bi-cash-coin',
+              title: `Pago Deuda #${debt.id}`,
+              subtitle: `${debt.clientName} - ${paymentDate.toLocaleDateString()}`,
+              amount: payment.amount,
+              amountClass: 'positive',
+              date: paymentDate,
+              data: { debt, payment },
+              category: 'pagos'
+            });
+          }
+        });
+      }
+    });
   }
   
   // Ordenar por fecha más reciente
@@ -8595,7 +8887,7 @@ function getAllMovementsInRange(startDate, endDate) {
 }
 
 // Actualizar estadísticas de movimientos
-function updateMovementStats(movements, startDate = null, endDate = null) {
+function updateMovementStats(movements) {
   const stats = {
     totalSales: 0,
     totalSalesAmount: 0,
@@ -8632,8 +8924,8 @@ function updateMovementStats(movements, startDate = null, endDate = null) {
   let totalSalesProfit = 0;
   let totalChickenProfit = 0;
   
-  // Si tenemos fechas definidas, calcular ganancias de ventas normales en el rango
-  if (sales && Array.isArray(sales) && startDate && endDate) {
+  // Calcular ganancias de ventas normales
+  if (sales && Array.isArray(sales)) {
     totalSalesProfit = sales.reduce((sum, sale) => {
       const saleDate = normalizeDate(sale.date);
       if (saleDate && saleDate >= startDate && saleDate <= endDate) {
@@ -8641,15 +8933,10 @@ function updateMovementStats(movements, startDate = null, endDate = null) {
       }
       return sum;
     }, 0);
-  } else {
-    // Si no hay rango de fechas, usar las ganancias de los movimientos ya filtrados
-    totalSalesProfit = movements
-      .filter(m => m.type === 'sale')
-      .reduce((sum, movement) => sum + (movement.profit || 0), 0);
   }
   
-  // Si tenemos fechas definidas, calcular ganancias de ventas de pollos en el rango
-  if (chickenSales && Array.isArray(chickenSales) && startDate && endDate) {
+  // Calcular ganancias de ventas de pollos
+  if (chickenSales && Array.isArray(chickenSales)) {
     totalChickenProfit = chickenSales.reduce((sum, sale) => {
       const saleDate = normalizeDate(sale.date);
       if (saleDate && saleDate >= startDate && saleDate <= endDate) {
@@ -8657,11 +8944,6 @@ function updateMovementStats(movements, startDate = null, endDate = null) {
       }
       return sum;
     }, 0);
-  } else {
-    // Si no hay rango de fechas, usar las ganancias de los movimientos ya filtrados
-    totalChickenProfit = movements
-      .filter(m => m.type === 'chicken_sale')
-      .reduce((sum, movement) => sum + (movement.profit || 0), 0);
   }
   
   // Los ingresos totales representan las ganancias netas reales: ganancias de ventas + pagos de deudas
@@ -8672,9 +8954,7 @@ function updateMovementStats(movements, startDate = null, endDate = null) {
   console.log('Estadísticas calculadas:', {
     ventasNormales: stats.totalSalesAmount,
     ventasPollos: stats.totalChickenAmount,
-    deudas: stats.totalDebtsAmount,
     pagos: stats.totalPaymentsAmount,
-    cantidadPagos: stats.totalPayments,
     gananciasVentasNormales: totalSalesProfit,
     gananciasVentasPollos: totalChickenProfit,
     ingresosTotales: totalRevenue
@@ -9651,257 +9931,1263 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// === SISTEMA DE SINCRONIZACIÓN WEBSOCKET INTEGRADO ===
-let wsConnection = null;
-let syncIndicator = null;
-let reconnectAttempts = 0;
-const maxReconnectAttempts = 5;
+//-- Telegram y Google Drive Backup Logic -------------------------------------------------------------
 
-function initWebSocketSync() {
-  if (!window.TILLUP_SYNC_CONFIG) return;
-  
-  const wsUrl = window.TILLUP_SYNC_CONFIG.WEBSOCKET_URL;
-  const userId = localStorage.getItem('tillup_user_id') || generateId('user_');
-  const deviceId = localStorage.getItem('tillup_device_id') || generateId('device_');
-  
-  localStorage.setItem('tillup_user_id', userId);
-  localStorage.setItem('tillup_device_id', deviceId);
-  
-  connectWebSocket(wsUrl, userId, deviceId);
-}
+  // --- Google Drive Backup/Restore con Google Identity Services (GIS) ---
+  const GOOGLE_CLIENT_ID = '83503843228-lh6tbfvp9q1a3omus30g2i9miadrp6i7.apps.googleusercontent.com';
+  const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
+  const BACKUP_FILENAME = 'backup-tillup.json';
+  let googleAccessToken = null;
+  let tokenClient = null;
+  let googleDriveBackupTimer = null;
+  let googleDriveBackupInterval = 60; // minutos por defecto
 
-function connectWebSocket(wsUrl, userId, deviceId) {
-  try {
-    wsConnection = new WebSocket(`${wsUrl}?userId=${userId}&deviceId=${deviceId}`);
+  // Leer intervalo guardado en localStorage (si existe)
+  if (localStorage.getItem('googleDriveBackupInterval')) {
+    const val = parseInt(localStorage.getItem('googleDriveBackupInterval'), 10);
+    if (!isNaN(val) && val >= 5 && val <= 1440) {
+      googleDriveBackupInterval = val;
+    }
+  }
+
+  // Actualizar campo de intervalo en la UI al cargar
+  document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('googleDriveBackupInterval');
+    if (input) input.value = googleDriveBackupInterval;
+  });
+
+  // Guardar intervalo cuando se cambie el valor
+  document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('googleDriveBackupInterval');
+    if (input) {
+      input.addEventListener('change', function() {
+        let val = parseInt(this.value, 10);
+        if (isNaN(val) || val < 5) val = 5;
+        if (val > 1440) val = 1440;
+        this.value = val;
+        googleDriveBackupInterval = val;
+        localStorage.setItem('googleDriveBackupInterval', val);
+        if (googleAccessToken) {
+          stopGoogleDriveAutoBackup();
+          startGoogleDriveAutoBackup(val);
+        }
+      });
+    }
+  });
+
+  // Iniciar backup automático a Google Drive
+  function startGoogleDriveAutoBackup(intervalMinutes) {
+    console.log('Iniciando backup automático de Google Drive con intervalo:', intervalMinutes, 'minutos');
     
-    wsConnection.onopen = () => {
-      reconnectAttempts = 0;
-      showSyncIndicator('Conectado', 'success');
-      setTimeout(hideSyncIndicator, 2000);
-    };
+    stopGoogleDriveAutoBackup();
+    if (!intervalMinutes || isNaN(intervalMinutes) || intervalMinutes < 5) intervalMinutes = 60;
+    googleDriveBackupInterval = intervalMinutes;
+    localStorage.setItem('googleDriveBackupInterval', intervalMinutes);
     
-    wsConnection.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        handleSyncMessage(data);
-      } catch (e) {
-        console.log('Mensaje WebSocket:', event.data);
+    const intervalMs = intervalMinutes * 60 * 1000;
+    console.log(`Backup automático de Google Drive programado cada ${intervalMinutes} minutos (${intervalMs}ms)`);
+    
+    googleDriveBackupTimer = setInterval(async () => {
+      console.log('🔍 Verificando si es necesario hacer backup automático de Google Drive...');
+      
+      if (!(await ensureGoogleAccessToken())) {
+        console.warn('No se pudo obtener token de Google, saltando backup automático');
+        return;
       }
-    };
+      
+      try {
+        // Verificar si hay cambios desde el último backup
+        const lastBackup = localStorage.getItem('lastGoogleDriveBackup');
+        const lastLocalBackup = localStorage.getItem('lastLocalBackup');
+        
+        if (lastBackup && lastLocalBackup) {
+          const backupTime = parseInt(lastBackup);
+          const localTime = parseInt(lastLocalBackup);
+          
+          // Solo hacer backup si los datos locales son más recientes
+          if (localTime <= backupTime) {
+            console.log('📊 No hay cambios nuevos, saltando backup automático');
+            return;
+          }
+        }
+        
+        const data = await getAllAppData();
+        if (!data || Object.keys(data).length === 0) {
+          console.warn('Backup automático: datos vacíos, no se envía a Google Drive.');
+          return;
+        }
+        
+        const fileContent = JSON.stringify(data, null, 2);
+        console.log('📤 Subiendo backup automático a Google Drive...');
+        await uploadBackupToDrive(fileContent);
+        console.log('✅ Backup automático de Google Drive realizado exitosamente');
+        
+        // Guardar timestamp del último backup exitoso
+        localStorage.setItem('lastGoogleDriveBackup', Date.now().toString());
+        
+      } catch (err) {
+        console.error('❌ Error en backup automático a Google Drive:', err);
+        // Guardar timestamp del último error
+        localStorage.setItem('lastGoogleDriveBackupError', Date.now().toString());
+        localStorage.setItem('lastGoogleDriveBackupErrorMsg', err.message || err.toString());
+      }
+    }, intervalMs);
     
-    wsConnection.onclose = () => {
-      showSyncIndicator('Desconectado', 'error');
-      scheduleReconnect(wsUrl, userId, deviceId);
-    };
+    // Ejecutar backup inmediatamente si es la primera vez
+    if (!localStorage.getItem('lastGoogleDriveBackup')) {
+      console.log('Ejecutando backup inicial de Google Drive...');
+      setTimeout(async () => {
+        try {
+          if (await ensureGoogleAccessToken()) {
+            const data = await getAllAppData();
+            const fileContent = JSON.stringify(data, null, 2);
+            await uploadBackupToDrive(fileContent);
+            console.log('Backup inicial de Google Drive realizado exitosamente');
+            localStorage.setItem('lastGoogleDriveBackup', Date.now().toString());
+          }
+        } catch (err) {
+          console.error('Error en backup inicial de Google Drive:', err);
+        }
+      }, 5000); // Esperar 5 segundos antes del primer backup
+    }
+  }
+
+  // Detener backup automático a Google Drive
+  function stopGoogleDriveAutoBackup() {
+    if (googleDriveBackupTimer) {
+      clearInterval(googleDriveBackupTimer);
+      googleDriveBackupTimer = null;
+    }
+  }
+
+  // Inicializa GIS token client (solo una vez)
+  function initGoogleTokenClient() {
+    console.log('Inicializando Google Token Client...');
     
-    wsConnection.onerror = () => {
-      showSyncIndicator('Error de conexión', 'error');
-    };
+    if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+      console.error('Google Identity Services no está disponible');
+      Swal.fire('Error', 'Google Identity Services no está disponible. Verifica tu conexión a internet.', 'error');
+      return false;
+    }
     
-  } catch (error) {
-    console.error('Error conectando WebSocket:', error);
+    if (!tokenClient) {
+      try {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: GOOGLE_SCOPES,
+          callback: handleGoogleTokenResponse,
+          error_callback: (error) => {
+            console.error('Error en Google Token Client:', error);
+            Swal.fire('Error de Google', 'No se pudo inicializar la autenticación de Google: ' + error.message, 'error');
+          }
+        });
+        console.log('Google Token Client inicializado correctamente');
+        return true;
+      } catch (error) {
+        console.error('Error al inicializar Google Token Client:', error);
+        Swal.fire('Error', 'No se pudo inicializar la autenticación de Google: ' + error.message, 'error');
+        return false;
+      }
+    }
+    return true;
   }
-}
 
-function scheduleReconnect(wsUrl, userId, deviceId) {
-  if (reconnectAttempts < maxReconnectAttempts) {
-    reconnectAttempts++;
-    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-    setTimeout(() => connectWebSocket(wsUrl, userId, deviceId), delay);
+  // Maneja la respuesta del token
+  async function handleGoogleTokenResponse(resp) {
+    console.log('Respuesta de Google Token:', resp);
+    
+    if (resp.error) {
+      console.error('Error en respuesta de Google Token:', resp.error);
+      let errorMessage = 'No se pudo iniciar sesión';
+      
+      switch (resp.error) {
+        case 'popup_closed_by_user':
+          errorMessage = 'Inicio de sesión cancelado por el usuario';
+          break;
+        case 'access_denied':
+          errorMessage = 'Acceso denegado. Verifica los permisos de Google Drive.';
+          break;
+        case 'invalid_client':
+          errorMessage = 'Error de configuración del cliente de Google';
+          break;
+        case 'invalid_grant':
+          errorMessage = 'Token inválido. Intenta iniciar sesión nuevamente.';
+          break;
+        default:
+          errorMessage += ': ' + resp.error;
+      }
+      
+      Swal.fire('Error de Google', errorMessage, 'error');
+      return;
+    }
+    
+    if (!resp.access_token) {
+      console.error('No se recibió token de acceso');
+      Swal.fire('Error', 'No se recibió el token de acceso de Google', 'error');
+      return;
+    }
+    
+    googleAccessToken = resp.access_token;
+    localStorage.setItem('googleAccessToken', googleAccessToken);
+    localStorage.setItem('googleTokenTimestamp', Date.now().toString());
+    
+    console.log('Token de Google guardado exitosamente');
+    enableGoogleDriveButtons(true);
+    
+    // Mostrar mensaje de conexión exitosa
+    Swal.fire({
+      icon: 'info',
+      title: 'Conectando a Google Drive...',
+      text: 'Verificando backups existentes...',
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    
+    try {
+      // Verificar si existe backup en Drive y restaurarlo automáticamente
+      await checkAndRestoreGoogleDriveBackup();
+      
+      // Leer el intervalo actualizado del input
+      let interval = googleDriveBackupInterval;
+      const input = document.getElementById('googleDriveBackupInterval');
+      if (input) {
+        const val = parseInt(input.value, 10);
+        if (!isNaN(val) && val >= 5 && val <= 1440) interval = val;
+      }
+      
+      console.log('Iniciando backup automático de Google Drive con intervalo:', interval, 'minutos');
+      startGoogleDriveAutoBackup(interval);
+      
+      // Cerrar el loading y mostrar éxito
+      Swal.fire({
+        icon: 'success',
+        title: '¡Sesión iniciada!',
+        text: 'Conectado exitosamente a Google Drive. Los backups automáticos están activos.',
+        timer: 3000,
+        showConfirmButton: false
+      });
+      
+    } catch (error) {
+      console.error('Error durante la verificación/restauración de backup:', error);
+      Swal.fire({
+        icon: 'warning',
+        title: 'Sesión iniciada con advertencia',
+        text: 'Conectado a Google Drive, pero hubo un problema con la verificación de backups. Los backups automáticos están activos.',
+        timer: 3000,
+        showConfirmButton: false
+      });
+    }
   }
-}
 
-function handleSyncMessage(data) {
-  if (data.type === 'data_sync' && data.payload.sourceDeviceId !== localStorage.getItem('tillup_device_id')) {
-    showSyncIndicator('Sincronizando...', 'info');
-    applySyncData(data.payload);
+  // Solicita un token nuevo antes de cada operación sensible
+  async function ensureGoogleAccessToken(forcePrompt = false) {
+    console.log('Verificando token de Google Access...');
+    
+    if (!tokenClient) {
+      if (!initGoogleTokenClient()) {
+        return false;
+      }
+    }
+    
+    // Verificar si el token actual es válido (no expirado)
+    const tokenTimestamp = localStorage.getItem('googleTokenTimestamp');
+    if (tokenTimestamp) {
+      const tokenAge = Date.now() - parseInt(tokenTimestamp);
+      const tokenMaxAge = 50 * 60 * 1000; // 50 minutos (los tokens expiran en 1 hora)
+      
+      if (tokenAge < tokenMaxAge && googleAccessToken && !forcePrompt) {
+        console.log('Token de Google válido, usando token existente');
+        
+        // Verificar que el token realmente funciona haciendo una prueba
+        try {
+          const testResponse = await fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
+            headers: {
+              'Authorization': `Bearer ${googleAccessToken}`
+            }
+          });
+          
+          if (testResponse.status === 401 || testResponse.status === 403) {
+            console.log('Token de Google inválido en el servidor, solicitando nuevo token...');
+            googleAccessToken = null;
+            localStorage.removeItem('googleAccessToken');
+            localStorage.removeItem('googleTokenTimestamp');
+          } else if (testResponse.ok) {
+            console.log('Token de Google verificado exitosamente en el servidor');
+            return true;
+          }
+        } catch (error) {
+          console.log('Error verificando token en servidor, solicitando nuevo token:', error);
+          googleAccessToken = null;
+          localStorage.removeItem('googleAccessToken');
+          localStorage.removeItem('googleTokenTimestamp');
+        }
+      } else {
+        console.log('Token de Google expirado o forzando renovación');
+        googleAccessToken = null;
+        localStorage.removeItem('googleAccessToken');
+        localStorage.removeItem('googleTokenTimestamp');
+      }
+    }
+    
+    return await new Promise((resolve) => {
+      console.log('Solicitando nuevo token de Google...');
+      
+      tokenClient.callback = (resp) => {
+        if (resp.error) {
+          console.error('Error al obtener token de Google:', resp.error);
+          let errorMessage = 'No se pudo obtener token';
+          
+          switch (resp.error) {
+            case 'popup_closed_by_user':
+              errorMessage = 'Inicio de sesión cancelado por el usuario';
+              break;
+            case 'access_denied':
+              errorMessage = 'Acceso denegado. Verifica los permisos de Google Drive.';
+              break;
+            case 'invalid_grant':
+              errorMessage = 'Token inválido. Intenta iniciar sesión nuevamente.';
+              break;
+            default:
+              errorMessage += ': ' + resp.error;
+          }
+          
+          Swal.fire('Error de Google', errorMessage, 'error');
+          resolve(false);
+        } else {
+          googleAccessToken = resp.access_token;
+          localStorage.setItem('googleAccessToken', googleAccessToken);
+          localStorage.setItem('googleTokenTimestamp', Date.now().toString());
+          console.log('Nuevo token de Google obtenido exitosamente');
+          resolve(true);
+        }
+      };
+      
+      try {
+        tokenClient.requestAccessToken({ prompt: forcePrompt ? 'consent' : '' });
+      } catch (error) {
+        console.error('Error al solicitar token de Google:', error);
+        Swal.fire('Error', 'No se pudo solicitar el token de Google: ' + error.message, 'error');
+        resolve(false);
+      }
+    });
   }
-}
 
-async function applySyncData(payload) {
-  try {
-    if (payload.dataType === 'full_sync') {
-      // Sincronización completa
-      const keys = ['products', 'clients', 'sales', 'debts', 'chickenSales'];
-      for (const key of keys) {
-        if (payload.data[key]) {
-          await saveToStorage(key, payload.data[key]);
-          window[key] = payload.data[key];
+
+  // Habilita/deshabilita botones según sesión (solo sidebar)
+  function enableGoogleDriveButtons(enabled) {
+    const backupBtn = document.getElementById('googleBackupBtn');
+    const restoreBtn = document.getElementById('googleRestoreBtn');
+    const signInBtn = document.getElementById('googleSignInBtn');
+    const signOutBtn = document.getElementById('googleSignOutBtn');
+    const userStatus = document.getElementById('googleUserStatus');
+    if (backupBtn) backupBtn.disabled = !enabled;
+    if (restoreBtn) restoreBtn.disabled = !enabled;
+    if (signInBtn) signInBtn.classList[enabled ? 'add' : 'remove']('d-none');
+    if (signOutBtn) signOutBtn.classList[enabled ? 'remove' : 'add']('d-none');
+    if (userStatus) userStatus.textContent = enabled ? 'Sesión activa' : '';
+  }
+
+  // Función para verificar y restaurar backup de Google Drive automáticamente
+  async function checkAndRestoreGoogleDriveBackup() {
+    console.log('🔍 Verificando si existe backup en Google Drive...');
+    
+    try {
+      // Buscar si existe el archivo de backup
+      const fileId = await findBackupFileId();
+      
+      if (fileId) {
+        console.log('📁 Backup encontrado en Google Drive, restaurando automáticamente...');
+        
+        // Descargar y restaurar el backup
+        const backupData = await downloadBackupFromDrive(fileId);
+        
+        if (backupData && Object.keys(backupData).length > 0) {
+          // Verificar si hay datos locales para comparar
+          const localData = await getAllAppData();
+          const hasLocalData = localData && Object.keys(localData).length > 0;
+          
+          if (hasLocalData) {
+            // Comparar fechas de modificación si están disponibles
+            const backupDate = backupData.metadata?.lastModified || 0;
+            const localDate = localStorage.getItem('lastLocalBackup') || 0;
+            
+            if (backupDate > localDate) {
+              console.log('📥 Restaurando datos desde Google Drive (más recientes)...');
+              await restoreFromBackupData(backupData);
+            } else {
+              console.log('📤 Los datos locales son más recientes, creando nuevo backup...');
+              await createNewGoogleDriveBackup();
+            }
+          } else {
+            // No hay datos locales, restaurar desde Drive
+            console.log('📥 No hay datos locales, restaurando desde Google Drive...');
+            await restoreFromBackupData(backupData);
+          }
+        } else {
+          console.log('⚠️ Backup encontrado pero vacío, creando nuevo backup...');
+          await createNewGoogleDriveBackup();
+        }
+      } else {
+        console.log('📝 No se encontró backup en Google Drive, creando uno nuevo...');
+        await createNewGoogleDriveBackup();
+      }
+      
+    } catch (error) {
+      console.error('❌ Error verificando/restaurando backup:', error);
+      throw error;
+    }
+  }
+
+  // Función para restaurar datos desde backup
+  async function restoreFromBackupData(backupData) {
+    console.log('🔄 Restaurando datos desde backup...');
+    
+    try {
+      // Limpiar datos existentes
+      await localforage.clear();
+      
+      // Restaurar datos críticos
+      const criticalKeys = ['products', 'clients', 'sales', 'debts', 'movements', 'chickenSales'];
+      
+      for (const key of criticalKeys) {
+        if (backupData[key] && Array.isArray(backupData[key])) {
+          await localforage.setItem(key, backupData[key]);
+          console.log(`✅ Restaurado: ${key} (${backupData[key].length} elementos)`);
         }
       }
       
-      // Actualizar UI
-      updateAllViews();
-      showSyncIndicator('Datos actualizados', 'success');
-    }
-  } catch (error) {
-    console.error('Error aplicando sincronización:', error);
-    showSyncIndicator('Error sincronizando', 'error');
-  }
-  
-  setTimeout(hideSyncIndicator, 3000);
-}
-
-function syncDataChange(action, data) {
-  if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) return;
-  
-  const message = {
-    type: 'data_sync',
-    payload: {
-      action,
-      data,
-      sourceDeviceId: localStorage.getItem('tillup_device_id'),
-      timestamp: Date.now()
-    }
-  };
-  
-  wsConnection.send(JSON.stringify(message));
-  showSyncIndicator('Enviando...', 'info');
-  setTimeout(hideSyncIndicator, 2000);
-}
-
-function showSyncIndicator(message, type = 'info') {
-  // Remover indicador anterior
-  if (syncIndicator) {
-    syncIndicator.remove();
-  }
-  
-  const colors = {
-    success: '#28a745',
-    error: '#dc3545',
-    info: '#17a2b8'
-  };
-  
-  syncIndicator = document.createElement('div');
-  syncIndicator.innerHTML = `<i class="bi bi-arrow-repeat"></i> ${message}`;
-  syncIndicator.style.cssText = `
-    position: fixed;
-    top: 70px;
-    right: 20px;
-    background: ${colors[type]};
-    color: white;
-    padding: 8px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    z-index: 99999;
-    font-weight: bold;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  `;
-  
-  document.body.appendChild(syncIndicator);
-}
-
-function hideSyncIndicator() {
-  if (syncIndicator) {
-    syncIndicator.remove();
-    syncIndicator = null;
-  }
-}
-
-function updateAllViews() {
-  const updateFunctions = [
-    'renderInventory',
-    'renderClients', 
-    'renderSalesProducts',
-    'updateBalanceUI',
-    'renderDebts',
-    'updateChickenStats',
-    'updateChickenSalesList'
-  ];
-  
-  updateFunctions.forEach(funcName => {
-    if (typeof window[funcName] === 'function') {
-      try {
-        window[funcName]();
-      } catch (e) {
-        console.log(`Error actualizando ${funcName}:`, e);
+      // Restaurar configuraciones
+      if (backupData.settings) {
+        for (const [key, value] of Object.entries(backupData.settings)) {
+          localStorage.setItem(key, value);
+        }
+        console.log('✅ Configuraciones restauradas');
       }
+      
+      // Restaurar configuraciones de backup
+      if (backupData.backupConfig) {
+        if (backupData.backupConfig.googleDriveInterval) {
+          localStorage.setItem('googleDriveBackupInterval', backupData.backupConfig.googleDriveInterval);
+        }
+        if (backupData.backupConfig.telegramConfig) {
+          await localforage.setItem('telegram_backup_config', backupData.backupConfig.telegramConfig);
+        }
+        console.log('✅ Configuraciones de backup restauradas');
+      }
+      
+      // Recargar datos en la aplicación
+      if (typeof loadData === 'function') {
+        await loadData();
+      }
+      
+      // Recargar la vista actual
+      if (typeof renderInventory === 'function') {
+        renderInventory();
+      }
+      if (typeof renderClients === 'function') {
+        renderClients();
+      }
+      if (typeof renderDebts === 'function') {
+        renderDebts();
+      }
+      if (typeof updateBalanceUI === 'function') {
+        updateBalanceUI();
+      }
+      
+      console.log('✅ Restauración completada exitosamente');
+      
+    } catch (error) {
+      console.error('❌ Error durante la restauración:', error);
+      throw error;
+    }
+  }
+
+  // Función para crear nuevo backup en Google Drive
+  async function createNewGoogleDriveBackup() {
+    console.log('📤 Creando nuevo backup en Google Drive...');
+    
+    try {
+      const data = await getAllAppData();
+      const fileContent = JSON.stringify(data, null, 2);
+      await uploadBackupToDrive(fileContent);
+      console.log('✅ Nuevo backup creado exitosamente en Google Drive');
+    } catch (error) {
+      console.error('❌ Error creando nuevo backup:', error);
+      throw error;
+    }
+  }
+
+  // Función para forzar re-autenticación de Google Drive
+  async function forceGoogleReauth() {
+    console.log('🔄 Forzando re-autenticación de Google Drive...');
+    
+    // Limpiar tokens existentes
+    googleAccessToken = null;
+    localStorage.removeItem('googleAccessToken');
+    localStorage.removeItem('googleTokenTimestamp');
+    
+    // Deshabilitar botones
+    enableGoogleDriveButtons(false);
+    
+    // Mostrar mensaje al usuario
+    Swal.fire({
+      title: 'Re-autenticación requerida',
+      text: 'Se ha limpiado la sesión de Google Drive. Por favor, inicia sesión nuevamente.',
+      icon: 'info',
+      confirmButtonText: 'Entendido'
+    });
+    
+    // Intentar obtener nuevo token
+    try {
+      const success = await ensureGoogleAccessToken(true);
+      if (success) {
+        console.log('✅ Re-autenticación exitosa');
+        Swal.fire({
+          title: '¡Re-autenticación exitosa!',
+          text: 'La sesión de Google Drive se ha restaurado correctamente.',
+          icon: 'success',
+          timer: 3000,
+          showConfirmButton: false
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error en re-autenticación:', error);
+    }
+  }
+
+
+  // Subir backup a Google Drive (crea o actualiza el archivo, robusto)
+  async function uploadBackupToDrive(content) {
+    console.log('🔄 Iniciando upload a Google Drive...');
+    
+    // Siempre refresca el token antes de operar
+    if (!(await ensureGoogleAccessToken())) {
+      console.error('❌ No se pudo obtener token válido para Google Drive');
+      throw new Error('No hay token de acceso válido. Por favor, inicia sesión nuevamente.');
+    }
+    
+    // Cargar gapi solo para Drive API (no auth2)
+    await new Promise((resolve) => {
+      gapi.load('client', async () => {
+        await gapi.client.init({
+          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+        });
+        resolve();
+      });
+    });
+    
+    let fileId;
+    try {
+      console.log('🔍 Buscando archivo existente en Google Drive...');
+      fileId = await findBackupFileId();
+      console.log('📁 Archivo encontrado:', fileId ? 'Sí' : 'No');
+    } catch (err) {
+      console.error('❌ Error buscando archivo:', err);
+      if (err && err.message && err.message.includes('403')) {
+        console.log('🚫 Permiso denegado, limpiando sesión...');
+        googleAccessToken = null;
+        localStorage.removeItem('googleAccessToken');
+        localStorage.removeItem('googleTokenTimestamp');
+        enableGoogleDriveButtons(false);
+        throw new Error('Permiso denegado por Google Drive. Por favor, cierra sesión y vuelve a iniciar sesión con tu cuenta Google.');
+      } else {
+        throw err;
+      }
+    }
+    const metadata = {
+      name: BACKUP_FILENAME,
+      mimeType: 'application/json',
+    };
+    const boundary = '-------314159265358979323846';
+    const delimiter = "\r\n--" + boundary + "\r\n";
+    const close_delim = "\r\n--" + boundary + "--";
+    const multipartRequestBody =
+      delimiter +
+      'Content-Type: application/json\r\n\r\n' +
+      JSON.stringify(metadata) +
+      delimiter +
+      'Content-Type: application/json\r\n\r\n' +
+      content +
+      close_delim;
+
+    let url = 'https://www.googleapis.com/upload/drive/v3/files';
+    let method = 'POST';
+    if (fileId) {
+      url += '/' + fileId + '?uploadType=multipart';
+      method = 'PATCH';
+    } else {
+      url += '?uploadType=multipart';
+    }
+
+    console.log('📤 Subiendo archivo a Google Drive...');
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Authorization': 'Bearer ' + googleAccessToken,
+        'Content-Type': 'multipart/related; boundary="' + boundary + '"',
+      },
+      body: multipartRequestBody,
+    });
+    
+    console.log('📊 Respuesta de Google Drive:', res.status, res.statusText);
+    
+    if (res.status === 403) {
+      console.log('🚫 Permiso denegado por Google Drive, limpiando sesión...');
+      googleAccessToken = null;
+      localStorage.removeItem('googleAccessToken');
+      localStorage.removeItem('googleTokenTimestamp');
+      enableGoogleDriveButtons(false);
+      throw new Error('Permiso denegado por Google Drive. Por favor, cierra sesión y vuelve a iniciar sesión con tu cuenta Google.');
+    }
+    
+    if (res.status === 401) {
+      console.log('🔑 Token no autorizado, solicitando nuevo token...');
+      googleAccessToken = null;
+      localStorage.removeItem('googleAccessToken');
+      localStorage.removeItem('googleTokenTimestamp');
+      throw new Error('Token de acceso no autorizado. Por favor, inicia sesión nuevamente.');
+    }
+    
+    if (!res.ok) {
+      let msg = 'Error subiendo backup: ' + res.statusText;
+      try {
+        const errJson = await res.json();
+        if (errJson && errJson.error && errJson.error.message) {
+          msg += ' - ' + errJson.error.message;
+          console.error('📋 Detalles del error:', errJson.error);
+        }
+      } catch(e){
+        console.error('❌ Error parseando respuesta de error:', e);
+      }
+      console.error('❌ Error en upload:', msg);
+      throw new Error(msg);
+    }
+    
+    console.log('✅ Backup subido exitosamente a Google Drive');
+  }
+
+  // Buscar si ya existe el archivo de backup
+  async function findBackupFileId() {
+    console.log('🔍 Buscando archivo de backup en Google Drive...');
+    
+    // Cargar gapi solo para Drive API (no auth2)
+    await new Promise((resolve) => {
+      gapi.load('client', async () => {
+        await gapi.client.init({
+          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+        });
+        resolve();
+      });
+    });
+    
+    let res;
+    try {
+      console.log('📋 Consultando archivos en Google Drive...');
+      res = await gapi.client.drive.files.list({
+        q: `name='${BACKUP_FILENAME}' and trashed=false`,
+        fields: 'files(id, name)',
+        spaces: 'drive',
+      });
+      console.log('📁 Archivos encontrados:', res.result.files ? res.result.files.length : 0);
+    } catch (err) {
+      console.error('❌ Error consultando archivos:', err);
+      if (err && err.status && err.status === 403) {
+        throw new Error('403 - Permiso denegado por Google Drive.');
+      }
+      if (err && err.status && err.status === 401) {
+        throw new Error('401 - Token no autorizado.');
+      }
+      throw err;
+    }
+    
+    if (res.result.files && res.result.files.length > 0) {
+      console.log('✅ Archivo de backup encontrado:', res.result.files[0].id);
+      return res.result.files[0].id;
+    }
+    
+    console.log('📝 No se encontró archivo de backup existente');
+    return null;
+  }
+
+  // Descargar el backup desde Google Drive
+  async function downloadBackupFromDrive() {
+    const fileId = await findBackupFileId();
+    if (!fileId) throw new Error('No se encontró backup en tu Google Drive.');
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: { 'Authorization': 'Bearer ' + googleAccessToken }
+    });
+    if (!res.ok) throw new Error('No se pudo descargar el backup.');
+    return await res.text();
+  }
+
+  // Restaurar datos de la app (ajusta según tu lógica)
+  async function restoreAppData(data) {
+    // Igual que tu import desde Telegram
+    const criticalKeys = ['sales','clients','products','debts','movements','chickenSales'];
+    const settingsKeys = ['theme','viewModes','pricePerPound','costPerPound'];
+    for (const key of criticalKeys) {
+      if (data[key] !== undefined) await localforage.setItem(key, data[key]);
+    }
+    for (const key of settingsKeys) {
+      if (data[key] !== undefined) {
+        await localforage.setItem(key, data[key]);
+        try { localStorage.setItem(key, JSON.stringify(data[key])); } catch(e){}
+      }
+    }
+    // Recarga la UI si es necesario
+    if (typeof loadData === 'function') await loadData();
+    if (typeof renderClients === 'function') renderClients();
+    if (typeof renderDebts === 'function') renderDebts();
+    if (typeof renderInventory === 'function') renderInventory();
+  }
+
+  // Función para verificar el estado de los backups
+  function checkBackupStatus() {
+    const status = {
+      telegram: {
+        lastBackup: localStorage.getItem('lastTelegramBackup'),
+        lastError: localStorage.getItem('lastTelegramBackupError'),
+        lastErrorMsg: localStorage.getItem('lastTelegramBackupErrorMsg'),
+        isActive: telegramBackupTimer !== null
+      },
+      googleDrive: {
+        lastBackup: localStorage.getItem('lastGoogleDriveBackup'),
+        lastError: localStorage.getItem('lastGoogleDriveBackupError'),
+        lastErrorMsg: localStorage.getItem('lastGoogleDriveBackupErrorMsg'),
+        isActive: googleDriveBackupTimer !== null,
+        tokenValid: false
+      }
+    };
+    
+    // Verificar si el token de Google es válido
+    const tokenTimestamp = localStorage.getItem('googleTokenTimestamp');
+    if (tokenTimestamp) {
+      const tokenAge = Date.now() - parseInt(tokenTimestamp);
+      const tokenMaxAge = 50 * 60 * 1000; // 50 minutos
+      status.googleDrive.tokenValid = tokenAge < tokenMaxAge;
+    }
+    
+    return status;
+  }
+  
+  // Función para limpiar historial de errores de backups
+  function clearBackupErrorHistory() {
+    // Limpiar errores de Telegram
+    localStorage.removeItem('lastTelegramBackupError');
+    localStorage.removeItem('lastTelegramBackupErrorMsg');
+    
+    // Limpiar errores de Google Drive
+    localStorage.removeItem('lastGoogleDriveBackupError');
+    localStorage.removeItem('lastGoogleDriveBackupErrorMsg');
+    
+    console.log('Historial de errores de backups limpiado');
+    Swal.fire('Limpiado', 'El historial de errores de backups ha sido limpiado.', 'success');
+  }
+  
+  // Función para mostrar el estado de los backups
+  function showBackupStatus() {
+    const status = checkBackupStatus();
+    
+    const formatTime = (timestamp) => {
+      if (!timestamp) return 'Nunca';
+      const date = new Date(parseInt(timestamp));
+      return date.toLocaleString('es-EC');
+    };
+    
+    const getStatusIcon = (isActive, lastBackup, lastError) => {
+      if (!isActive) return '🔴';
+      if (lastError && (!lastBackup || parseInt(lastError) > parseInt(lastBackup))) return '⚠️';
+      return '🟢';
+    };
+    
+    const telegramStatus = getStatusIcon(status.telegram.isActive, status.telegram.lastBackup, status.telegram.lastError);
+    const googleStatus = getStatusIcon(status.googleDrive.isActive, status.googleDrive.lastBackup, status.googleDrive.lastError);
+    
+    Swal.fire({
+      icon: 'info',
+      title: 'Estado de Backups Automáticos',
+      html: `
+        <div class="text-start">
+          <h6>📱 Telegram ${telegramStatus}</h6>
+          <p><strong>Estado:</strong> ${status.telegram.isActive ? 'Activo' : 'Inactivo'}</p>
+          <p><strong>Último backup:</strong> ${formatTime(status.telegram.lastBackup)}</p>
+          ${status.telegram.lastError ? `<p><strong>Último error:</strong> ${formatTime(status.telegram.lastError)}</p>` : ''}
+          ${status.telegram.lastErrorMsg ? `<p><strong>Error:</strong> ${status.telegram.lastErrorMsg}</p>` : ''}
+          
+          <hr>
+          
+          <h6>☁️ Google Drive ${googleStatus}</h6>
+          <p><strong>Estado:</strong> ${status.googleDrive.isActive ? 'Activo' : 'Inactivo'}</p>
+          <p><strong>Token válido:</strong> ${status.googleDrive.tokenValid ? 'Sí' : 'No'}</p>
+          <p><strong>Último backup:</strong> ${formatTime(status.googleDrive.lastBackup)}</p>
+          ${status.googleDrive.lastError ? `<p><strong>Último error:</strong> ${formatTime(status.googleDrive.lastError)}</p>` : ''}
+          ${status.googleDrive.lastErrorMsg ? `<p><strong>Error:</strong> ${status.googleDrive.lastErrorMsg}</p>` : ''}
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'OK',
+      cancelButtonText: 'Limpiar Errores'
+    }).then((result) => {
+      if (result.dismiss === Swal.DismissReason.cancel) {
+        clearBackupErrorHistory();
+      }
+    });
+  }
+  
+  // Al cargar la página, intenta restaurar sesión
+  window.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('googleAccessToken');
+    if (token) {
+      googleAccessToken = token;
+      enableGoogleDriveButtons(true);
+      // Leer el intervalo actualizado del input
+      let interval = googleDriveBackupInterval;
+      const input = document.getElementById('googleDriveBackupInterval');
+      if (input) {
+        const val = parseInt(input.value, 10);
+        if (!isNaN(val) && val >= 5 && val <= 1440) interval = val;
+      }
+      startGoogleDriveAutoBackup(interval);
     }
   });
-}
 
-// Interceptar funciones principales para sincronización automática
-function setupSyncInterceptors() {
-  // Interceptar addProduct
-  const originalAddProduct = window.addProduct;
-  if (originalAddProduct) {
-    window.addProduct = async function(...args) {
-      const result = await originalAddProduct.apply(this, args);
-      if (result && window.products?.length) {
-        const lastProduct = window.products[window.products.length - 1];
-        syncDataChange('product_added', lastProduct);
-      }
-      return result;
-    };
-  }
+  // Definir clave de configuración de Telegram (evita ReferenceError)
+  const TELEGRAM_CONFIG_KEY = 'telegram_backup_config';
+  let telegramBackupTimer = null;
+  let telegramBackupInterval = 60; // minutos por defecto
   
-  // Interceptar addClient
-  const originalAddClient = window.addClient;
-  if (originalAddClient) {
-    window.addClient = async function(...args) {
-      const result = await originalAddClient.apply(this, args);
-      if (result && window.clients?.length) {
-        const lastClient = window.clients[window.clients.length - 1];
-        syncDataChange('client_added', lastClient);
+  // Cargar configuración al abrir la vista
+  document.addEventListener('DOMContentLoaded', () => {
+    loadTelegramConfigToForm();
+    // Si ya hay config, programa el backup automático
+    localforage.getItem(TELEGRAM_CONFIG_KEY).then(cfg => {
+      if (cfg && cfg.enabled) {
+        console.log('Iniciando backup automático de Telegram con intervalo:', cfg.interval, 'minutos');
+        scheduleTelegramBackup(cfg);
       }
-      return result;
-    };
-  }
-  
-  // Interceptar finalizeSale
-  const originalFinalizeSale = window.finalizeSale;
-  if (originalFinalizeSale) {
-    window.finalizeSale = async function(...args) {
-      const result = await originalFinalizeSale.apply(this, args);
-      if (result && window.sales?.length) {
-        const lastSale = window.sales[window.sales.length - 1];
-        syncDataChange('sale_completed', lastSale);
-      }
-      return result;
-    };
-  }
-}
+    });
+  });
 
-// Inicializar interceptores cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(setupSyncInterceptors, 3000);
-});
-// === FUNCIÓN DE SINCRONIZACIÓN MANUAL ===
-function forceSyncData() {
-  if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) {
-    showSyncIndicator('Sin conexión', 'error');
-    setTimeout(hideSyncIndicator, 2000);
-    return;
-  }
-  
-  showSyncIndicator('Sincronizando...', 'info');
-  
-  // Enviar todos los datos actuales
-  const allData = {
-    products: window.products || [],
-    clients: window.clients || [],
-    sales: window.sales || [],
-    debts: window.debts || [],
-    chickenSales: window.chickenSales || []
-  };
-  
-  const message = {
-    type: 'data_sync',
-    payload: {
-      dataType: 'full_sync',
-      data: allData,
-      sourceDeviceId: localStorage.getItem('tillup_device_id'),
-      timestamp: Date.now()
+  // Guardar configuración
+  document.getElementById('telegramBackupForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const token = document.getElementById('telegramBotToken').value.trim();
+    const chatId = document.getElementById('telegramChatId').value.trim();
+    const interval = parseInt(document.getElementById('telegramBackupInterval').value, 10);
+    if (!token || !chatId || isNaN(interval) || interval < 5) {
+      Swal.fire('Error', 'Completa todos los campos correctamente.', 'error');
+      return;
     }
-  };
-  
-  wsConnection.send(JSON.stringify(message));
-  
-  setTimeout(() => {
-    showSyncIndicator('Sincronizado', 'success');
-    setTimeout(hideSyncIndicator, 2000);
-  }, 1000);
-}
+    
+    const config = { token, chatId, interval, enabled: true };
+    await localforage.setItem(TELEGRAM_CONFIG_KEY, config);
+    
+    console.log('Configuración de Telegram guardada:', config);
+    Swal.fire({
+      icon: 'success',
+      title: '¡Configuración guardada!',
+      text: `Backup automático configurado cada ${interval} minutos.`,
+      timer: 3000,
+      showConfirmButton: false
+    });
+    
+    // Reiniciar el backup automático con la nueva configuración
+    scheduleTelegramBackup(config);
+  });
 
-// Exponer función globalmente
-window.forceSyncData = forceSyncData;
+  // Probar envío manual
+  document.getElementById('testTelegramBackup').addEventListener('click', async function() {
+    const config = await getTelegramConfig();
+    if (!config) {
+      Swal.fire('Error', 'Configura primero el backup de Telegram.', 'error');
+      return;
+    }
+    Swal.fire({title:'Enviando backup...', allowOutsideClick:false, didOpen:()=>Swal.showLoading()});
+    try {
+      await sendTelegramBackup(config);
+      Swal.fire('¡Enviado!', 'Backup enviado correctamente a Telegram.', 'success');
+    } catch (err) {
+      Swal.fire('Error', 'No se pudo enviar el backup: ' + (err.message || err), 'error');
+    }
+  });
+
+  // Importar backup desde archivo
+  document.getElementById('importTelegramBackupBtn').addEventListener('click', function() {
+    document.getElementById('importTelegramBackupInput').click();
+  });
+
+  // Manejar la selección de archivo para importar
+  document.getElementById('importTelegramBackupInput').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      Swal.fire({title:'Importando backup...', allowOutsideClick:false, didOpen:()=>Swal.showLoading()});
+      
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      if (typeof data !== 'object' || Array.isArray(data) || !Object.keys(data).length) {
+        Swal.fire('Error', 'El archivo no tiene el formato esperado.', 'error');
+        return;
+      }
+
+      // Confirmar antes de reemplazar
+      const { isConfirmed } = await Swal.fire({
+        title: '¿Importar backup?',
+        text: 'Esto reemplazará todos los datos actuales de la app por los del backup. ¿Continuar?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, importar',
+        cancelButtonText: 'Cancelar'
+      });
+
+      if (!isConfirmed) return;
+
+      // Limpiar todo localforage antes de restaurar
+      await localforage.clear();
+
+      // Restaurar solo claves críticas y settings
+      const criticalKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.CRITICAL_DATA) || ['sales','clients','products','debts','movements','chickenSales'];
+      const settingsKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.SETTINGS) || ['theme','viewModes','pricePerPound','costPerPound'];
+
+      // Restaurar datos críticos
+      for (const key of criticalKeys) {
+        if (data[key] !== undefined) {
+          if (typeof saveToStorage === 'function') {
+            await saveToStorage(key, data[key]);
+          } else {
+            await localforage.setItem(key, data[key]);
+          }
+        }
+      }
+
+      // Restaurar settings
+      for (const key of settingsKeys) {
+        if (data[key] !== undefined) {
+          await localforage.setItem(key, data[key]);
+          try { localStorage.setItem(key, JSON.stringify(data[key])); } catch(e){}
+        }
+      }
+
+      // Recargar datos y actualizar UI tras importar backup
+      if (typeof loadData === 'function') {
+        await loadData();
+        if (typeof initializeChickenData === 'function') initializeChickenData();
+        if (typeof updateChickenSalesList === 'function') updateChickenSalesList();
+        if (typeof updateBalanceUI === 'function') updateBalanceUI();
+        if (typeof renderInventory === 'function') renderInventory();
+        if (typeof renderClients === 'function') renderClients();
+        if (typeof renderDebts === 'function') renderDebts();
+        if (typeof renderSalesProducts === 'function') renderSalesProducts();
+      }
+
+      Swal.fire('¡Importado!', 'Backup restaurado correctamente. Los datos han sido recargados.', 'success');
+      
+      // Limpiar el input para permitir importar el mismo archivo nuevamente
+      e.target.value = '';
+      
+    } catch (err) {
+      Swal.fire('Error', 'No se pudo importar el backup: ' + (err.message || err), 'error');
+      e.target.value = '';
+    }
+  });
+
+  // Obtener config desde storage
+  async function getTelegramConfig() {
+    const cfg = await localforage.getItem(TELEGRAM_CONFIG_KEY);
+    if (!cfg || !cfg.token || !cfg.chatId || !cfg.interval) return null;
+    return cfg;
+  }
+
+  // Cargar config en el formulario
+  async function loadTelegramConfigToForm() {
+    const cfg = await localforage.getItem(TELEGRAM_CONFIG_KEY);
+    if (!cfg) return;
+    document.getElementById('telegramBotToken').value = cfg.token || '';
+    document.getElementById('telegramChatId').value = cfg.chatId || '';
+    document.getElementById('telegramBackupInterval').value = cfg.interval || 60;
+  }
+
+  // Programar backup automático
+  function scheduleTelegramBackup(config) {
+    console.log('Programando backup automático de Telegram:', config);
+    
+    // Detener timer existente si hay uno
+    if (telegramBackupTimer) {
+      clearInterval(telegramBackupTimer);
+      telegramBackupTimer = null;
+    }
+    
+    // Validar configuración
+    if (!config || !config.token || !config.chatId || !config.interval) {
+      console.error('Configuración de Telegram inválida:', config);
+      return;
+    }
+    
+    const intervalMs = config.interval * 60 * 1000;
+    console.log(`Backup automático de Telegram programado cada ${config.interval} minutos (${intervalMs}ms)`);
+    
+    telegramBackupTimer = setInterval(async () => {
+      console.log('🔍 Verificando si es necesario hacer backup automático de Telegram...');
+      
+      try {
+        // Verificar si hay cambios desde el último backup
+        const lastBackup = localStorage.getItem('lastTelegramBackup');
+        const lastLocalBackup = localStorage.getItem('lastLocalBackup');
+        
+        if (lastBackup && lastLocalBackup) {
+          const backupTime = parseInt(lastBackup);
+          const localTime = parseInt(lastLocalBackup);
+          
+          // Solo hacer backup si los datos locales son más recientes
+          if (localTime <= backupTime) {
+            console.log('📊 No hay cambios nuevos, saltando backup automático de Telegram');
+            return;
+          }
+        }
+        
+        // Siempre obtener los datos más recientes antes de enviar
+        let data = null;
+        if (typeof getAllAppData === 'function') {
+          data = await getAllAppData();
+        } else if (window.localforage) {
+          // Fallback si getAllAppData no está disponible
+          const keys = await localforage.keys();
+          data = {};
+          for (const key of keys) {
+            if (!key.startsWith('_localforage')) {
+              data[key] = await localforage.getItem(key);
+            }
+          }
+        } else {
+          data = {};
+        }
+        
+        if (!data || Object.keys(data).length === 0) {
+          console.warn('Backup automático: datos vacíos, no se envía a Telegram.');
+          return;
+        }
+        
+        console.log('📤 Enviando backup automático a Telegram...');
+        await sendTelegramBackup(config, data);
+        console.log('✅ Backup automático de Telegram enviado exitosamente');
+        
+        // Guardar timestamp del último backup exitoso
+        localStorage.setItem('lastTelegramBackup', Date.now().toString());
+        
+      } catch (err) {
+        console.error('❌ Error en backup automático a Telegram:', err);
+        // Guardar timestamp del último error
+        localStorage.setItem('lastTelegramBackupError', Date.now().toString());
+        localStorage.setItem('lastTelegramBackupErrorMsg', err.message || err.toString());
+      }
+    }, intervalMs);
+    
+    // Ejecutar backup inmediatamente si es la primera vez
+    if (!localStorage.getItem('lastTelegramBackup')) {
+      console.log('Ejecutando backup inicial de Telegram...');
+      setTimeout(async () => {
+        try {
+          const data = await getAllAppData();
+          await sendTelegramBackup(config, data);
+          console.log('Backup inicial de Telegram enviado exitosamente');
+          localStorage.setItem('lastTelegramBackup', Date.now().toString());
+        } catch (err) {
+          console.error('Error en backup inicial de Telegram:', err);
+        }
+      }, 5000); // Esperar 5 segundos antes del primer backup
+    }
+  }
+
+  // Obtener todos los datos de la app con metadatos y configuraciones
+  async function getAllAppData() {
+    console.log('📊 Recopilando todos los datos de la aplicación...');
+    
+    // Excluir claves internas de localforage (como _localforage_config)
+    const keys = await localforage.keys();
+    const data = {};
+    
+    for (const key of keys) {
+      if (!key.startsWith('_localforage')) {
+        data[key] = await localforage.getItem(key);
+      }
+    }
+    
+    // Agregar metadatos del backup
+    data.metadata = {
+      lastModified: Date.now(),
+      version: '1.0.0',
+      timestamp: new Date().toISOString(),
+      dataSize: JSON.stringify(data).length
+    };
+    
+    // Agregar configuraciones importantes
+    data.settings = {
+      pricePerPound: localStorage.getItem('pricePerPound') || '2.50',
+      costPerPound: localStorage.getItem('costPerPound') || '0',
+      theme: localStorage.getItem('theme') || 'light',
+      language: localStorage.getItem('language') || 'es'
+    };
+    
+    // Agregar configuraciones de backup
+    data.backupConfig = {
+      googleDriveInterval: localStorage.getItem('googleDriveBackupInterval') || '60',
+      telegramConfig: await localforage.getItem('telegram_backup_config'),
+      lastLocalBackup: localStorage.getItem('lastLocalBackup'),
+      lastGoogleDriveBackup: localStorage.getItem('lastGoogleDriveBackup'),
+      lastTelegramBackup: localStorage.getItem('lastTelegramBackup')
+    };
+    
+    console.log('📊 Datos recopilados:', {
+      totalKeys: Object.keys(data).length,
+      dataSize: data.metadata.dataSize,
+      timestamp: data.metadata.timestamp
+    });
+    
+    return data;
+  }
+
+  // Enviar backup a Telegram
+  async function sendTelegramBackup(config, dataOverride) {
+    // Si se pasa dataOverride, usarla; si no, obtener los datos normalmente
+    let data = dataOverride;
+    if (!data) {
+      if (typeof getAllAppData === 'function') {
+        data = await getAllAppData();
+      } else if (window.localforage) {
+        const keys = await localforage.keys();
+        data = {};
+        for (const key of keys) {
+          if (!key.startsWith('_localforage')) {
+            data[key] = await localforage.getItem(key);
+          }
+        }
+      } else {
+        data = {};
+      }
+    }
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const formData = new FormData();
+    formData.append('chat_id', config.chatId);
+    formData.append('caption', 'Backup TillUp POS (' + new Date().toLocaleString() + ')');
+    formData.append('document', blob, 'backup-tillup-' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.json');
+    const url = `https://api.telegram.org/bot${config.token}/sendDocument`;
+    const resp = await fetch(url, { method: 'POST', body: formData });
+    let result = null;
+    try {
+      result = await resp.json();
+    } catch (e) {
+      console.error('No se pudo parsear la respuesta de Telegram:', e);
+      throw new Error('Respuesta inválida de Telegram');
+    }
+    if (!resp.ok || !result.ok) {
+      console.error('Telegram API error:', result);
+      throw new Error((result && result.description) ? result.description : ('HTTP ' + resp.status));
+    }
+    return true;
+  }
+
+  // --- Filtro de estado de deudas y buscador ---
+
+  window.currentDebtStatusFilter = 'pending'; // 'pending' o 'paid'
+  
+  // --- Funciones globales para backups ---
+  window.showBackupStatus = showBackupStatus;
+  window.checkBackupStatus = checkBackupStatus;
+  window.clearBackupErrorHistory = clearBackupErrorHistory;
+
+  function setDebtStatusFilter(status) {
+    window.currentDebtStatusFilter = status;
+    // Botones activos
+    document.getElementById('btnDebtFilterPending').classList.toggle('active', status === 'pending');
+    document.getElementById('btnDebtFilterPaid').classList.toggle('active', status === 'paid');
+    if (typeof renderDebts === 'function') renderDebts();
+    filterDebtClients();
+    updateDebtTotalBalance();
+  }
+
+  function filterDebtClients() {
+    const search = document.getElementById('debtClientSearch').value.toLowerCase();
+    const debtList = document.getElementById('debtList');
+    if (!debtList) return;
+    const items = debtList.querySelectorAll('.debt-client-item');
+    items.forEach(item => {
+      // Determinar si el grupo de cliente tiene al menos una deuda del estado seleccionado
+      const debts = Array.from(item.querySelectorAll('.debt-item'));
+      let show = false;
+      debts.forEach(debtDiv => {
+        const badge = debtDiv.querySelector('.badge');
+        const isPaid = badge && badge.textContent.trim().toLowerCase().includes('pagad');
+        if ((currentDebtStatusFilter === 'paid' && isPaid) || (currentDebtStatusFilter === 'pending' && !isPaid)) {
+          show = true;
+        }
+      });
+      // Filtrar por nombre de cliente solo en el lado seleccionado
+      const name = item.getAttribute('data-client-name') || '';
+      if (show && name.toLowerCase().includes(search)) {
+        item.style.display = '';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+    updateDebtTotalBalance();
+  }
+
+  function updateDebtTotalBalance() {
+    // Suma los saldos visibles según el filtro actual
+    const debtList = document.getElementById('debtList');
+    const totalSpan = document.getElementById('debtTotalBalance');
+    if (!debtList || !totalSpan) return;
+    let total = 0;
+    const items = debtList.querySelectorAll('.debt-client-item');
+    items.forEach(item => {
+      if (item.style.display === 'none') return;
+      const debts = Array.from(item.querySelectorAll('.debt-item'));
+      debts.forEach(debtDiv => {
+        const badge = debtDiv.querySelector('.badge');
+        const isPaid = badge && badge.textContent.trim().toLowerCase().includes('pagad');
+        if ((currentDebtStatusFilter === 'paid' && isPaid) || (currentDebtStatusFilter === 'pending' && !isPaid)) {
+          // Buscar monto en el texto de la deuda (mejorando el parseo para miles y decimales)
+          // Busca el primer span o elemento con clase que contenga el monto, si existe
+          let amountText = '';
+          // Busca span con clase 'debt-amount' o similar
+          const amountSpan = debtDiv.querySelector('.debt-amount');
+          if (amountSpan) {
+            amountText = amountSpan.textContent;
+          } else {
+            // Si no, busca el primer $ en el texto
+            const match = debtDiv.textContent.match(/\$\s*([\d.,]+)/);
+            if (match) amountText = match[1];
+          }
+          if (amountText) {
+            // Elimina espacios, separadores de miles y normaliza decimales
+            let clean = amountText.replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(/,/g, '.');
+            let amount = parseFloat(clean);
+            if (!isNaN(amount)) total += amount;
+          }
+        }
+      });
+    });
+    totalSpan.textContent = 'Total: $' + total.toLocaleString('es-EC', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+
+  function openAddClientModalFromDebt() {
+    const modal = document.getElementById('modalClient');
+    if (modal) {
+      const modalInstance = bootstrap.Modal.getOrCreateInstance(modal);
+      modalInstance.show();
+    }
+  }
+
+  // Actualizar el total al cargar la vista de deudas
+  document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('view-debt')) {
+      setTimeout(updateDebtTotalBalance, 500);
+    }
+  });
+  

@@ -1,81 +1,108 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-NTD6SWS3');</script>
-  <!-- End Google Tag Manager -->
-   <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-TF1SPHC7WC"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
 
-  gtag('config', 'G-TF1SPHC7WC');
-</script>
+<head>
+  <!-- ========================================= -->
+  <!-- 📊 ANALYTICS Y TRACKING -->
+  <!-- ========================================= -->
+  <!-- Google Tag Manager -->
+  <script>(function (w, d, s, l, i) {
+      w[l] = w[l] || []; w[l].push({
+        'gtm.start':
+          new Date().getTime(), event: 'gtm.js'
+      }); var f = d.getElementsByTagName(s)[0],
+        j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+          'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', 'GTM-NTD6SWS3');</script>
+  <!-- End Google Tag Manager -->
+
+  <!-- Google Analytics (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TF1SPHC7WC"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-TF1SPHC7WC');
+  </script>
+
+  <!-- ========================================= -->
+  <!-- 🔧 META TAGS Y CONFIGURACIÓN BÁSICA -->
+  <!-- ========================================= -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TillUp - Gestión de Ventas</title>
 
-  <!-- 🧩 Bootstrap 5.3 (CDN actualizado) -->
+  <!-- ========================================= -->
+  <!-- 🎨 FRAMEWORKS CSS Y ESTILOS -->
+  <!-- ========================================= -->
+  <!-- Bootstrap 5.3.3 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Estilos personalizados -->
+  <link rel="stylesheet" href="style.css" />
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-  
-<!-- jsPDF 2.5.1 -->
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <!-- ========================================= -->
+  <!-- 📊 LIBRERÍAS DE GRÁFICOS Y PDF -->
+  <!-- ========================================= -->
+  <!-- jsPDF para generación de PDFs -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <!-- jsPDF AutoTable para tablas en PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+  <!-- Chart.js para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 
-<!-- jsPDF AutoTable 3.5.28 -->
-<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
-
-<!-- Chart.js 4.4.0 -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
-
-  <!-- 🌓 Soporte para ícono y PWA -->
+  <!-- ========================================= -->
+  <!-- 📱 PWA Y CONFIGURACIÓN DE APP -->
+  <!-- ========================================= -->
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icons/icon-192.png" type="image/png" />
   <meta name="theme-color" content="#0d6efd" />
 
-  <!-- Estilo personalizado -->
-  <link rel="stylesheet" href="style.css" />
-  <!-- SweetAlert2 -->
+  <!-- ========================================= -->
+  <!-- 🔧 LIBRERÍAS DE UTILIDADES -->
+  <!-- ========================================= -->
+  <!-- SweetAlert2 para modales elegantes -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <!-- Google API JS Client (solo para Drive, no auth2) -->
+  <!-- Google APIs para integración con Drive -->
   <script src="https://apis.google.com/js/api.js"></script>
   <!-- Google Identity Services para OAuth 2.0 -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <!-- WebSocket Sync -->
-  <script src="websocket-sync/config.js"></script>
-  <script src="websocket-sync/tillup-instant-sync.js"></script>
 </head>
+
 <body class="bg-light">
+  <!-- ========================================= -->
+  <!-- 📊 ANALYTICS NOSCRIPT -->
+  <!-- ========================================= -->
   <!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NTD6SWS3"
-  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NTD6SWS3" height="0" width="0"
+      style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
 
-  <!-- ✅ Barra superior fija -->
+  <!-- ========================================= -->
+  <!-- 🎯 HEADER PRINCIPAL -->
+  <!-- ========================================= -->
   <header class="header-treinta text-center py-3 shadow-sm position-relative">
     <div class="header-title">TillUp</div>
     <div class="header-sub">Gestión POS</div>
-    
+
     <!-- Botón de instalación PWA -->
-    <button id="installPWA" class="btn btn-install-pwa position-absolute top-50 end-0 translate-middle-y me-2" style="z-index:1051; display: none;" onclick="installPWA()">
+    <button id="installPWA" class="btn btn-install-pwa position-absolute top-50 end-0 translate-middle-y me-2"
+      style="z-index:1051; display: none;" onclick="installPWA()">
       <img src="TillUp.png" alt="TillUp" class="install-logo">
       <span class="install-text">Instalar</span>
     </button>
-    
-    <button id="btnSidebar" class="btn position-absolute top-50 start-0 translate-middle-y ms-2" style="z-index:1051;" onclick="openSidebar()">
+
+    <button id="btnSidebar" class="btn position-absolute top-50 start-0 translate-middle-y ms-2" style="z-index:1051;"
+      onclick="openSidebar()">
       <i class="bi bi-list fs-4"></i>
     </button>
-    
+
   </header>
 
-  <!-- Sidebar -->
+  <!-- ========================================= -->
+  <!-- 📋 SIDEBAR DE NAVEGACIÓN -->
+  <!-- ========================================= -->
   <div id="sidebar" class="sidebar-treinta">
     <div class="sidebar-header">
       <div class="sidebar-logo">
@@ -86,7 +113,7 @@
         <i class="bi bi-x-lg"></i>
       </button>
     </div>
-    
+
     <div class="sidebar-content">
       <div class="sidebar-section">
         <h6 class="sidebar-section-title">
@@ -123,7 +150,7 @@
           </button>
         </nav>
       </div>
-      
+
       <div class="sidebar-section">
         <h6 class="sidebar-section-title">
           <i class="bi bi-gear"></i> Configuración
@@ -141,7 +168,7 @@
             <i class="bi bi-circle-half"></i>
             <span>Automático</span>
           </button>
-          
+
           <button class="sidebar-action-btn" onclick="forceUpdate()" id="btn-update">
             <i class="bi bi-arrow-clockwise"></i>
             <span>Actualizar App</span>
@@ -154,9 +181,13 @@
             <i class="bi bi-cloud-check"></i>
             <span>Estado Backups</span>
           </button>
+          <button class="sidebar-action-btn" onclick="showView('telegram-config')" id="btn-telegram-config">
+            <i class="bi bi-telegram"></i>
+            <span>Configurar Telegram</span>
+          </button>
         </div>
       </div>
-      
+
       <div class="sidebar-section">
         <h6 class="sidebar-section-title">
           <i class="bi bi-info-circle"></i> Información
@@ -177,234 +208,43 @@
           <i class="bi bi-shield-lock"></i> Legales
         </h6>
         <ul class="sidebar-legal-list list-unstyled ms-2 mb-2">
-          <li><a href="PRIVACY-POLICY.md" target="_blank" class="sidebar-legal-link"><i class="bi bi-file-earmark-lock"></i> Política de Privacidad</a></li>
-          <li><a href="TERMS-OF-USE.md" target="_blank" class="sidebar-legal-link"><i class="bi bi-file-earmark-text"></i> Términos de Uso</a></li>
-          <li><a href="LEGAL-NOTICE.md" target="_blank" class="sidebar-legal-link"><i class="bi bi-file-earmark-person"></i> Aviso Legal</a></li>
-          <li><a href="COOKIES-POLICY.md" target="_blank" class="sidebar-legal-link"><i class="bi bi-file-earmark-code"></i> Política de Cookies</a></li>
+          <li><a href="PRIVACY-POLICY.md" target="_blank" class="sidebar-legal-link"><i
+                class="bi bi-file-earmark-lock"></i> Política de Privacidad</a></li>
+          <li><a href="TERMS-OF-USE.md" target="_blank" class="sidebar-legal-link"><i
+                class="bi bi-file-earmark-text"></i> Términos de Uso</a></li>
+          <li><a href="LEGAL-NOTICE.md" target="_blank" class="sidebar-legal-link"><i
+                class="bi bi-file-earmark-person"></i> Aviso Legal</a></li>
+          <li><a href="COOKIES-POLICY.md" target="_blank" class="sidebar-legal-link"><i
+                class="bi bi-file-earmark-code"></i> Política de Cookies</a></li>
         </ul>
       </div>
     </div>
-    
+
     <div class="sidebar-footer">
       <div class="sidebar-version">
         <small>v1.0.0 - TillUp POS</small>
       </div>
     </div>
   </div>
-  <div id="sidebarOverlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1051;background:rgba(0,0,0,0.25);"></div>
+  <!-- Overlay del sidebar -->
+  <div id="sidebarOverlay"
+    style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1051;background:rgba(0,0,0,0.25);">
+  </div>
 
-<script>
-  function showView(viewName) {
-    document.querySelectorAll('.app-view').forEach(v => v.classList.add('d-none'));
-    document.getElementById(`view-${viewName}`).classList.remove('d-none');
-  }
-
-  // Forzar tema claro por defecto y mostrar vista de Balance
-  document.addEventListener('DOMContentLoaded', () => {
-    setTheme('light'); // Fuerza el tema claro
-    // Desactiva el botón de modo automático si existe
-    const btnAuto = document.getElementById('theme-auto');
-    if (btnAuto) btnAuto.classList.remove('active');
-    const btnLight = document.getElementById('theme-light');
-    if (btnLight) btnLight.classList.add('active');
-    showView('balance');
-  });
-</script>
-
-
-
-  <!-- Google Drive en Sidebar (solo visible si logueado) -->
-  <script>
-    // Inserta la sección de Google Drive en el sidebar al cargar
-    document.addEventListener('DOMContentLoaded', function() {
-      const sidebarContent = document.querySelector('.sidebar-content');
-      if (!sidebarContent) return;
-      // Evita duplicados
-      if (document.getElementById('sidebarGoogleDriveSection')) return;
-      const section = document.createElement('div');
-      section.className = 'sidebar-section';
-      section.id = 'sidebarGoogleDriveSection';
-      section.innerHTML = `
-        <div class="card card-custom mb-2">
-          <div class="card-body p-3">
-            <div class="d-flex align-items-center mb-2">
-              <i class="bi bi-google fs-4 me-2 text-danger"></i>
-              <span class="fw-bold">Google Drive</span>
-            </div>
-            <div id="googleDriveSidebarLoggedOut">
-              <button id="googleSignInBtn" class="btn btn-outline-primary btn-sm w-100 mb-2">
-                <i class="bi bi-google"></i> Iniciar sesión Google
-              </button>
-            </div>
-            <div id="googleDriveSidebarLoggedIn" style="display:none">
-              <div class="mb-2 small text-success"><i class="bi bi-person-check"></i> Sesión activa</div>
-              <button id="googleBackupBtn" class="btn btn-primary btn-sm w-100 mb-2">
-                <i class="bi bi-cloud-upload"></i> Backup a Drive
-              </button>
-              <button id="googleRestoreBtn" class="btn btn-success btn-sm w-100 mb-2">
-                <i class="bi bi-cloud-download"></i> Restaurar Backup
-              </button>
-              <button id="googleSignOutBtn" class="btn btn-outline-danger btn-sm w-100">
-                <i class="bi bi-box-arrow-right"></i> Cerrar sesión
-              </button>
-            </div>
-            <div id="googleUserStatus" class="mt-2 small text-muted"></div>
-          </div>
-        </div>
-      `;
-      sidebarContent.prepend(section);
-
-      // Asignar event listeners dinámicamente
-      function assignGoogleDriveSidebarListeners() {
-        const signInBtn = document.getElementById('googleSignInBtn');
-        const signOutBtn = document.getElementById('googleSignOutBtn');
-        const backupBtn = document.getElementById('googleBackupBtn');
-        const restoreBtn = document.getElementById('googleRestoreBtn');
-        if (signInBtn) {
-          signInBtn.onclick = function() {
-            if (typeof initGoogleTokenClient === 'function') {
-              initGoogleTokenClient();
-              tokenClient.requestAccessToken();
-            }
-          };
-        }
-        if (signOutBtn) {
-          signOutBtn.onclick = function() {
-            googleAccessToken = null;
-            localStorage.removeItem('googleAccessToken');
-            enableGoogleDriveButtons(false);
-            stopGoogleDriveAutoBackup();
-            Swal.fire('Sesión cerrada', 'Has cerrado sesión de Google Drive.', 'info');
-          };
-        }
-        if (backupBtn) {
-          backupBtn.onclick = async function() {
-            if (!(await ensureGoogleAccessToken())) return;
-            try {
-              const data = await getAllAppData();
-              const fileContent = JSON.stringify(data, null, 2);
-              await uploadBackupToDrive(fileContent);
-              Swal.fire('¡Backup subido!', 'Tu backup fue guardado en Google Drive.', 'success');
-            } catch (err) {
-              if (err && err.message && err.message.includes('403')) {
-                googleAccessToken = null;
-                localStorage.removeItem('googleAccessToken');
-                enableGoogleDriveButtons(false);
-                Swal.fire('Permiso denegado',
-                  'No tienes permisos suficientes para acceder a Google Drive.\n' +
-                  '1. Cierra sesión y vuelve a iniciar sesión con tu cuenta Google.\n' +
-                  '2. Asegúrate de aceptar el permiso de acceso a Google Drive.\n' +
-                  '3. Si el problema persiste, revisa la configuración de tu cuenta o contacta al soporte.',
-                  'error');
-              } else {
-                Swal.fire('Error', 'No se pudo subir el backup: ' + (err && err.message ? err.message : err), 'error');
-              }
-            }
-          };
-        }
-        if (restoreBtn) {
-          restoreBtn.onclick = async function() {
-            if (!(await ensureGoogleAccessToken())) return;
-            try {
-              const fileContent = await downloadBackupFromDrive();
-              const data = JSON.parse(fileContent);
-              if (typeof data !== 'object' || Array.isArray(data) || !Object.keys(data).length) {
-                Swal.fire('Error', 'El archivo no tiene el formato esperado.', 'error');
-                return;
-              }
-              // Confirmar antes de reemplazar
-              const { isConfirmed } = await Swal.fire({
-                title: '¿Importar backup?',
-                text: 'Esto reemplazará todos los datos actuales de la app por los del backup. ¿Continuar?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Sí, importar',
-                cancelButtonText: 'Cancelar'
-              });
-              if (!isConfirmed) return;
-              // Limpiar todo localforage antes de restaurar
-              await localforage.clear();
-              // Restaurar solo claves críticas y settings
-              const criticalKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.CRITICAL_DATA) || ['sales','clients','products','debts','movements','chickenSales'];
-              const settingsKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.SETTINGS) || ['theme','viewModes','pricePerPound','costPerPound'];
-              // Restaurar datos críticos
-              for (const key of criticalKeys) {
-                if (data[key] !== undefined) {
-                  if (typeof saveToStorage === 'function') {
-                    await saveToStorage(key, data[key]);
-                  } else {
-                    await localforage.setItem(key, data[key]);
-                  }
-                }
-              }
-              // Restaurar settings
-              for (const key of settingsKeys) {
-                if (data[key] !== undefined) {
-                  await localforage.setItem(key, data[key]);
-                  try { localStorage.setItem(key, JSON.stringify(data[key])); } catch(e){}
-                }
-              }
-              // Recargar datos y actualizar UI tras importar backup
-              if (typeof loadData === 'function') {
-                await loadData();
-                if (typeof initializeChickenData === 'function') initializeChickenData();
-                if (typeof updateChickenSalesList === 'function') updateChickenSalesList();
-                if (typeof updateBalanceUI === 'function') updateBalanceUI();
-                if (typeof renderInventory === 'function') renderInventory();
-                if (typeof renderClients === 'function') renderClients();
-                if (typeof renderDebts === 'function') renderDebts();
-                if (typeof renderSalesProducts === 'function') renderSalesProducts();
-              }
-              Swal.fire('¡Importado!', 'Backup restaurado correctamente. Los datos han sido recargados.', 'success');
-            } catch (err) {
-              if (err && err.message && err.message.includes('403')) {
-                googleAccessToken = null;
-                localStorage.removeItem('googleAccessToken');
-                enableGoogleDriveButtons(false);
-                Swal.fire('Permiso denegado',
-                  'No tienes permisos suficientes para acceder a Google Drive.\n' +
-                  '1. Cierra sesión y vuelve a iniciar sesión con tu cuenta Google.\n' +
-                  '2. Asegúrate de aceptar el permiso de acceso a Google Drive.\n' +
-                  '3. Si el problema persiste, revisa la configuración de tu cuenta o contacta al soporte.',
-                  'error');
-              } else {
-                Swal.fire('Error', 'No se pudo restaurar: ' + (err && err.message ? err.message : err), 'error');
-              }
-            }
-          };
-        }
-      }
-
-      // Lógica para mostrar/ocultar según sesión
-      function updateSidebarGoogleDriveUI(loggedIn) {
-        document.getElementById('googleDriveSidebarLoggedOut').style.display = loggedIn ? 'none' : '';
-        document.getElementById('googleDriveSidebarLoggedIn').style.display = loggedIn ? '' : 'none';
-      }
-      // Hookear enableGoogleDriveButtons para actualizar sidebar
-      const origEnableGoogleDriveButtons = window.enableGoogleDriveButtons;
-      window.enableGoogleDriveButtons = function(enabled) {
-        origEnableGoogleDriveButtons(enabled);
-        updateSidebarGoogleDriveUI(enabled);
-        assignGoogleDriveSidebarListeners();
-      };
-      // Estado inicial
-      updateSidebarGoogleDriveUI(!!localStorage.getItem('googleAccessToken'));
-      assignGoogleDriveSidebarListeners();
-    });
-  </script>
-
+  <!-- ========================================= -->
+  <!-- 🏠 CONTENIDO PRINCIPAL -->
+  <!-- ========================================= -->
   <main class="container py-3" id="mainContent">
 
-    <!-- Vista: Balance -->
+    <!-- ========================================= -->
+    <!-- 📊 VISTA: BALANCE Y DASHBOARD -->
+    <!-- ========================================= -->
     <section id="view-balance" class="app-view">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">Balance</h2>
         <div class="d-flex gap-2">
           <button onclick="generatePDF('balance')" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-download"></i> Exportar PDF
-          </button>
-          <button onclick="forceSyncData()" class="btn btn-outline-success btn-sm">
-            <i class="bi bi-arrow-repeat"></i> Sincronizar
           </button>
         </div>
       </div>
@@ -414,13 +254,13 @@
         <div class="btn-group" role="group">
           <input type="radio" class="btn-check" name="periodFilter" id="periodDay" value="day" checked>
           <label class="btn btn-outline-primary" for="periodDay">Hoy</label>
-          
+
           <input type="radio" class="btn-check" name="periodFilter" id="periodWeek" value="week">
           <label class="btn btn-outline-primary" for="periodWeek">Esta Semana</label>
-          
+
           <input type="radio" class="btn-check" name="periodFilter" id="periodMonth" value="month">
           <label class="btn btn-outline-primary" for="periodMonth">Este Mes</label>
-          
+
           <input type="radio" class="btn-check" name="periodFilter" id="periodYear" value="year">
           <label class="btn btn-outline-primary" for="periodYear">Este Año</label>
         </div>
@@ -445,9 +285,9 @@
       </div>
     </section>
 
-
-
-    <!-- Modal Producto -->
+    <!-- ========================================= -->
+    <!-- 📦 MODAL: AGREGAR PRODUCTO -->
+    <!-- ========================================= -->
     <div class="modal fade" id="modalProduct" tabindex="-1" aria-labelledby="modalProductLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content modal-treinta">
@@ -463,10 +303,10 @@
                 <label for="productName" class="form-label">
                   <i class="bi bi-tag"></i> Nombre del producto
                 </label>
-                <input type="text" id="productName" class="form-control form-control-treinta" 
-                       placeholder="Ej: Laptop HP Pavilion" required />
+                <input type="text" id="productName" class="form-control form-control-treinta"
+                  placeholder="Ej: Laptop HP Pavilion" required />
               </div>
-              
+
               <div class="row g-3 mb-3">
                 <div class="col-md-6">
                   <label for="productCost" class="form-label">
@@ -474,8 +314,8 @@
                   </label>
                   <div class="input-group">
                     <span class="input-group-text">$</span>
-                    <input type="number" id="productCost" step="0.01" class="form-control form-control-treinta" 
-                           placeholder="0.00" required />
+                    <input type="number" id="productCost" step="0.01" class="form-control form-control-treinta"
+                      placeholder="0.00" required />
                   </div>
                 </div>
                 <div class="col-md-6">
@@ -484,39 +324,38 @@
                   </label>
                   <div class="input-group">
                     <span class="input-group-text">$</span>
-                    <input type="number" id="productPrice" step="0.01" class="form-control form-control-treinta" 
-                           placeholder="0.00" required />
+                    <input type="number" id="productPrice" step="0.01" class="form-control form-control-treinta"
+                      placeholder="0.00" required />
                   </div>
                 </div>
               </div>
-              
+
               <div class="form-group mb-3">
                 <label for="productCategory" class="form-label">
                   <i class="bi bi-collection"></i> Categoría
                 </label>
-                <input type="text" id="productCategory" class="form-control form-control-treinta" 
-                       placeholder="Ej: Electrónicos, Ropa, etc." />
+                <input type="text" id="productCategory" class="form-control form-control-treinta"
+                  placeholder="Ej: Electrónicos, Ropa, etc." />
               </div>
-              
+
               <div class="form-group mb-3">
                 <label for="productStock" class="form-label">
                   <i class="bi bi-boxes"></i> Stock inicial
                 </label>
-                <input type="number" id="productStock" class="form-control form-control-treinta" 
-                       placeholder="0" value="0" min="0" />
+                <input type="number" id="productStock" class="form-control form-control-treinta" placeholder="0"
+                  value="0" min="0" />
               </div>
-              
+
               <div class="form-group mb-4">
                 <label for="productImage" class="form-label">
                   <i class="bi bi-image"></i> Imagen del producto
                 </label>
                 <div class="image-upload-container">
-                  <input type="file" id="productImage" class="form-control form-control-treinta" 
-                         accept="image/*" />
+                  <input type="file" id="productImage" class="form-control form-control-treinta" accept="image/*" />
                   <div class="image-preview" id="imagePreview"></div>
                 </div>
               </div>
-              
+
               <div class="d-grid gap-2">
                 <button type="submit" class="btn btn-primary btn-treinta">
                   <i class="bi bi-plus-circle"></i> Agregar Producto
@@ -528,676 +367,852 @@
       </div>
     </div>
 
-      <!-- Vista: Ventas (rediseño tipo Temu para móvil) -->
-      <section id="view-sales" class="app-view d-none">
-        <div class="sales-temu-container">
-          <!-- Grilla de productos tipo Temu -->
-          <div class="products-grid-temu" id="salesProductsGrid">
-            <!-- Productos generados por JS como tarjetas -->
-          </div>
-
-          <!-- Botón flotante de carrito -->
-          <button id="floatingCartBtn" class="floating-cart-btn" onclick="toggleCartDrawer()">
-            <i class="bi bi-cart3"></i>
-            <span id="cartCountBadge" class="cart-count-badge">0</span>
-          </button>
-
-          <!-- Carrito tipo cortina/drawer -->
-          <div id="cartDrawer" class="cart-drawer-temu">
-            <div class="cart-drawer-header">
-              <div class="cart-drawer-title">
-                <i class="bi bi-cart3"></i> Carrito de Compras
-              </div>
-              <button class="btn-close-cart" onclick="toggleCartDrawer()">
-                <i class="bi bi-x-lg"></i>
-              </button>
-            </div>
-            <div class="cart-drawer-form">
-              <div class="mb-3">
-                <label for="saleClientDrawer" class="form-label"><i class="bi bi-person"></i> Cliente</label>
-                <select id="saleClientDrawer" class="form-select form-select-treinta">
-                  <option value="">Seleccionar cliente...</option>
-                </select>
-              </div>
-              <div class="mb-3">
-                <label for="saleDateDrawer" class="form-label"><i class="bi bi-calendar-event"></i> Fecha de facturación</label>
-                <input type="date" id="saleDateDrawer" class="form-control form-control-treinta" />
-              </div>
-            </div>
-            <div class="cart-drawer-products" id="cartListDrawer">
-              <!-- Productos seleccionados generados por JS -->
-            </div>
-            <div class="cart-drawer-footer">
-              <div class="cart-drawer-total">
-                <span>Total:</span>
-                <span id="cartTotalDrawer">$0.00</span>
-              </div>
-              <button class="btn btn-primary btn-treinta w-100" id="finalizeBtnDrawer" onclick="finalizeSaleDrawer()">
-                <i class="bi bi-check-circle"></i> Finalizar Venta
-              </button>
-            </div>
-          </div>
-          <!-- Fondo oscuro para el drawer -->
-          <div id="cartDrawerOverlay" class="cart-drawer-overlay" onclick="toggleCartDrawer()"></div>
+    <!-- ========================================= -->
+    <!-- 🛒 VISTA: VENTAS TIPO E-COMMERCE -->
+    <!-- ========================================= -->
+    <section id="view-sales" class="app-view d-none">
+      <div class="sales-temu-container">
+        <!-- Grilla de productos tipo Temu -->
+        <div class="products-grid-temu" id="salesProductsGrid">
+          <!-- Productos generados por JS como tarjetas -->
         </div>
-      </section>
 
-<!-- Vista: Clientes -->
-<section id="view-clients" class="app-view d-none">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Clientes</h2>
-    <div class="d-flex gap-2">
-      <button class="btn btn-outline-secondary btn-sm" type="button" onclick="openClientsSearchModal()">
-        <i class="bi bi-search"></i> Buscar
-      </button>
-      <button id="toggleClientsView" class="btn btn-outline-primary btn-sm" type="button" onclick="toggleClientsView()">
-        <i class="bi bi-grid-3x3-gap-fill"></i> <span id="toggleClientsViewText">Cuadrícula</span>
-      </button>
-      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalClient">
-        <i class="bi bi-person-plus"></i> Agregar
-      </button>
-    </div>
-  </div>
-  <ul id="clientList" class="list-group"></ul>
-</section>
-
-<!-- Modal Cliente -->
-<div class="modal fade" id="modalClient" tabindex="-1" aria-labelledby="modalClientLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content modal-treinta">
-      <div class="modal-header">
-        <h5 class="modal-title" id="modalClientLabel">
-          <i class="bi bi-person-plus"></i> Agregar Cliente
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <form id="formClient" class="form-treinta">
-          <div class="form-group mb-3">
-            <label for="clientName" class="form-label">
-              <i class="bi bi-person"></i> Nombre completo
-            </label>
-            <input type="text" id="clientName" class="form-control form-control-treinta" 
-                   placeholder="Ej: Juan Pérez" required />
-          </div>
-          
-          <div class="form-group mb-3">
-            <label for="clientPhone" class="form-label">
-              <i class="bi bi-telephone"></i> Número de celular
-            </label>
-            <input type="tel" id="clientPhone" class="form-control form-control-treinta" 
-                   placeholder="Ej: 0991234567" pattern="[0-9]{7,15}" />
-          </div>
-          
-          <div class="form-group mb-3">
-            <label for="clientAddress" class="form-label">
-              <i class="bi bi-geo-alt"></i> Dirección
-            </label>
-            <textarea id="clientAddress" class="form-control form-control-treinta" 
-                      placeholder="Ej: Av. Principal 123, Ciudad" rows="2"></textarea>
-          </div>
-          
-          <div class="form-group mb-3">
-            <label for="clientPhoto" class="form-label">
-              <i class="bi bi-camera"></i> Foto del cliente
-            </label>
-            <div class="image-upload-container">
-              <input type="file" id="clientPhoto" class="form-control form-control-treinta" 
-                     accept="image/*" />
-              <div class="image-preview" id="clientImagePreview"></div>
-            </div>
-          </div>
-          
-          <div class="form-group mb-4">
-            <label class="form-label">
-              <i class="bi bi-geo-alt-fill"></i> Ubicación
-            </label>
-            <button type="button" class="btn btn-outline-primary btn-treinta w-100" id="btnGetLocation">
-              <i class="bi bi-geo-alt-fill"></i> Obtener ubicación actual
-            </button>
-            <input type="hidden" id="clientLocation" />
-            <div id="locationStatus" class="form-text mt-2"></div>
-          </div>
-          
-          <div class="d-grid gap-2">
-            <button type="submit" class="btn btn-primary btn-treinta">
-              <i class="bi bi-person-plus"></i> Agregar Cliente
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Vista: Deudas -->
-<section id="view-debt" class="app-view d-none">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Deudas</h2>
-    <button onclick="generatePDF('debt')" class="btn btn-outline-primary btn-sm">
-      <i class="bi bi-download"></i> Exportar PDF
-    </button>
-  </div>
-  <!-- Filtros de estado de deuda y buscador de clientes -->
-  <div class="mb-3">
-    <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-      <div class="btn-group" role="group" aria-label="Filtrar deudas">
-        <button type="button" class="btn btn-outline-primary active" id="btnDebtFilterPending" onclick="setDebtStatusFilter('pending')">
-          <i class="bi bi-hourglass-split"></i> Pendientes / Abonadas
+        <!-- Botón flotante de carrito -->
+        <button id="floatingCartBtn" class="floating-cart-btn" onclick="toggleCartDrawer()">
+          <i class="bi bi-cart3"></i>
+          <span id="cartCountBadge" class="cart-count-badge">0</span>
         </button>
-        <button type="button" class="btn btn-outline-success" id="btnDebtFilterPaid" onclick="setDebtStatusFilter('paid')">
-          <i class="bi bi-check-circle"></i> Pagadas
-        </button>
-      </div>
-      <span id="debtTotalBalance" class="badge bg-info text-dark ms-2" style="font-size:1rem;min-width:120px;"></span>
-      <div class="flex-grow-1 ms-0 ms-md-3" style="min-width:220px;">
-        <div class="input-group">
-          <span class="input-group-text"><i class="bi bi-search"></i></span>
-          <input type="text" id="debtClientSearch" class="form-control" placeholder="Buscar cliente por nombre..." oninput="filterDebtClients()">
-        </div>
-      </div>
-    </div>
-  </div>
-  <div id="debtList" class="row gy-3 position-relative">
-    <!-- Lista de deudas cargada por JS -->
-    <!-- Botón de agregar cliente junto al último cliente listado -->
-    <div id="addClientDebtBtnContainer"></div>
-  </div>
-</section>
 
-<!-- Vista: Inventario -->
-<section id="view-inventory" class="app-view d-none">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Inventario</h2>
-    <div class="d-flex gap-2">
-      <button id="toggleInventoryView" class="btn btn-outline-primary btn-sm" type="button" onclick="toggleInventoryView()">
-        <i class="bi bi-grid-3x3-gap-fill"></i> <span id="toggleInventoryViewText">Cuadrícula</span>
-      </button>
-      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalProduct">
-        <i class="bi bi-plus-circle"></i> Agregar
-      </button>
-    </div>
-  </div>
-  <div id="inventoryList" class="row gy-3"></div>
-</section>
-
-  <!-- Configuración de Backup Automático a Telegram -->
-  <section id="view-telegram-backup" class="app-view d-none">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="mb-0"><i class="bi bi-cloud-arrow-up"></i> Backup Automático a Telegram</h2>
-    </div>
-    <div class="card card-custom mb-4">
-      <div class="card-body">
-        <h5 class="card-title"><i class="bi bi-gear"></i> Configuración de Telegram</h5>
-        <form id="telegramBackupForm" class="form-treinta">
-          <div class="row g-3 mb-3">
-            <div class="col-md-4">
-              <label for="telegramBotToken" class="form-label"><i class="bi bi-key"></i> Bot Token</label>
-              <input type="text" id="telegramBotToken" class="form-control form-control-treinta" placeholder="123456789:ABC..." required />
+        <!-- Carrito tipo cortina/drawer -->
+        <div id="cartDrawer" class="cart-drawer-temu">
+          <div class="cart-drawer-header">
+            <div class="cart-drawer-title">
+              <i class="bi bi-cart3"></i> Carrito de Compras
             </div>
-            <div class="col-md-4">
-              <label for="telegramChatId" class="form-label"><i class="bi bi-person-badge"></i> Chat ID</label>
-              <input type="text" id="telegramChatId" class="form-control form-control-treinta" placeholder="Ej: 123456789" required />
-            </div>
-            <div class="col-md-4">
-              <label for="telegramBackupInterval" class="form-label"><i class="bi bi-clock-history"></i> Intervalo (minutos)</label>
-              <input type="number" id="telegramBackupInterval" class="form-control form-control-treinta" min="5" max="1440" value="60" required />
-              <div class="form-text">Mínimo: 5 min, Máximo: 1440 min (24h)</div>
-            </div>
-            <div class="col-md-4">
-              <label for="googleDriveBackupInterval" class="form-label"><i class="bi bi-cloud-arrow-up"></i> Intervalo Google Drive (minutos)</label>
-              <input type="number" id="googleDriveBackupInterval" class="form-control form-control-treinta" min="5" max="1440" value="60" required />
-              <div class="form-text">Mínimo: 5 min, Máximo: 1440 min (24h)</div>
-            </div>
-          </div>
-          <div class="d-grid gap-2 mb-3">
-            <button type="submit" class="btn btn-primary btn-treinta">
-              <i class="bi bi-save"></i> Guardar Configuración
-            </button>
-            <button type="button" class="btn btn-outline-success btn-treinta" id="testTelegramBackup">
-              <i class="bi bi-send"></i> Probar Envío Manual
-            </button>
-            <button type="button" class="btn btn-outline-secondary btn-treinta" id="importTelegramBackupBtn">
-              <i class="bi bi-upload"></i> Importar Backup
-            </button>
-            <input type="file" id="importTelegramBackupInput" accept="application/json" style="display:none" />
-          </div>
-        </form>
-      </div>
-    </div>
-    <div class="card card-custom">
-      <div class="card-body">
-        <h5 class="card-title"><i class="bi bi-question-circle"></i> Guía paso a paso</h5>
-        <ol class="telegram-guide-list">
-          <li>Abre <b>Telegram</b> y busca <b>@BotFather</b>.</li>
-          <li>Envía <code>/newbot</code> y sigue las instrucciones para crear un nuevo bot.<br>Guarda el <b>Token</b> que te entrega BotFather.</li>
-          <li>Agrega tu bot al chat o grupo donde quieras recibir los backups.<br>Si es grupo, hazlo administrador.</li>
-          <li>Para obtener el <b>Chat ID</b>:
-            <ul>
-              <li>Busca el bot <b>@userinfobot</b> en Telegram y escríbele o agrégalo al grupo.</li>
-              <li>Te mostrará tu <b>Chat ID</b> o el del grupo.</li>
-            </ul>
-          </li>
-          <li>Ingresa el <b>Token</b> y <b>Chat ID</b> en el formulario de arriba y guarda.</li>
-          <li>Configura el intervalo de respaldo automático (en minutos).</li>
-          <li>Pulsa <b>Probar Envío Manual</b> para verificar que todo funciona.</li>
-        </ol>
-        <div class="alert alert-info mt-3">
-          <b>Nota:</b> El backup enviará un archivo con todos tus datos de la app en formato JSON.
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Nueva sección de facturación de pollos tipo checkout profesional -->
-  <!-- Vista: Pollos -->
-<section id="view-chickens" class="app-view d-none">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">
-      <i class="bi bi-egg-fried"></i> Gestión de Pollos
-    </h2>
-    <div class="d-flex gap-2">
-      <button onclick="generatePDF('chickens')" class="btn btn-outline-primary btn-sm">
-        <i class="bi bi-download"></i> Exportar PDF
-      </button>
-      <button id="btnMermaPollo" class="btn btn-outline-warning btn-sm" type="button">
-        <i class="bi bi-percent"></i> Calcular Merma
-      </button>
-    </div>
-  </div>
-
-  <!-- Configuración de precio por libra -->
-  <div class="chicken-config-treinta mb-4">
-    <div class="card card-custom">
-      <div class="card-body">
-        <h5 class="card-title">
-          <i class="bi bi-gear"></i> Configuración de Precio
-        </h5>
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label for="pricePerPound" class="form-label">
-              <i class="bi bi-currency-dollar"></i> Precio por Libra (PVP)
-            </label>
-            <div class="input-group">
-              <span class="input-group-text">$</span>
-              <input type="number" id="pricePerPound" class="form-control form-control-treinta" 
-                     step="0.01" placeholder="0.00" value="2.50" />
-            </div>
-            <div class="form-text">Precio actual por libra de pollo</div>
-          </div>
-          <div class="col-md-6">
-            <label for="costPerPound" class="form-label">
-              <i class="bi bi-cash"></i> Costo por Libra
-            </label>
-            <div class="input-group">
-              <span class="input-group-text">$</span>
-              <input type="number" id="costPerPound" class="form-control form-control-treinta" 
-                     step="0.01" placeholder="0.00" value="2.00" />
-            </div>
-            <div class="form-text">Costo actual por libra de pollo</div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">&nbsp;</label>
-            <button onclick="updatePricePerPound()" class="btn btn-primary btn-treinta w-100">
-              <i class="bi bi-check-circle"></i> Actualizar Precio
+            <button class="btn-close-cart" onclick="toggleCartDrawer()">
+              <i class="bi bi-x-lg"></i>
             </button>
           </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Estadísticas de pollos -->
-  <div class="chicken-stats-treinta mb-4">
-    <div class="row g-3 align-items-end mb-2">
-      <div class="col-md-3">
-        <label for="filterChickenDate" class="form-label mb-0"><i class="bi bi-calendar-event"></i> Filtrar por fecha</label>
-        <input type="date" id="filterChickenDate" class="form-control form-control-treinta" />
-      </div>
-      <div class="col-md-2">
-        <button class="btn btn-outline-primary w-100 mt-2" id="btnFilterChickenDate" type="button">
-          <i class="bi bi-search"></i> Ver registros de ese día
-        </button>
-      </div>
-    </div>
-    <div class="row g-3">
-      <div class="col-md-3">
-        <div class="stat-card-treinta">
-          <div class="stat-icon">
-            <i class="bi bi-egg-fried"></i>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value" id="totalChickensSold">0</div>
-            <div class="stat-label">Pollos Vendidos Hoy</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="stat-card-treinta">
-          <div class="stat-icon">
-            <i class="bi bi-scale"></i>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value" id="totalWeightSold">0.0</div>
-            <div class="stat-label">Libras Vendidas Hoy</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="stat-card-treinta" id="profitStatsCard">
-          <div class="stat-icon">
-            <i class="bi bi-cash-stack"></i>
-          </div>
-          <div class="stat-content text-center">
-            <div class="d-flex justify-content-center align-items-center mb-1">
-              <div class="stat-value me-2 hidden-profit" id="totalProfit">•••••</div>
-              <button id="toggleChickenProfitBtn" type="button" class="btn btn-link btn-sm p-0" title="Mostrar/Ocultar ganancia total">
-                <i class="bi bi-eye"></i>
-              </button>
-            </div>
-            <div class="stat-label">Ganancias Hoy</div>
-          </div>
-
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="stat-card-treinta">
-          <div class="stat-icon">
-            <i class="bi bi-graph-up"></i>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value" id="avgWeight">0.0</div>
-            <div class="stat-label">Peso Promedio</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Nueva venta de pollos -->
-  <div class="chicken-sale-treinta mb-4">
-    <div class="card card-custom">
-      <div class="card-body">
-        <h5 class="card-title">
-          <i class="bi bi-plus-circle"></i> Nueva Venta de Pollos
-        </h5>
-        <form id="chickenSaleForm" class="form-treinta">
-          <div class="row g-3 mb-3">
-            <div class="col-md-4">
-              <label for="chickenSaleDate" class="form-label"><i class="bi bi-calendar-event"></i> Fecha de facturación</label>
-              <input type="date" id="chickenSaleDate" class="form-control form-control-treinta" />
-            </div>
-          </div>
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label for="chickenClient" class="form-label">
-                <i class="bi bi-person"></i> Seleccionar Cliente
-              </label>
-              <select id="chickenClient" class="form-select form-select-treinta" required>
+          <div class="cart-drawer-form">
+            <div class="mb-3">
+              <label for="saleClientDrawer" class="form-label"><i class="bi bi-person"></i> Cliente</label>
+              <select id="saleClientDrawer" class="form-select form-select-treinta">
                 <option value="">Seleccionar cliente...</option>
-                <option value="search" class="search-option" style="display: none;">
-                  <i class="bi bi-search"></i> Buscar cliente...
-                </option>
               </select>
             </div>
-            <div class="col-md-3">
-              <label for="chickenQuantity" class="form-label">
-                <i class="bi bi-hash"></i> Cantidad de Pollos
-              </label>
-              <input type="number" id="chickenQuantity" class="form-control form-control-treinta" 
-                     min="1" value="1" required />
-            </div>
-            <div class="col-md-3">
-              <label for="chickenWeight" class="form-label">
-                <i class="bi bi-scale"></i> Peso Total (lbs)
-              </label>
-              <input type="number" id="chickenWeight" class="form-control form-control-treinta" 
-                     step="0.01" min="0.01" placeholder="0.00" required />
+            <div class="mb-3">
+              <label for="saleDateDrawer" class="form-label"><i class="bi bi-calendar-event"></i> Fecha de
+                facturación</label>
+              <input type="date" id="saleDateDrawer" class="form-control form-control-treinta" />
             </div>
           </div>
-          
-          <div class="row g-3 mt-3">
-            <div class="col-md-6">
-              <label class="form-label">
-                <i class="bi bi-calculator"></i> Cálculo Automático
-              </label>
-              <div class="calculation-display-treinta">
-                <div class="calculation-item">
-                  <span>Precio por libra:</span>
-                  <span id="displayPricePerPound">$0.00</span>
+          <div class="cart-drawer-products" id="cartListDrawer">
+            <!-- Productos seleccionados generados por JS -->
+          </div>
+          <div class="cart-drawer-footer">
+            <div class="cart-drawer-total">
+              <span>Total:</span>
+              <span id="cartTotalDrawer">$0.00</span>
+            </div>
+            <button class="btn btn-primary btn-treinta w-100" id="finalizeBtnDrawer" onclick="finalizeSaleDrawer()">
+              <i class="bi bi-check-circle"></i> Finalizar Venta
+            </button>
+          </div>
+        </div>
+        <!-- Fondo oscuro para el drawer -->
+        <div id="cartDrawerOverlay" class="cart-drawer-overlay" onclick="toggleCartDrawer()"></div>
+      </div>
+    </section>
+
+    <!-- ========================================= -->
+    <!-- 👥 VISTA: GESTIÓN DE CLIENTES -->
+    <!-- ========================================= -->
+    <section id="view-clients" class="app-view d-none">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Clientes</h2>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary btn-sm" type="button" onclick="openClientsSearchModal()">
+            <i class="bi bi-search"></i> Buscar
+          </button>
+          <button id="toggleClientsView" class="btn btn-outline-primary btn-sm" type="button"
+            onclick="toggleClientsView()">
+            <i class="bi bi-grid-3x3-gap-fill"></i> <span id="toggleClientsViewText">Cuadrícula</span>
+          </button>
+          <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalClient">
+            <i class="bi bi-person-plus"></i> Agregar
+          </button>
+        </div>
+      </div>
+      <ul id="clientList" class="list-group"></ul>
+    </section>
+
+    <!-- ========================================= -->
+    <!-- 👤 MODAL: AGREGAR CLIENTE -->
+    <!-- ========================================= -->
+    <div class="modal fade" id="modalClient" tabindex="-1" aria-labelledby="modalClientLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modal-treinta">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalClientLabel">
+              <i class="bi bi-person-plus"></i> Agregar Cliente
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <form id="formClient" class="form-treinta">
+              <div class="form-group mb-3">
+                <label for="clientName" class="form-label">
+                  <i class="bi bi-person"></i> Nombre completo
+                </label>
+                <input type="text" id="clientName" class="form-control form-control-treinta"
+                  placeholder="Ej: Juan Pérez" required />
+              </div>
+
+              <div class="form-group mb-3">
+                <label for="clientPhone" class="form-label">
+                  <i class="bi bi-telephone"></i> Número de celular
+                </label>
+                <input type="tel" id="clientPhone" class="form-control form-control-treinta"
+                  placeholder="Ej: 0991234567" pattern="[0-9]{7,15}" />
+              </div>
+
+              <div class="form-group mb-3">
+                <label for="clientAddress" class="form-label">
+                  <i class="bi bi-geo-alt"></i> Dirección
+                </label>
+                <textarea id="clientAddress" class="form-control form-control-treinta"
+                  placeholder="Ej: Av. Principal 123, Ciudad" rows="2"></textarea>
+              </div>
+
+              <div class="form-group mb-3">
+                <label for="clientPhoto" class="form-label">
+                  <i class="bi bi-camera"></i> Foto del cliente
+                </label>
+                <div class="image-upload-container">
+                  <input type="file" id="clientPhoto" class="form-control form-control-treinta" accept="image/*" />
+                  <div class="image-preview" id="clientImagePreview"></div>
                 </div>
-                <div class="calculation-item">
-                  <span>Costo por libra:</span>
-                  <span id="displayCostPerPound">$0.00</span>
-                </div>
-                <div class="calculation-item">
-                  <span>Ganancia por libra:</span>
-                  <span id="displayProfitPerPound" class="profit-amount">$0.00</span>
-                </div>
-                <div class="calculation-item">
-                  <span>Total a pagar:</span>
-                  <span id="displayTotalAmount" class="total-amount">$0.00</span>
-                </div>
-                <div class="calculation-item">
-                  <span>Ganancia total:</span>
-                  <span id="displayTotalProfit" class="profit-amount hidden-profit-calc" data-actual-value="$0.00">•••••</span>
-                  <button id="toggleChickenProfitCalcBtn" type="button" class="btn btn-link btn-sm p-0 ms-1" title="Mostrar/Ocultar ganancia total calculada">
-                    <i class="bi bi-eye"></i>
-                  </button>
-                </div>
+              </div>
+
+              <div class="form-group mb-4">
+                <label class="form-label">
+                  <i class="bi bi-geo-alt-fill"></i> Ubicación
+                </label>
+                <button type="button" class="btn btn-outline-primary btn-treinta w-100" id="btnGetLocation">
+                  <i class="bi bi-geo-alt-fill"></i> Obtener ubicación actual
+                </button>
+                <input type="hidden" id="clientLocation" />
+                <div id="locationStatus" class="form-text mt-2"></div>
+              </div>
+
+              <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-treinta">
+                  <i class="bi bi-person-plus"></i> Agregar Cliente
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================= -->
+    <!-- 💰 VISTA: GESTIÓN DE DEUDAS -->
+    <!-- ========================================= -->
+    <section id="view-debt" class="app-view d-none">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Deudas</h2>
+        <button onclick="generatePDF('debt')" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-download"></i> Exportar PDF
+        </button>
+      </div>
+      <!-- Filtros de estado de deuda y buscador de clientes -->
+      <div class="mb-3">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+          <div class="btn-group" role="group" aria-label="Filtrar deudas">
+            <button type="button" class="btn btn-outline-primary active" id="btnDebtFilterPending"
+              onclick="setDebtStatusFilter('pending')">
+              <i class="bi bi-hourglass-split"></i> Pendientes / Abonadas
+            </button>
+            <button type="button" class="btn btn-outline-success" id="btnDebtFilterPaid"
+              onclick="setDebtStatusFilter('paid')">
+              <i class="bi bi-check-circle"></i> Pagadas
+            </button>
+          </div>
+          <span id="debtTotalBalance" class="badge bg-info text-dark ms-2"
+            style="font-size:1rem;min-width:120px;"></span>
+          <div class="flex-grow-1 ms-0 ms-md-3" style="min-width:220px;">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" id="debtClientSearch" class="form-control" placeholder="Buscar cliente por nombre..."
+                oninput="filterDebtClients()">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="debtList" class="row gy-3 position-relative">
+        <!-- Lista de deudas cargada por JS -->
+        <!-- Botón de agregar cliente junto al último cliente listado -->
+        <div id="addClientDebtBtnContainer"></div>
+      </div>
+    </section>
+
+    <!-- ========================================= -->
+    <!-- 📦 VISTA: INVENTARIO DE PRODUCTOS -->
+    <!-- ========================================= -->
+    <section id="view-inventory" class="app-view d-none">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Inventario</h2>
+        <div class="d-flex gap-2">
+          <button id="toggleInventoryView" class="btn btn-outline-primary btn-sm" type="button"
+            onclick="toggleInventoryView()">
+            <i class="bi bi-grid-3x3-gap-fill"></i> <span id="toggleInventoryViewText">Cuadrícula</span>
+          </button>
+          <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalProduct">
+            <i class="bi bi-plus-circle"></i> Agregar
+          </button>
+        </div>
+      </div>
+      <div id="inventoryList" class="row gy-3"></div>
+    </section>
+
+    <!-- ========================================= -->
+    <!-- 📱 VISTA: CONFIGURACIÓN DE TELEGRAM -->
+    <!-- ========================================= -->
+    <section id="view-telegram-config" class="app-view d-none">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="bi bi-telegram"></i> Configuración de Telegram</h2>
+        <div class="d-flex gap-2">
+          <button id="testTelegramConnection" class="btn btn-outline-success btn-sm" disabled>
+            <i class="bi bi-wifi"></i> Probar Conexión
+          </button>
+          <button id="fullBackupBtn" class="btn btn-primary btn-sm" disabled>
+            <i class="bi bi-cloud-upload"></i> Respaldo Completo
+          </button>
+        </div>
+      </div>
+
+      <!-- Estado de configuración -->
+      <div class="alert alert-info mb-4" id="telegramStatus">
+        <i class="bi bi-info-circle"></i> Telegram no configurado. Complete la configuración para habilitar el respaldo automático.
+      </div>
+
+      <!-- Configuración básica -->
+      <div class="card card-custom mb-4">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-gear"></i> Configuración del Bot</h5>
+          <form id="telegramConfigForm">
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label for="botToken" class="form-label">
+                  <i class="bi bi-key"></i> Token del Bot
+                </label>
+                <input type="password" id="botToken" class="form-control form-control-treinta" 
+                       placeholder="123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" required>
+                <div class="form-text">Token proporcionado por @BotFather</div>
+              </div>
+              <div class="col-md-6">
+                <label for="channelId" class="form-label">
+                  <i class="bi bi-hash"></i> ID del Canal/Chat
+                </label>
+                <input type="text" id="channelId" class="form-control form-control-treinta" 
+                       placeholder="-1001234567890" required>
+                <div class="form-text">ID del canal privado donde se guardarán los respaldos</div>
               </div>
             </div>
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary btn-treinta">
+                <i class="bi bi-save"></i> Guardar Configuración
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Opciones de respaldo -->
+      <div class="card card-custom mb-4" id="backupOptions" style="display: none;">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-cloud-arrow-up"></i> Opciones de Respaldo</h5>
+          <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label">
-                <i class="bi bi-credit-card"></i> Forma de Pago
-              </label>
-              <div class="payment-options-treinta">
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="chickenPayment" id="chickenCash" value="cash" checked>
-                  <label class="form-check-label" for="chickenCash">
-                    <i class="bi bi-cash-coin"></i> Al Contado
-                  </label>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="chickenPayment" id="chickenCredit" value="credit">
-                  <label class="form-check-label" for="chickenCredit">
-                    <i class="bi bi-credit-card"></i> A Crédito
-                  </label>
-                </div>
+              <button class="btn btn-outline-primary w-100" onclick="telegramSync.backupSales(JSON.parse(localStorage.getItem('ventas') || '[]'))">
+                <i class="bi bi-cart-check"></i> Respaldar Ventas
+              </button>
+            </div>
+            <div class="col-md-6">
+              <button class="btn btn-outline-primary w-100" onclick="telegramSync.backupInventory(JSON.parse(localStorage.getItem('productos') || '[]'))">
+                <i class="bi bi-box-seam"></i> Respaldar Inventario
+              </button>
+            </div>
+            <div class="col-md-6">
+              <button class="btn btn-outline-primary w-100" onclick="telegramSync.backupClients(JSON.parse(localStorage.getItem('clientes') || '[]'))">
+                <i class="bi bi-people"></i> Respaldar Clientes
+              </button>
+            </div>
+            <div class="col-md-6">
+              <button class="btn btn-success w-100" onclick="performFullBackup()">
+                <i class="bi bi-cloud-upload"></i> Respaldo Completo
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Restaurar respaldos -->
+      <div class="card card-custom mb-4" id="restoreOptions" style="display: none;">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-cloud-download"></i> Restaurar Datos</h5>
+          <div class="d-flex gap-2 mb-3">
+            <button class="btn btn-outline-info" onclick="loadAvailableBackups()">
+              <i class="bi bi-arrow-clockwise"></i> Buscar Respaldos
+            </button>
+          </div>
+          <div id="availableBackups" class="list-group">
+            <!-- Lista de respaldos disponibles -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Guía de configuración -->
+      <div class="card card-custom">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-question-circle"></i> Guía de Configuración</h5>
+          <div class="telegram-setup-guide">
+            <div class="step-item">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h6>Crear el Bot</h6>
+                <p>Busca <strong>@BotFather</strong> en Telegram y envía <code>/newbot</code>. Sigue las instrucciones y guarda el token.</p>
               </div>
-              
-              <!-- Abono inicial (solo para crédito) -->
-              <div id="chickenAbonoSection" class="mt-3" style="display: none;">
-                <label for="chickenAbono" class="form-label">
-                  <i class="bi bi-cash"></i> Abono Inicial
+            </div>
+            <div class="step-item">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <h6>Crear Canal Privado</h6>
+                <p>Crea un canal privado en Telegram y agrega tu bot como administrador.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <h6>Obtener ID del Canal</h6>
+                <p>Busca <strong>@userinfobot</strong>, agrégalo a tu canal y te mostrará el ID del canal.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-number">4</div>
+              <div class="step-content">
+                <h6>Configurar en TillUp</h6>
+                <p>Ingresa el token del bot y el ID del canal en el formulario de arriba.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================= -->
+    <!-- ☁️ VISTA: BACKUP AUTOMÁTICO TELEGRAM -->
+    <!-- ========================================= -->
+    <section id="view-telegram-backup" class="app-view d-none">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="bi bi-cloud-arrow-up"></i> Backup Automático a Telegram</h2>
+      </div>
+      <div class="card card-custom mb-4">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-gear"></i> Configuración de Telegram</h5>
+          <form id="telegramBackupForm" class="form-treinta">
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label for="telegramBotToken" class="form-label"><i class="bi bi-key"></i> Bot Token</label>
+                <input type="text" id="telegramBotToken" class="form-control form-control-treinta"
+                  placeholder="123456789:ABC..." required />
+              </div>
+              <div class="col-md-4">
+                <label for="telegramChatId" class="form-label"><i class="bi bi-person-badge"></i> Chat ID</label>
+                <input type="text" id="telegramChatId" class="form-control form-control-treinta"
+                  placeholder="Ej: 123456789" required />
+              </div>
+              <div class="col-md-4">
+                <label for="telegramBackupInterval" class="form-label"><i class="bi bi-clock-history"></i> Intervalo
+                  (minutos)</label>
+                <input type="number" id="telegramBackupInterval" class="form-control form-control-treinta" min="5"
+                  max="1440" value="60" required />
+                <div class="form-text">Mínimo: 5 min, Máximo: 1440 min (24h)</div>
+              </div>
+              <div class="col-md-4">
+                <label for="googleDriveBackupInterval" class="form-label"><i class="bi bi-cloud-arrow-up"></i> Intervalo
+                  Google Drive (minutos)</label>
+                <input type="number" id="googleDriveBackupInterval" class="form-control form-control-treinta" min="5"
+                  max="1440" value="60" required />
+                <div class="form-text">Mínimo: 5 min, Máximo: 1440 min (24h)</div>
+              </div>
+            </div>
+            <div class="d-grid gap-2 mb-3">
+              <button type="submit" class="btn btn-primary btn-treinta">
+                <i class="bi bi-save"></i> Guardar Configuración
+              </button>
+              <button type="button" class="btn btn-outline-success btn-treinta" id="testTelegramBackup">
+                <i class="bi bi-send"></i> Probar Envío Manual
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-treinta" id="importTelegramBackupBtn">
+                <i class="bi bi-upload"></i> Importar Backup
+              </button>
+              <input type="file" id="importTelegramBackupInput" accept="application/json" style="display:none" />
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="card card-custom">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-question-circle"></i> Guía paso a paso</h5>
+          <ol class="telegram-guide-list">
+            <li>Abre <b>Telegram</b> y busca <b>@BotFather</b>.</li>
+            <li>Envía <code>/newbot</code> y sigue las instrucciones para crear un nuevo bot.<br>Guarda el <b>Token</b>
+              que te entrega BotFather.</li>
+            <li>Agrega tu bot al chat o grupo donde quieras recibir los backups.<br>Si es grupo, hazlo administrador.
+            </li>
+            <li>Para obtener el <b>Chat ID</b>:
+              <ul>
+                <li>Busca el bot <b>@userinfobot</b> en Telegram y escríbele o agrégalo al grupo.</li>
+                <li>Te mostrará tu <b>Chat ID</b> o el del grupo.</li>
+              </ul>
+            </li>
+            <li>Ingresa el <b>Token</b> y <b>Chat ID</b> en el formulario de arriba y guarda.</li>
+            <li>Configura el intervalo de respaldo automático (en minutos).</li>
+            <li>Pulsa <b>Probar Envío Manual</b> para verificar que todo funciona.</li>
+          </ol>
+          <div class="alert alert-info mt-3">
+            <b>Nota:</b> El backup enviará un archivo con todos tus datos de la app en formato JSON.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================= -->
+    <!-- 🐔 VISTA: GESTIÓN DE POLLOS -->
+    <!-- ========================================= -->
+    <section id="view-chickens" class="app-view d-none">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+          <i class="bi bi-egg-fried"></i> Gestión de Pollos
+        </h2>
+        <div class="d-flex gap-2">
+          <button onclick="generatePDF('chickens')" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-download"></i> Exportar PDF
+          </button>
+          <button id="btnMermaPollo" class="btn btn-outline-warning btn-sm" type="button">
+            <i class="bi bi-percent"></i> Calcular Merma
+          </button>
+        </div>
+      </div>
+
+      <!-- Configuración de precio por libra -->
+      <div class="chicken-config-treinta mb-4">
+        <div class="card card-custom">
+          <div class="card-body">
+            <h5 class="card-title">
+              <i class="bi bi-gear"></i> Configuración de Precio
+            </h5>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="pricePerPound" class="form-label">
+                  <i class="bi bi-currency-dollar"></i> Precio por Libra (PVP)
                 </label>
                 <div class="input-group">
                   <span class="input-group-text">$</span>
-                  <input type="number" id="chickenAbono" class="form-control form-control-treinta" 
-                         step="0.01" min="0" placeholder="0.00" />
+                  <input type="number" id="pricePerPound" class="form-control form-control-treinta" step="0.01"
+                    placeholder="0.00" value="2.50" />
                 </div>
+                <div class="form-text">Precio actual por libra de pollo</div>
+              </div>
+              <div class="col-md-6">
+                <label for="costPerPound" class="form-label">
+                  <i class="bi bi-cash"></i> Costo por Libra
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" id="costPerPound" class="form-control form-control-treinta" step="0.01"
+                    placeholder="0.00" value="2.00" />
+                </div>
+                <div class="form-text">Costo actual por libra de pollo</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">&nbsp;</label>
+                <button onclick="updatePricePerPound()" class="btn btn-primary btn-treinta w-100">
+                  <i class="bi bi-check-circle"></i> Actualizar Precio
+                </button>
               </div>
             </div>
           </div>
-          
-          <div class="d-grid gap-2 mt-4">
-            <button type="submit" class="btn btn-primary btn-treinta">
-              <i class="bi bi-check-circle"></i> Finalizar Venta de Pollos
+        </div>
+      </div>
+
+      <!-- Estadísticas de pollos -->
+      <div class="chicken-stats-treinta mb-4">
+        <div class="row g-3 align-items-end mb-2">
+          <div class="col-md-3">
+            <label for="filterChickenDate" class="form-label mb-0"><i class="bi bi-calendar-event"></i> Filtrar por
+              fecha</label>
+            <input type="date" id="filterChickenDate" class="form-control form-control-treinta" />
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-outline-primary w-100 mt-2" id="btnFilterChickenDate" type="button">
+              <i class="bi bi-search"></i> Ver registros de ese día
             </button>
           </div>
-        </form>
-      </div>
-    </div>
-  </div>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <div class="stat-card-treinta">
+              <div class="stat-icon">
+                <i class="bi bi-egg-fried"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" id="totalChickensSold">0</div>
+                <div class="stat-label">Pollos Vendidos Hoy</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card-treinta">
+              <div class="stat-icon">
+                <i class="bi bi-scale"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" id="totalWeightSold">0.0</div>
+                <div class="stat-label">Libras Vendidas Hoy</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card-treinta" id="profitStatsCard">
+              <div class="stat-icon">
+                <i class="bi bi-cash-stack"></i>
+              </div>
+              <div class="stat-content text-center">
+                <div class="d-flex justify-content-center align-items-center mb-1">
+                  <div class="stat-value me-2 hidden-profit" id="totalProfit">•••••</div>
+                  <button id="toggleChickenProfitBtn" type="button" class="btn btn-link btn-sm p-0"
+                    title="Mostrar/Ocultar ganancia total">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
+                <div class="stat-label">Ganancias Hoy</div>
+              </div>
 
-  <!-- Historial de ventas de pollos -->
-  <div class="chicken-history-treinta">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h5 class="mb-0">
-        <i class="bi bi-clock-history"></i> Historial de Ventas de Pollos
-      </h5>
-      <span class="badge bg-secondary" id="chickenSalesCount">0 ventas</span>
-    </div>
-    <div id="chickenSalesList" class="chicken-sales-list-treinta">
-      <!-- Historial generado por JS -->
-    </div>
-  </div>
-</section>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card-treinta">
+              <div class="stat-icon">
+                <i class="bi bi-graph-up"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" id="avgWeight">0.0</div>
+                <div class="stat-label">Peso Promedio</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-<!-- Vista: Movimientos y Estadísticas Avanzadas -->
-<section id="view-movements" class="app-view d-none">
-  <!-- Header minimalista -->
-  <div class="movements-header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1 class="header-title">Movimientos</h1>
-        <p class="header-subtitle" id="periodDisplay">Hoy</p>
-      </div>
-      <div class="header-actions">
-        <button id="btnClearFilters" class="btn-clear-filters" onclick="clearMovementFilters()" style="display: none;">
-          <i class="bi bi-arrow-clockwise"></i>
-        </button>
-        <button onclick="generatePDF('movements')" class="btn-export">
-          <i class="bi bi-download"></i>
-        </button>
-      </div>
-    </div>
-  </div>
+      <!-- Nueva venta de pollos -->
+      <div class="chicken-sale-treinta mb-4">
+        <div class="card card-custom">
+          <div class="card-body">
+            <h5 class="card-title">
+              <i class="bi bi-plus-circle"></i> Nueva Venta de Pollos
+            </h5>
+            <form id="chickenSaleForm" class="form-treinta">
+              <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                  <label for="chickenSaleDate" class="form-label"><i class="bi bi-calendar-event"></i> Fecha de
+                    facturación</label>
+                  <input type="date" id="chickenSaleDate" class="form-control form-control-treinta" />
+                </div>
+              </div>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="chickenClient" class="form-label">
+                    <i class="bi bi-person"></i> Seleccionar Cliente
+                  </label>
+                  <select id="chickenClient" class="form-select form-select-treinta" required>
+                    <option value="">Seleccionar cliente...</option>
+                    <option value="search" class="search-option" style="display: none;">
+                      <i class="bi bi-search"></i> Buscar cliente...
+                    </option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label for="chickenQuantity" class="form-label">
+                    <i class="bi bi-hash"></i> Cantidad de Pollos
+                  </label>
+                  <input type="number" id="chickenQuantity" class="form-control form-control-treinta" min="1" value="1"
+                    required />
+                </div>
+                <div class="col-md-3">
+                  <label for="chickenWeight" class="form-label">
+                    <i class="bi bi-scale"></i> Peso Total (lbs)
+                  </label>
+                  <input type="number" id="chickenWeight" class="form-control form-control-treinta" step="0.01"
+                    min="0.01" placeholder="0.00" required />
+                </div>
+              </div>
 
-  <!-- Filtros superiores minimalistas -->
-  <div class="period-filters">
-    <div class="filter-tabs">
-      <button class="filter-tab active" data-period="today" onclick="setPeriodFilter('today')">
-        <span class="tab-label">Hoy</span>
-      </button>
-      <button class="filter-tab" data-period="week" onclick="setPeriodFilter('week')">
-        <span class="tab-label">Semana</span>
-      </button>
-      <button class="filter-tab" data-period="month" onclick="setPeriodFilter('month')">
-        <span class="tab-label">Mes</span>
-      </button>
-      <button class="filter-tab" data-period="year" onclick="setPeriodFilter('year')">
-        <span class="tab-label">Año</span>
-      </button>
-      <button class="filter-tab" data-period="custom" onclick="setPeriodFilter('custom')">
-        <span class="tab-label">Personalizado</span>
-      </button>
-    </div>
-  </div>
+              <div class="row g-3 mt-3">
+                <div class="col-md-6">
+                  <label class="form-label">
+                    <i class="bi bi-calculator"></i> Cálculo Automático
+                  </label>
+                  <div class="calculation-display-treinta">
+                    <div class="calculation-item">
+                      <span>Precio por libra:</span>
+                      <span id="displayPricePerPound">$0.00</span>
+                    </div>
+                    <div class="calculation-item">
+                      <span>Costo por libra:</span>
+                      <span id="displayCostPerPound">$0.00</span>
+                    </div>
+                    <div class="calculation-item">
+                      <span>Ganancia por libra:</span>
+                      <span id="displayProfitPerPound" class="profit-amount">$0.00</span>
+                    </div>
+                    <div class="calculation-item">
+                      <span>Total a pagar:</span>
+                      <span id="displayTotalAmount" class="total-amount">$0.00</span>
+                    </div>
+                    <div class="calculation-item">
+                      <span>Ganancia total:</span>
+                      <span id="displayTotalProfit" class="profit-amount hidden-profit-calc"
+                        data-actual-value="$0.00">•••••</span>
+                      <button id="toggleChickenProfitCalcBtn" type="button" class="btn btn-link btn-sm p-0 ms-1"
+                        title="Mostrar/Ocultar ganancia total calculada">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">
+                    <i class="bi bi-credit-card"></i> Forma de Pago
+                  </label>
+                  <div class="payment-options-treinta">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="chickenPayment" id="chickenCash" value="cash"
+                        checked>
+                      <label class="form-check-label" for="chickenCash">
+                        <i class="bi bi-cash-coin"></i> Al Contado
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="chickenPayment" id="chickenCredit"
+                        value="credit">
+                      <label class="form-check-label" for="chickenCredit">
+                        <i class="bi bi-credit-card"></i> A Crédito
+                      </label>
+                    </div>
+                  </div>
 
-  <!-- Selector de fechas personalizadas -->
-  <div id="customDateSelector" class="custom-date-selector" style="display: none;">
-    <div class="date-inputs">
-      <div class="date-input-group">
-        <label for="startDate">Desde</label>
-        <input type="date" id="startDate" class="date-input" />
-      </div>
-      <div class="date-input-group">
-        <label for="endDate">Hasta</label>
-        <input type="date" id="endDate" class="date-input" />
-      </div>
-      <button onclick="applyCustomFilter()" class="btn-apply-filter">
-        <i class="bi bi-check"></i>
-      </button>
-    </div>
-  </div>
+                  <!-- Abono inicial (solo para crédito) -->
+                  <div id="chickenAbonoSection" class="mt-3" style="display: none;">
+                    <label for="chickenAbono" class="form-label">
+                      <i class="bi bi-cash"></i> Abono Inicial
+                    </label>
+                    <div class="input-group">
+                      <span class="input-group-text">$</span>
+                      <input type="number" id="chickenAbono" class="form-control form-control-treinta" step="0.01"
+                        min="0" placeholder="0.00" />
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-  <!-- Métricas principales -->
-  <div class="metrics-overview">
-    <div class="metric-card primary">
-      <div class="metric-icon">
-        <i class="bi bi-graph-up"></i>
+              <div class="d-grid gap-2 mt-4">
+                <button type="submit" class="btn btn-primary btn-treinta">
+                  <i class="bi bi-check-circle"></i> Finalizar Venta de Pollos
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
-      <div class="metric-content">
-        <div class="metric-value" id="totalRevenue">$0.00</div>
-        <div class="metric-label">Ingresos Totales</div>
-        <div class="metric-subtitle">Ganancias reales (PVP - Costo)</div>
-      </div>
-      <button class="metric-toggle" id="toggleRevenue" onclick="toggleRevenueVisibility()" title="Mostrar/Ocultar ganancias">
-        <i class="bi bi-eye" id="revenueEyeIcon"></i>
-      </button>
-    </div>
-    
-    <div class="metric-card">
-      <div class="metric-icon">
-        <i class="bi bi-cart-check"></i>
-      </div>
-      <div class="metric-content">
-        <div class="metric-value" id="totalSales">0</div>
-        <div class="metric-label">Ventas Normales</div>
-        <div class="metric-amount" id="totalSalesAmount">$0.00</div>
-      </div>
-    </div>
-    
-    <div class="metric-card">
-      <div class="metric-icon">
-        <i class="bi bi-egg-fried"></i>
-      </div>
-      <div class="metric-content">
-        <div class="metric-value" id="totalChickenSales">0</div>
-        <div class="metric-label">Ventas de Pollos</div>
-        <div class="metric-amount" id="totalChickenAmount">$0.00</div>
-      </div>
-    </div>
-    
-    <div class="metric-card">
-      <div class="metric-icon">
-        <i class="bi bi-cash-stack"></i>
-      </div>
-      <div class="metric-content">
-        <div class="metric-value" id="totalDebts">0</div>
-        <div class="metric-label">Deudas</div>
-        <div class="metric-amount" id="totalDebtsAmount">$0.00</div>
-      </div>
-    </div>
-    
-    <div class="metric-card">
-      <div class="metric-icon">
-        <i class="bi bi-cash-coin"></i>
-      </div>
-      <div class="metric-content">
-        <div class="metric-value" id="totalPayments">0</div>
-        <div class="metric-label">Pagos</div>
-        <div class="metric-subtitle">Abonos a deudas</div>
-        <div class="metric-amount" id="totalPaymentsAmount">$0.00</div>
-      </div>
-    </div>
-  </div>
 
-  <!-- Gráficas -->
-  <div class="charts-section">
-    <div class="chart-container">
-      <div class="chart-header">
-        <h3 class="chart-title">Tendencias de Ventas</h3>
-        <div class="chart-controls">
-          <button class="chart-control active" data-chart="trend" onclick="showChart('trend')">
-            <i class="bi bi-graph-up"></i>
+      <!-- Historial de ventas de pollos -->
+      <div class="chicken-history-treinta">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">
+            <i class="bi bi-clock-history"></i> Historial de Ventas de Pollos
+          </h5>
+          <span class="badge bg-secondary" id="chickenSalesCount">0 ventas</span>
+        </div>
+        <div id="chickenSalesList" class="chicken-sales-list-treinta">
+          <!-- Historial generado por JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================= -->
+    <!-- 📈 VISTA: MOVIMIENTOS Y ESTADÍSTICAS -->
+    <!-- ========================================= -->
+    <section id="view-movements" class="app-view d-none">
+      <!-- Header minimalista -->
+      <div class="movements-header">
+        <div class="header-content">
+          <div class="header-left">
+            <h1 class="header-title">Movimientos</h1>
+            <p class="header-subtitle" id="periodDisplay">Hoy</p>
+          </div>
+          <div class="header-actions">
+            <button id="btnClearFilters" class="btn-clear-filters" onclick="clearMovementFilters()"
+              style="display: none;">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <button onclick="generatePDF('movements')" class="btn-export">
+              <i class="bi bi-download"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtros superiores minimalistas -->
+      <div class="period-filters">
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-period="today" onclick="setPeriodFilter('today')">
+            <span class="tab-label">Hoy</span>
           </button>
-          <button class="chart-control" data-chart="distribution" onclick="showChart('distribution')">
-            <i class="bi bi-pie-chart"></i>
+          <button class="filter-tab" data-period="week" onclick="setPeriodFilter('week')">
+            <span class="tab-label">Semana</span>
+          </button>
+          <button class="filter-tab" data-period="month" onclick="setPeriodFilter('month')">
+            <span class="tab-label">Mes</span>
+          </button>
+          <button class="filter-tab" data-period="year" onclick="setPeriodFilter('year')">
+            <span class="tab-label">Año</span>
+          </button>
+          <button class="filter-tab" data-period="custom" onclick="setPeriodFilter('custom')">
+            <span class="tab-label">Personalizado</span>
           </button>
         </div>
       </div>
-      <div class="chart-content">
-        <canvas id="mainChart" width="800" height="300"></canvas>
-      </div>
-    </div>
-  </div>
 
-  <!-- Timeline de movimientos -->
-  <div class="movements-timeline">
-    <div class="timeline-header">
-      <h3 class="timeline-title">Movimientos Recientes</h3>
-      <div class="timeline-count" id="filteredMovementsCount">0 movimientos</div>
-    </div>
-    <div id="filteredMovementsList" class="timeline-content">
-      <!-- Movimientos generados por JS -->
-    </div>
-  </div>
-</section>
+      <!-- Selector de fechas personalizadas -->
+      <div id="customDateSelector" class="custom-date-selector" style="display: none;">
+        <div class="date-inputs">
+          <div class="date-input-group">
+            <label for="startDate">Desde</label>
+            <input type="date" id="startDate" class="date-input" />
+          </div>
+          <div class="date-input-group">
+            <label for="endDate">Hasta</label>
+            <input type="date" id="endDate" class="date-input" />
+          </div>
+          <button onclick="applyCustomFilter()" class="btn-apply-filter">
+            <i class="bi bi-check"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Métricas principales -->
+      <div class="metrics-overview">
+        <div class="metric-card primary">
+          <div class="metric-icon">
+            <i class="bi bi-graph-up"></i>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value" id="totalRevenue">$0.00</div>
+            <div class="metric-label">Ingresos Totales</div>
+            <div class="metric-subtitle">Ganancias reales (PVP - Costo)</div>
+          </div>
+          <button class="metric-toggle" id="toggleRevenue" onclick="toggleRevenueVisibility()"
+            title="Mostrar/Ocultar ganancias">
+            <i class="bi bi-eye" id="revenueEyeIcon"></i>
+          </button>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon">
+            <i class="bi bi-cart-check"></i>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value" id="totalSales">0</div>
+            <div class="metric-label">Ventas Normales</div>
+            <div class="metric-amount" id="totalSalesAmount">$0.00</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon">
+            <i class="bi bi-egg-fried"></i>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value" id="totalChickenSales">0</div>
+            <div class="metric-label">Ventas de Pollos</div>
+            <div class="metric-amount" id="totalChickenAmount">$0.00</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon">
+            <i class="bi bi-cash-stack"></i>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value" id="totalDebts">0</div>
+            <div class="metric-label">Deudas</div>
+            <div class="metric-amount" id="totalDebtsAmount">$0.00</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon">
+            <i class="bi bi-cash-coin"></i>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value" id="totalPayments">0</div>
+            <div class="metric-label">Pagos</div>
+            <div class="metric-subtitle">Abonos a deudas</div>
+            <div class="metric-amount" id="totalPaymentsAmount">$0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficas -->
+      <div class="charts-section">
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3 class="chart-title">Tendencias de Ventas</h3>
+            <div class="chart-controls">
+              <button class="chart-control active" data-chart="trend" onclick="showChart('trend')">
+                <i class="bi bi-graph-up"></i>
+              </button>
+              <button class="chart-control" data-chart="distribution" onclick="showChart('distribution')">
+                <i class="bi bi-pie-chart"></i>
+              </button>
+            </div>
+          </div>
+          <div class="chart-content">
+            <canvas id="mainChart" width="800" height="300"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline de movimientos -->
+      <div class="movements-timeline">
+        <div class="timeline-header">
+          <h3 class="timeline-title">Movimientos Recientes</h3>
+          <div class="timeline-count" id="filteredMovementsCount">0 movimientos</div>
+        </div>
+        <div id="filteredMovementsList" class="timeline-content">
+          <!-- Movimientos generados por JS -->
+        </div>
+      </div>
+    </section>
 
   </main>
 
+  <!-- ========================================= -->
+  <!-- 🔍 MODALES DE BÚSQUEDA -->
+  <!-- ========================================= -->
   <!-- Modal de búsqueda de clientes para pollos -->
   <div id="clientSearchModal" class="search-modal">
     <div class="search-modal-content">
@@ -1210,8 +1225,8 @@
         </button>
       </div>
       <div class="search-input-container">
-        <input type="text" id="clientSearchInput" class="search-input" 
-               placeholder="Escribe el nombre del cliente..." autocomplete="off">
+        <input type="text" id="clientSearchInput" class="search-input" placeholder="Escribe el nombre del cliente..."
+          autocomplete="off">
         <i class="bi bi-search search-icon"></i>
       </div>
       <div id="clientSearchResults" class="search-results">
@@ -1232,8 +1247,8 @@
         </button>
       </div>
       <div class="search-input-container">
-        <input type="text" id="clientsSearchInput" class="search-input" 
-               placeholder="Escribe el nombre del cliente..." autocomplete="off">
+        <input type="text" id="clientsSearchInput" class="search-input" placeholder="Escribe el nombre del cliente..."
+          autocomplete="off">
         <i class="bi bi-search search-icon"></i>
       </div>
       <div id="clientsSearchResults" class="search-results">
@@ -1242,7 +1257,9 @@
     </div>
   </div>
 
-  <!-- Navegación inferior tipo Treinta.co -->
+  <!-- ========================================= -->
+  <!-- 📱 NAVEGACIÓN INFERIOR MÓVIL -->
+  <!-- ========================================= -->
   <nav class="navbar navbar-expand navbar-treinta">
     <div class="container-fluid justify-content-around">
       <button class="btn active" onclick="showView('balance')" id="nav-bottom-balance">
@@ -1271,1399 +1288,125 @@
       </button>
       <!-- Botón de backup eliminado de la barra inferior -->
     </div>
-        </nav>
+  </nav>
 
-
-  <!-- Bootstrap JS -->
+  <!-- ========================================= -->
+  <!-- 📚 SCRIPTS DE LIBRERÍAS -->
+  <!-- ========================================= -->
+  <!-- Bootstrap JavaScript -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  
-  <!-- Utils JS -->
-  <script src="utils.js"></script>
-  
-  <!-- PDF Generator JS -->
-  <script src="pdf-generator.js"></script>
-  
-  <!-- localForage CDN (recomendado) -->
+  <!-- LocalForage para almacenamiento local -->
   <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
-  
-  <!-- Sistema de Sincronización en Tiempo Real -->
-  <script src="websocket-sync/config.js"></script>
-  <script src="websocket-sync/tillup-realtime-sync.js"></script>
-  
-  <!-- App JS -->
+
+  <!-- ========================================= -->
+  <!-- 🔧 SCRIPTS DE LA APLICACIÓN -->
+  <!-- ========================================= -->
+  <!-- Utilidades y funciones auxiliares -->
+  <script src="utils.js"></script>
+  <!-- Generador de reportes PDF -->
+  <script src="pdf-generator.js"></script>
+  <!-- Lógica principal de la aplicación -->
   <script src="app.js"></script>
 
-  <!-- Telegram y Google Drive Backup Logic -->
-  <script>
-
-
-
-  // --- Google Drive Backup/Restore con Google Identity Services (GIS) ---
-  const GOOGLE_CLIENT_ID = '83503843228-lh6tbfvp9q1a3omus30g2i9miadrp6i7.apps.googleusercontent.com';
-  const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
-  const BACKUP_FILENAME = 'backup-tillup.json';
-  let googleAccessToken = null;
-  let tokenClient = null;
-  let googleDriveBackupTimer = null;
-  let googleDriveBackupInterval = 60; // minutos por defecto
-
-  // Leer intervalo guardado en localStorage (si existe)
-  if (localStorage.getItem('googleDriveBackupInterval')) {
-    const val = parseInt(localStorage.getItem('googleDriveBackupInterval'), 10);
-    if (!isNaN(val) && val >= 5 && val <= 1440) {
-      googleDriveBackupInterval = val;
-    }
-  }
-
-  // Actualizar campo de intervalo en la UI al cargar
-  document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('googleDriveBackupInterval');
-    if (input) input.value = googleDriveBackupInterval;
-  });
-
-  // Guardar intervalo cuando se cambie el valor
-  document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('googleDriveBackupInterval');
-    if (input) {
-      input.addEventListener('change', function() {
-        let val = parseInt(this.value, 10);
-        if (isNaN(val) || val < 5) val = 5;
-        if (val > 1440) val = 1440;
-        this.value = val;
-        googleDriveBackupInterval = val;
-        localStorage.setItem('googleDriveBackupInterval', val);
-        if (googleAccessToken) {
-          stopGoogleDriveAutoBackup();
-          startGoogleDriveAutoBackup(val);
-        }
-      });
-    }
-  });
-
-  // Iniciar backup automático a Google Drive
-  function startGoogleDriveAutoBackup(intervalMinutes) {
-    console.log('Iniciando backup automático de Google Drive con intervalo:', intervalMinutes, 'minutos');
-    
-    stopGoogleDriveAutoBackup();
-    if (!intervalMinutes || isNaN(intervalMinutes) || intervalMinutes < 5) intervalMinutes = 60;
-    googleDriveBackupInterval = intervalMinutes;
-    localStorage.setItem('googleDriveBackupInterval', intervalMinutes);
-    
-    const intervalMs = intervalMinutes * 60 * 1000;
-    console.log(`Backup automático de Google Drive programado cada ${intervalMinutes} minutos (${intervalMs}ms)`);
-    
-    googleDriveBackupTimer = setInterval(async () => {
-      console.log('🔍 Verificando si es necesario hacer backup automático de Google Drive...');
-      
-      if (!(await ensureGoogleAccessToken())) {
-        console.warn('No se pudo obtener token de Google, saltando backup automático');
-        return;
-      }
-      
-      try {
-        // Verificar si hay cambios desde el último backup
-        const lastBackup = localStorage.getItem('lastGoogleDriveBackup');
-        const lastLocalBackup = localStorage.getItem('lastLocalBackup');
-        
-        if (lastBackup && lastLocalBackup) {
-          const backupTime = parseInt(lastBackup);
-          const localTime = parseInt(lastLocalBackup);
-          
-          // Solo hacer backup si los datos locales son más recientes
-          if (localTime <= backupTime) {
-            console.log('📊 No hay cambios nuevos, saltando backup automático');
-            return;
-          }
-        }
-        
-        const data = await getAllAppData();
-        if (!data || Object.keys(data).length === 0) {
-          console.warn('Backup automático: datos vacíos, no se envía a Google Drive.');
-          return;
-        }
-        
-        const fileContent = JSON.stringify(data, null, 2);
-        console.log('📤 Subiendo backup automático a Google Drive...');
-        await uploadBackupToDrive(fileContent);
-        console.log('✅ Backup automático de Google Drive realizado exitosamente');
-        
-        // Guardar timestamp del último backup exitoso
-        localStorage.setItem('lastGoogleDriveBackup', Date.now().toString());
-        
-      } catch (err) {
-        console.error('❌ Error en backup automático a Google Drive:', err);
-        // Guardar timestamp del último error
-        localStorage.setItem('lastGoogleDriveBackupError', Date.now().toString());
-        localStorage.setItem('lastGoogleDriveBackupErrorMsg', err.message || err.toString());
-      }
-    }, intervalMs);
-    
-    // Ejecutar backup inmediatamente si es la primera vez
-    if (!localStorage.getItem('lastGoogleDriveBackup')) {
-      console.log('Ejecutando backup inicial de Google Drive...');
-      setTimeout(async () => {
-        try {
-          if (await ensureGoogleAccessToken()) {
-            const data = await getAllAppData();
-            const fileContent = JSON.stringify(data, null, 2);
-            await uploadBackupToDrive(fileContent);
-            console.log('Backup inicial de Google Drive realizado exitosamente');
-            localStorage.setItem('lastGoogleDriveBackup', Date.now().toString());
-          }
-        } catch (err) {
-          console.error('Error en backup inicial de Google Drive:', err);
-        }
-      }, 5000); // Esperar 5 segundos antes del primer backup
-    }
-  }
-
-  // Detener backup automático a Google Drive
-  function stopGoogleDriveAutoBackup() {
-    if (googleDriveBackupTimer) {
-      clearInterval(googleDriveBackupTimer);
-      googleDriveBackupTimer = null;
-    }
-  }
-
-  // Inicializa GIS token client (solo una vez)
-  function initGoogleTokenClient() {
-    console.log('Inicializando Google Token Client...');
-    
-    if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
-      console.error('Google Identity Services no está disponible');
-      Swal.fire('Error', 'Google Identity Services no está disponible. Verifica tu conexión a internet.', 'error');
-      return false;
-    }
-    
-    if (!tokenClient) {
-      try {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: GOOGLE_CLIENT_ID,
-          scope: GOOGLE_SCOPES,
-          callback: handleGoogleTokenResponse,
-          error_callback: (error) => {
-            console.error('Error en Google Token Client:', error);
-            Swal.fire('Error de Google', 'No se pudo inicializar la autenticación de Google: ' + error.message, 'error');
-          }
-        });
-        console.log('Google Token Client inicializado correctamente');
-        return true;
-      } catch (error) {
-        console.error('Error al inicializar Google Token Client:', error);
-        Swal.fire('Error', 'No se pudo inicializar la autenticación de Google: ' + error.message, 'error');
-        return false;
-      }
-    }
-    return true;
-  }
-
-  // Maneja la respuesta del token
-  async function handleGoogleTokenResponse(resp) {
-    console.log('Respuesta de Google Token:', resp);
-    
-    if (resp.error) {
-      console.error('Error en respuesta de Google Token:', resp.error);
-      let errorMessage = 'No se pudo iniciar sesión';
-      
-      switch (resp.error) {
-        case 'popup_closed_by_user':
-          errorMessage = 'Inicio de sesión cancelado por el usuario';
-          break;
-        case 'access_denied':
-          errorMessage = 'Acceso denegado. Verifica los permisos de Google Drive.';
-          break;
-        case 'invalid_client':
-          errorMessage = 'Error de configuración del cliente de Google';
-          break;
-        case 'invalid_grant':
-          errorMessage = 'Token inválido. Intenta iniciar sesión nuevamente.';
-          break;
-        default:
-          errorMessage += ': ' + resp.error;
-      }
-      
-      Swal.fire('Error de Google', errorMessage, 'error');
-      return;
-    }
-    
-    if (!resp.access_token) {
-      console.error('No se recibió token de acceso');
-      Swal.fire('Error', 'No se recibió el token de acceso de Google', 'error');
-      return;
-    }
-    
-    googleAccessToken = resp.access_token;
-    localStorage.setItem('googleAccessToken', googleAccessToken);
-    localStorage.setItem('googleTokenTimestamp', Date.now().toString());
-    
-    // Obtener información del usuario para sincronización
-    try {
-      const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: { 'Authorization': `Bearer ${googleAccessToken}` }
-      });
-      if (userResponse.ok) {
-        const userInfo = await userResponse.json();
-        localStorage.setItem('googleUserEmail', userInfo.email);
-        console.log('Email de usuario guardado para sincronización:', userInfo.email);
-        
-        // Disparar evento para reinicializar sincronización
-        window.dispatchEvent(new CustomEvent('googleSignIn'));
-      }
-    } catch (error) {
-      console.error('Error obteniendo información del usuario:', error);
-    }
-    
-    console.log('Token de Google guardado exitosamente');
-    enableGoogleDriveButtons(true);
-    
-    // Mostrar mensaje de conexión exitosa
-    Swal.fire({
-      icon: 'info',
-      title: 'Conectando a Google Drive...',
-      text: 'Verificando backups existentes...',
-      allowOutsideClick: false,
-      showConfirmButton: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-    
-    try {
-      // Verificar si existe backup en Drive y restaurarlo automáticamente
-      await checkAndRestoreGoogleDriveBackup();
-      
-      // Leer el intervalo actualizado del input
-      let interval = googleDriveBackupInterval;
-      const input = document.getElementById('googleDriveBackupInterval');
-      if (input) {
-        const val = parseInt(input.value, 10);
-        if (!isNaN(val) && val >= 5 && val <= 1440) interval = val;
-      }
-      
-      console.log('Iniciando backup automático de Google Drive con intervalo:', interval, 'minutos');
-      startGoogleDriveAutoBackup(interval);
-      
-      // Cerrar el loading y mostrar éxito
-      Swal.fire({
-        icon: 'success',
-        title: '¡Sesión iniciada!',
-        text: 'Conectado exitosamente a Google Drive. Los backups automáticos están activos.',
-        timer: 3000,
-        showConfirmButton: false
-      });
-      
-    } catch (error) {
-      console.error('Error durante la verificación/restauración de backup:', error);
-      Swal.fire({
-        icon: 'warning',
-        title: 'Sesión iniciada con advertencia',
-        text: 'Conectado a Google Drive, pero hubo un problema con la verificación de backups. Los backups automáticos están activos.',
-        timer: 3000,
-        showConfirmButton: false
-      });
-    }
-  }
-
-  // Solicita un token nuevo antes de cada operación sensible
-  async function ensureGoogleAccessToken(forcePrompt = false) {
-    console.log('Verificando token de Google Access...');
-    
-    if (!tokenClient) {
-      if (!initGoogleTokenClient()) {
-        return false;
-      }
-    }
-    
-    // Verificar si el token actual es válido (no expirado)
-    const tokenTimestamp = localStorage.getItem('googleTokenTimestamp');
-    if (tokenTimestamp) {
-      const tokenAge = Date.now() - parseInt(tokenTimestamp);
-      const tokenMaxAge = 50 * 60 * 1000; // 50 minutos (los tokens expiran en 1 hora)
-      
-      if (tokenAge < tokenMaxAge && googleAccessToken && !forcePrompt) {
-        console.log('Token de Google válido, usando token existente');
-        
-        // Verificar que el token realmente funciona haciendo una prueba
-        try {
-          const testResponse = await fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
-            headers: {
-              'Authorization': `Bearer ${googleAccessToken}`
-            }
-          });
-          
-          if (testResponse.status === 401 || testResponse.status === 403) {
-            console.log('Token de Google inválido en el servidor, solicitando nuevo token...');
-            googleAccessToken = null;
-            localStorage.removeItem('googleAccessToken');
-            localStorage.removeItem('googleTokenTimestamp');
-          } else if (testResponse.ok) {
-            console.log('Token de Google verificado exitosamente en el servidor');
-            return true;
-          }
-        } catch (error) {
-          console.log('Error verificando token en servidor, solicitando nuevo token:', error);
-          googleAccessToken = null;
-          localStorage.removeItem('googleAccessToken');
-          localStorage.removeItem('googleTokenTimestamp');
-        }
-      } else {
-        console.log('Token de Google expirado o forzando renovación');
-        googleAccessToken = null;
-        localStorage.removeItem('googleAccessToken');
-        localStorage.removeItem('googleTokenTimestamp');
-      }
-    }
-    
-    return await new Promise((resolve) => {
-      console.log('Solicitando nuevo token de Google...');
-      
-      tokenClient.callback = (resp) => {
-        if (resp.error) {
-          console.error('Error al obtener token de Google:', resp.error);
-          let errorMessage = 'No se pudo obtener token';
-          
-          switch (resp.error) {
-            case 'popup_closed_by_user':
-              errorMessage = 'Inicio de sesión cancelado por el usuario';
-              break;
-            case 'access_denied':
-              errorMessage = 'Acceso denegado. Verifica los permisos de Google Drive.';
-              break;
-            case 'invalid_grant':
-              errorMessage = 'Token inválido. Intenta iniciar sesión nuevamente.';
-              break;
-            default:
-              errorMessage += ': ' + resp.error;
-          }
-          
-          Swal.fire('Error de Google', errorMessage, 'error');
-          resolve(false);
-        } else {
-          googleAccessToken = resp.access_token;
-          localStorage.setItem('googleAccessToken', googleAccessToken);
-          localStorage.setItem('googleTokenTimestamp', Date.now().toString());
-          console.log('Nuevo token de Google obtenido exitosamente');
-          resolve(true);
-        }
-      };
-      
-      try {
-        tokenClient.requestAccessToken({ prompt: forcePrompt ? 'consent' : '' });
-      } catch (error) {
-        console.error('Error al solicitar token de Google:', error);
-        Swal.fire('Error', 'No se pudo solicitar el token de Google: ' + error.message, 'error');
-        resolve(false);
-      }
-    });
-  }
-
-
-  // Habilita/deshabilita botones según sesión (solo sidebar)
-  function enableGoogleDriveButtons(enabled) {
-    const backupBtn = document.getElementById('googleBackupBtn');
-    const restoreBtn = document.getElementById('googleRestoreBtn');
-    const signInBtn = document.getElementById('googleSignInBtn');
-    const signOutBtn = document.getElementById('googleSignOutBtn');
-    const userStatus = document.getElementById('googleUserStatus');
-    if (backupBtn) backupBtn.disabled = !enabled;
-    if (restoreBtn) restoreBtn.disabled = !enabled;
-    if (signInBtn) signInBtn.classList[enabled ? 'add' : 'remove']('d-none');
-    if (signOutBtn) signOutBtn.classList[enabled ? 'remove' : 'add']('d-none');
-    if (userStatus) userStatus.textContent = enabled ? 'Sesión activa' : '';
-  }
-
-  // Función para verificar y restaurar backup de Google Drive automáticamente
-  async function checkAndRestoreGoogleDriveBackup() {
-    console.log('🔍 Verificando si existe backup en Google Drive...');
-    
-    try {
-      // Buscar si existe el archivo de backup
-      const fileId = await findBackupFileId();
-      
-      if (fileId) {
-        console.log('📁 Backup encontrado en Google Drive, restaurando automáticamente...');
-        
-        // Descargar y restaurar el backup
-        const backupData = await downloadBackupFromDrive(fileId);
-        
-        if (backupData && Object.keys(backupData).length > 0) {
-          // Verificar si hay datos locales para comparar
-          const localData = await getAllAppData();
-          const hasLocalData = localData && Object.keys(localData).length > 0;
-          
-          if (hasLocalData) {
-            // Comparar fechas de modificación si están disponibles
-            const backupDate = backupData.metadata?.lastModified || 0;
-            const localDate = localStorage.getItem('lastLocalBackup') || 0;
-            
-            if (backupDate > localDate) {
-              console.log('📥 Restaurando datos desde Google Drive (más recientes)...');
-              await restoreFromBackupData(backupData);
-            } else {
-              console.log('📤 Los datos locales son más recientes, creando nuevo backup...');
-              await createNewGoogleDriveBackup();
-            }
-          } else {
-            // No hay datos locales, restaurar desde Drive
-            console.log('📥 No hay datos locales, restaurando desde Google Drive...');
-            await restoreFromBackupData(backupData);
-          }
-        } else {
-          console.log('⚠️ Backup encontrado pero vacío, creando nuevo backup...');
-          await createNewGoogleDriveBackup();
-        }
-      } else {
-        console.log('📝 No se encontró backup en Google Drive, creando uno nuevo...');
-        await createNewGoogleDriveBackup();
-      }
-      
-    } catch (error) {
-      console.error('❌ Error verificando/restaurando backup:', error);
-      throw error;
-    }
-  }
-
-  // Función para restaurar datos desde backup
-  async function restoreFromBackupData(backupData) {
-    console.log('🔄 Restaurando datos desde backup...');
-    
-    try {
-      // Limpiar datos existentes
-      await localforage.clear();
-      
-      // Restaurar datos críticos
-      const criticalKeys = ['products', 'clients', 'sales', 'debts', 'movements', 'chickenSales'];
-      
-      for (const key of criticalKeys) {
-        if (backupData[key] && Array.isArray(backupData[key])) {
-          await localforage.setItem(key, backupData[key]);
-          console.log(`✅ Restaurado: ${key} (${backupData[key].length} elementos)`);
-        }
-      }
-      
-      // Restaurar configuraciones
-      if (backupData.settings) {
-        for (const [key, value] of Object.entries(backupData.settings)) {
-          localStorage.setItem(key, value);
-        }
-        console.log('✅ Configuraciones restauradas');
-      }
-      
-      // Restaurar configuraciones de backup
-      if (backupData.backupConfig) {
-        if (backupData.backupConfig.googleDriveInterval) {
-          localStorage.setItem('googleDriveBackupInterval', backupData.backupConfig.googleDriveInterval);
-        }
-        if (backupData.backupConfig.telegramConfig) {
-          await localforage.setItem('telegram_backup_config', backupData.backupConfig.telegramConfig);
-        }
-        console.log('✅ Configuraciones de backup restauradas');
-      }
-      
-      // Recargar datos en la aplicación
-      if (typeof loadData === 'function') {
-        await loadData();
-      }
-      
-      // Recargar la vista actual
-      if (typeof renderInventory === 'function') {
-        renderInventory();
-      }
-      if (typeof renderClients === 'function') {
-        renderClients();
-      }
-      if (typeof renderDebts === 'function') {
-        renderDebts();
-      }
-      if (typeof updateBalanceUI === 'function') {
-        updateBalanceUI();
-      }
-      
-      console.log('✅ Restauración completada exitosamente');
-      
-    } catch (error) {
-      console.error('❌ Error durante la restauración:', error);
-      throw error;
-    }
-  }
-
-  // Función para crear nuevo backup en Google Drive
-  async function createNewGoogleDriveBackup() {
-    console.log('📤 Creando nuevo backup en Google Drive...');
-    
-    try {
-      const data = await getAllAppData();
-      const fileContent = JSON.stringify(data, null, 2);
-      await uploadBackupToDrive(fileContent);
-      console.log('✅ Nuevo backup creado exitosamente en Google Drive');
-    } catch (error) {
-      console.error('❌ Error creando nuevo backup:', error);
-      throw error;
-    }
-  }
-
-  // Función para forzar re-autenticación de Google Drive
-  async function forceGoogleReauth() {
-    console.log('🔄 Forzando re-autenticación de Google Drive...');
-    
-    // Limpiar tokens existentes
-    googleAccessToken = null;
-    localStorage.removeItem('googleAccessToken');
-    localStorage.removeItem('googleTokenTimestamp');
-    
-    // Deshabilitar botones
-    enableGoogleDriveButtons(false);
-    
-    // Mostrar mensaje al usuario
-    Swal.fire({
-      title: 'Re-autenticación requerida',
-      text: 'Se ha limpiado la sesión de Google Drive. Por favor, inicia sesión nuevamente.',
-      icon: 'info',
-      confirmButtonText: 'Entendido'
-    });
-    
-    // Intentar obtener nuevo token
-    try {
-      const success = await ensureGoogleAccessToken(true);
-      if (success) {
-        console.log('✅ Re-autenticación exitosa');
-        Swal.fire({
-          title: '¡Re-autenticación exitosa!',
-          text: 'La sesión de Google Drive se ha restaurado correctamente.',
-          icon: 'success',
-          timer: 3000,
-          showConfirmButton: false
-        });
-      }
-    } catch (error) {
-      console.error('❌ Error en re-autenticación:', error);
-    }
-  }
-
-
-  // Subir backup a Google Drive (crea o actualiza el archivo, robusto)
-  async function uploadBackupToDrive(content) {
-    console.log('🔄 Iniciando upload a Google Drive...');
-    
-    // Siempre refresca el token antes de operar
-    if (!(await ensureGoogleAccessToken())) {
-      console.error('❌ No se pudo obtener token válido para Google Drive');
-      throw new Error('No hay token de acceso válido. Por favor, inicia sesión nuevamente.');
-    }
-    
-    // Cargar gapi solo para Drive API (no auth2)
-    await new Promise((resolve) => {
-      gapi.load('client', async () => {
-        await gapi.client.init({
-          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-        });
-        resolve();
-      });
-    });
-    
-    let fileId;
-    try {
-      console.log('🔍 Buscando archivo existente en Google Drive...');
-      fileId = await findBackupFileId();
-      console.log('📁 Archivo encontrado:', fileId ? 'Sí' : 'No');
-    } catch (err) {
-      console.error('❌ Error buscando archivo:', err);
-      if (err && err.message && err.message.includes('403')) {
-        console.log('🚫 Permiso denegado, limpiando sesión...');
-        googleAccessToken = null;
-        localStorage.removeItem('googleAccessToken');
-        localStorage.removeItem('googleTokenTimestamp');
-        enableGoogleDriveButtons(false);
-        throw new Error('Permiso denegado por Google Drive. Por favor, cierra sesión y vuelve a iniciar sesión con tu cuenta Google.');
-      } else {
-        throw err;
-      }
-    }
-    const metadata = {
-      name: BACKUP_FILENAME,
-      mimeType: 'application/json',
-    };
-    const boundary = '-------314159265358979323846';
-    const delimiter = "\r\n--" + boundary + "\r\n";
-    const close_delim = "\r\n--" + boundary + "--";
-    const multipartRequestBody =
-      delimiter +
-      'Content-Type: application/json\r\n\r\n' +
-      JSON.stringify(metadata) +
-      delimiter +
-      'Content-Type: application/json\r\n\r\n' +
-      content +
-      close_delim;
-
-    let url = 'https://www.googleapis.com/upload/drive/v3/files';
-    let method = 'POST';
-    if (fileId) {
-      url += '/' + fileId + '?uploadType=multipart';
-      method = 'PATCH';
-    } else {
-      url += '?uploadType=multipart';
-    }
-
-    console.log('📤 Subiendo archivo a Google Drive...');
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'Authorization': 'Bearer ' + googleAccessToken,
-        'Content-Type': 'multipart/related; boundary="' + boundary + '"',
-      },
-      body: multipartRequestBody,
-    });
-    
-    console.log('📊 Respuesta de Google Drive:', res.status, res.statusText);
-    
-    if (res.status === 403) {
-      console.log('🚫 Permiso denegado por Google Drive, limpiando sesión...');
-      googleAccessToken = null;
-      localStorage.removeItem('googleAccessToken');
-      localStorage.removeItem('googleTokenTimestamp');
-      enableGoogleDriveButtons(false);
-      throw new Error('Permiso denegado por Google Drive. Por favor, cierra sesión y vuelve a iniciar sesión con tu cuenta Google.');
-    }
-    
-    if (res.status === 401) {
-      console.log('🔑 Token no autorizado, solicitando nuevo token...');
-      googleAccessToken = null;
-      localStorage.removeItem('googleAccessToken');
-      localStorage.removeItem('googleTokenTimestamp');
-      throw new Error('Token de acceso no autorizado. Por favor, inicia sesión nuevamente.');
-    }
-    
-    if (!res.ok) {
-      let msg = 'Error subiendo backup: ' + res.statusText;
-      try {
-        const errJson = await res.json();
-        if (errJson && errJson.error && errJson.error.message) {
-          msg += ' - ' + errJson.error.message;
-          console.error('📋 Detalles del error:', errJson.error);
-        }
-      } catch(e){
-        console.error('❌ Error parseando respuesta de error:', e);
-      }
-      console.error('❌ Error en upload:', msg);
-      throw new Error(msg);
-    }
-    
-    console.log('✅ Backup subido exitosamente a Google Drive');
-  }
-
-  // Buscar si ya existe el archivo de backup
-  async function findBackupFileId() {
-    console.log('🔍 Buscando archivo de backup en Google Drive...');
-    
-    // Cargar gapi solo para Drive API (no auth2)
-    await new Promise((resolve) => {
-      gapi.load('client', async () => {
-        await gapi.client.init({
-          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-        });
-        resolve();
-      });
-    });
-    
-    let res;
-    try {
-      console.log('📋 Consultando archivos en Google Drive...');
-      res = await gapi.client.drive.files.list({
-        q: `name='${BACKUP_FILENAME}' and trashed=false`,
-        fields: 'files(id, name)',
-        spaces: 'drive',
-      });
-      console.log('📁 Archivos encontrados:', res.result.files ? res.result.files.length : 0);
-    } catch (err) {
-      console.error('❌ Error consultando archivos:', err);
-      if (err && err.status && err.status === 403) {
-        throw new Error('403 - Permiso denegado por Google Drive.');
-      }
-      if (err && err.status && err.status === 401) {
-        throw new Error('401 - Token no autorizado.');
-      }
-      throw err;
-    }
-    
-    if (res.result.files && res.result.files.length > 0) {
-      console.log('✅ Archivo de backup encontrado:', res.result.files[0].id);
-      return res.result.files[0].id;
-    }
-    
-    console.log('📝 No se encontró archivo de backup existente');
-    return null;
-  }
-
-  // Descargar el backup desde Google Drive
-  async function downloadBackupFromDrive() {
-    const fileId = await findBackupFileId();
-    if (!fileId) throw new Error('No se encontró backup en tu Google Drive.');
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-      headers: { 'Authorization': 'Bearer ' + googleAccessToken }
-    });
-    if (!res.ok) throw new Error('No se pudo descargar el backup.');
-    return await res.text();
-  }
-
-  // Restaurar datos de la app (ajusta según tu lógica)
-  async function restoreAppData(data) {
-    // Igual que tu import desde Telegram
-    const criticalKeys = ['sales','clients','products','debts','movements','chickenSales'];
-    const settingsKeys = ['theme','viewModes','pricePerPound','costPerPound'];
-    for (const key of criticalKeys) {
-      if (data[key] !== undefined) await localforage.setItem(key, data[key]);
-    }
-    for (const key of settingsKeys) {
-      if (data[key] !== undefined) {
-        await localforage.setItem(key, data[key]);
-        try { localStorage.setItem(key, JSON.stringify(data[key])); } catch(e){}
-      }
-    }
-    // Recarga la UI si es necesario
-    if (typeof loadData === 'function') await loadData();
-    if (typeof renderClients === 'function') renderClients();
-    if (typeof renderDebts === 'function') renderDebts();
-    if (typeof renderInventory === 'function') renderInventory();
-  }
-
-  // Función para verificar el estado de los backups
-  function checkBackupStatus() {
-    const status = {
-      telegram: {
-        lastBackup: localStorage.getItem('lastTelegramBackup'),
-        lastError: localStorage.getItem('lastTelegramBackupError'),
-        lastErrorMsg: localStorage.getItem('lastTelegramBackupErrorMsg'),
-        isActive: telegramBackupTimer !== null
-      },
-      googleDrive: {
-        lastBackup: localStorage.getItem('lastGoogleDriveBackup'),
-        lastError: localStorage.getItem('lastGoogleDriveBackupError'),
-        lastErrorMsg: localStorage.getItem('lastGoogleDriveBackupErrorMsg'),
-        isActive: googleDriveBackupTimer !== null,
-        tokenValid: false
-      }
-    };
-    
-    // Verificar si el token de Google es válido
-    const tokenTimestamp = localStorage.getItem('googleTokenTimestamp');
-    if (tokenTimestamp) {
-      const tokenAge = Date.now() - parseInt(tokenTimestamp);
-      const tokenMaxAge = 50 * 60 * 1000; // 50 minutos
-      status.googleDrive.tokenValid = tokenAge < tokenMaxAge;
-    }
-    
-    return status;
-  }
-  
-  // Función para limpiar historial de errores de backups
-  function clearBackupErrorHistory() {
-    // Limpiar errores de Telegram
-    localStorage.removeItem('lastTelegramBackupError');
-    localStorage.removeItem('lastTelegramBackupErrorMsg');
-    
-    // Limpiar errores de Google Drive
-    localStorage.removeItem('lastGoogleDriveBackupError');
-    localStorage.removeItem('lastGoogleDriveBackupErrorMsg');
-    
-    console.log('Historial de errores de backups limpiado');
-    Swal.fire('Limpiado', 'El historial de errores de backups ha sido limpiado.', 'success');
-  }
-  
-  // Función para mostrar el estado de los backups
-  function showBackupStatus() {
-    const status = checkBackupStatus();
-    
-    const formatTime = (timestamp) => {
-      if (!timestamp) return 'Nunca';
-      const date = new Date(parseInt(timestamp));
-      return date.toLocaleString('es-EC');
-    };
-    
-    const getStatusIcon = (isActive, lastBackup, lastError) => {
-      if (!isActive) return '🔴';
-      if (lastError && (!lastBackup || parseInt(lastError) > parseInt(lastBackup))) return '⚠️';
-      return '🟢';
-    };
-    
-    const telegramStatus = getStatusIcon(status.telegram.isActive, status.telegram.lastBackup, status.telegram.lastError);
-    const googleStatus = getStatusIcon(status.googleDrive.isActive, status.googleDrive.lastBackup, status.googleDrive.lastError);
-    
-    Swal.fire({
-      icon: 'info',
-      title: 'Estado de Backups Automáticos',
-      html: `
-        <div class="text-start">
-          <h6>📱 Telegram ${telegramStatus}</h6>
-          <p><strong>Estado:</strong> ${status.telegram.isActive ? 'Activo' : 'Inactivo'}</p>
-          <p><strong>Último backup:</strong> ${formatTime(status.telegram.lastBackup)}</p>
-          ${status.telegram.lastError ? `<p><strong>Último error:</strong> ${formatTime(status.telegram.lastError)}</p>` : ''}
-          ${status.telegram.lastErrorMsg ? `<p><strong>Error:</strong> ${status.telegram.lastErrorMsg}</p>` : ''}
-          
-          <hr>
-          
-          <h6>☁️ Google Drive ${googleStatus}</h6>
-          <p><strong>Estado:</strong> ${status.googleDrive.isActive ? 'Activo' : 'Inactivo'}</p>
-          <p><strong>Token válido:</strong> ${status.googleDrive.tokenValid ? 'Sí' : 'No'}</p>
-          <p><strong>Último backup:</strong> ${formatTime(status.googleDrive.lastBackup)}</p>
-          ${status.googleDrive.lastError ? `<p><strong>Último error:</strong> ${formatTime(status.googleDrive.lastError)}</p>` : ''}
-          ${status.googleDrive.lastErrorMsg ? `<p><strong>Error:</strong> ${status.googleDrive.lastErrorMsg}</p>` : ''}
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonText: 'OK',
-      cancelButtonText: 'Limpiar Errores'
-    }).then((result) => {
-      if (result.dismiss === Swal.DismissReason.cancel) {
-        clearBackupErrorHistory();
-      }
-    });
-  }
-  
-  // Al cargar la página, intenta restaurar sesión
-  window.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('googleAccessToken');
-    if (token) {
-      googleAccessToken = token;
-      enableGoogleDriveButtons(true);
-      // Leer el intervalo actualizado del input
-      let interval = googleDriveBackupInterval;
-      const input = document.getElementById('googleDriveBackupInterval');
-      if (input) {
-        const val = parseInt(input.value, 10);
-        if (!isNaN(val) && val >= 5 && val <= 1440) interval = val;
-      }
-      startGoogleDriveAutoBackup(interval);
-    }
-  });
-
-  // Definir clave de configuración de Telegram (evita ReferenceError)
-  const TELEGRAM_CONFIG_KEY = 'telegram_backup_config';
-  let telegramBackupTimer = null;
-  let telegramBackupInterval = 60; // minutos por defecto
-  
-  // Cargar configuración al abrir la vista
-  document.addEventListener('DOMContentLoaded', () => {
-    loadTelegramConfigToForm();
-    // Si ya hay config, programa el backup automático
-    localforage.getItem(TELEGRAM_CONFIG_KEY).then(cfg => {
-      if (cfg && cfg.enabled) {
-        console.log('Iniciando backup automático de Telegram con intervalo:', cfg.interval, 'minutos');
-        scheduleTelegramBackup(cfg);
-      }
-    });
-  });
-
-  // Guardar configuración
-  document.getElementById('telegramBackupForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const token = document.getElementById('telegramBotToken').value.trim();
-    const chatId = document.getElementById('telegramChatId').value.trim();
-    const interval = parseInt(document.getElementById('telegramBackupInterval').value, 10);
-    if (!token || !chatId || isNaN(interval) || interval < 5) {
-      Swal.fire('Error', 'Completa todos los campos correctamente.', 'error');
-      return;
-    }
-    
-    const config = { token, chatId, interval, enabled: true };
-    await localforage.setItem(TELEGRAM_CONFIG_KEY, config);
-    
-    console.log('Configuración de Telegram guardada:', config);
-    Swal.fire({
-      icon: 'success',
-      title: '¡Configuración guardada!',
-      text: `Backup automático configurado cada ${interval} minutos.`,
-      timer: 3000,
-      showConfirmButton: false
-    });
-    
-    // Reiniciar el backup automático con la nueva configuración
-    scheduleTelegramBackup(config);
-  });
-
-  // Probar envío manual
-  document.getElementById('testTelegramBackup').addEventListener('click', async function() {
-    const config = await getTelegramConfig();
-    if (!config) {
-      Swal.fire('Error', 'Configura primero el backup de Telegram.', 'error');
-      return;
-    }
-    Swal.fire({title:'Enviando backup...', allowOutsideClick:false, didOpen:()=>Swal.showLoading()});
-    try {
-      await sendTelegramBackup(config);
-      Swal.fire('¡Enviado!', 'Backup enviado correctamente a Telegram.', 'success');
-    } catch (err) {
-      Swal.fire('Error', 'No se pudo enviar el backup: ' + (err.message || err), 'error');
-    }
-  });
-
-  // Importar backup desde archivo
-  document.getElementById('importTelegramBackupBtn').addEventListener('click', function() {
-    document.getElementById('importTelegramBackupInput').click();
-  });
-
-  // Manejar la selección de archivo para importar
-  document.getElementById('importTelegramBackupInput').addEventListener('change', async function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      Swal.fire({title:'Importando backup...', allowOutsideClick:false, didOpen:()=>Swal.showLoading()});
-      
-      const text = await file.text();
-      const data = JSON.parse(text);
-      
-      if (typeof data !== 'object' || Array.isArray(data) || !Object.keys(data).length) {
-        Swal.fire('Error', 'El archivo no tiene el formato esperado.', 'error');
-        return;
-      }
-
-      // Confirmar antes de reemplazar
-      const { isConfirmed } = await Swal.fire({
-        title: '¿Importar backup?',
-        text: 'Esto reemplazará todos los datos actuales de la app por los del backup. ¿Continuar?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, importar',
-        cancelButtonText: 'Cancelar'
-      });
-
-      if (!isConfirmed) return;
-
-      // Limpiar todo localforage antes de restaurar
-      await localforage.clear();
-
-      // Restaurar solo claves críticas y settings
-      const criticalKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.CRITICAL_DATA) || ['sales','clients','products','debts','movements','chickenSales'];
-      const settingsKeys = (window.STORAGE_CONFIG && STORAGE_CONFIG.SETTINGS) || ['theme','viewModes','pricePerPound','costPerPound'];
-
-      // Restaurar datos críticos
-      for (const key of criticalKeys) {
-        if (data[key] !== undefined) {
-          if (typeof saveToStorage === 'function') {
-            await saveToStorage(key, data[key]);
-          } else {
-            await localforage.setItem(key, data[key]);
-          }
-        }
-      }
-
-      // Restaurar settings
-      for (const key of settingsKeys) {
-        if (data[key] !== undefined) {
-          await localforage.setItem(key, data[key]);
-          try { localStorage.setItem(key, JSON.stringify(data[key])); } catch(e){}
-        }
-      }
-
-      // Recargar datos y actualizar UI tras importar backup
-      if (typeof loadData === 'function') {
-        await loadData();
-        if (typeof initializeChickenData === 'function') initializeChickenData();
-        if (typeof updateChickenSalesList === 'function') updateChickenSalesList();
-        if (typeof updateBalanceUI === 'function') updateBalanceUI();
-        if (typeof renderInventory === 'function') renderInventory();
-        if (typeof renderClients === 'function') renderClients();
-        if (typeof renderDebts === 'function') renderDebts();
-        if (typeof renderSalesProducts === 'function') renderSalesProducts();
-      }
-
-      Swal.fire('¡Importado!', 'Backup restaurado correctamente. Los datos han sido recargados.', 'success');
-      
-      // Limpiar el input para permitir importar el mismo archivo nuevamente
-      e.target.value = '';
-      
-    } catch (err) {
-      Swal.fire('Error', 'No se pudo importar el backup: ' + (err.message || err), 'error');
-      e.target.value = '';
-    }
-  });
-
-  // Obtener config desde storage
-  async function getTelegramConfig() {
-    const cfg = await localforage.getItem(TELEGRAM_CONFIG_KEY);
-    if (!cfg || !cfg.token || !cfg.chatId || !cfg.interval) return null;
-    return cfg;
-  }
-
-  // Cargar config en el formulario
-  async function loadTelegramConfigToForm() {
-    const cfg = await localforage.getItem(TELEGRAM_CONFIG_KEY);
-    if (!cfg) return;
-    document.getElementById('telegramBotToken').value = cfg.token || '';
-    document.getElementById('telegramChatId').value = cfg.chatId || '';
-    document.getElementById('telegramBackupInterval').value = cfg.interval || 60;
-  }
-
-  // Programar backup automático
-  function scheduleTelegramBackup(config) {
-    console.log('Programando backup automático de Telegram:', config);
-    
-    // Detener timer existente si hay uno
-    if (telegramBackupTimer) {
-      clearInterval(telegramBackupTimer);
-      telegramBackupTimer = null;
-    }
-    
-    // Validar configuración
-    if (!config || !config.token || !config.chatId || !config.interval) {
-      console.error('Configuración de Telegram inválida:', config);
-      return;
-    }
-    
-    const intervalMs = config.interval * 60 * 1000;
-    console.log(`Backup automático de Telegram programado cada ${config.interval} minutos (${intervalMs}ms)`);
-    
-    telegramBackupTimer = setInterval(async () => {
-      console.log('🔍 Verificando si es necesario hacer backup automático de Telegram...');
-      
-      try {
-        // Verificar si hay cambios desde el último backup
-        const lastBackup = localStorage.getItem('lastTelegramBackup');
-        const lastLocalBackup = localStorage.getItem('lastLocalBackup');
-        
-        if (lastBackup && lastLocalBackup) {
-          const backupTime = parseInt(lastBackup);
-          const localTime = parseInt(lastLocalBackup);
-          
-          // Solo hacer backup si los datos locales son más recientes
-          if (localTime <= backupTime) {
-            console.log('📊 No hay cambios nuevos, saltando backup automático de Telegram');
-            return;
-          }
-        }
-        
-        // Siempre obtener los datos más recientes antes de enviar
-        let data = null;
-        if (typeof getAllAppData === 'function') {
-          data = await getAllAppData();
-        } else if (window.localforage) {
-          // Fallback si getAllAppData no está disponible
-          const keys = await localforage.keys();
-          data = {};
-          for (const key of keys) {
-            if (!key.startsWith('_localforage')) {
-              data[key] = await localforage.getItem(key);
-            }
-          }
-        } else {
-          data = {};
-        }
-        
-        if (!data || Object.keys(data).length === 0) {
-          console.warn('Backup automático: datos vacíos, no se envía a Telegram.');
-          return;
-        }
-        
-        console.log('📤 Enviando backup automático a Telegram...');
-        await sendTelegramBackup(config, data);
-        console.log('✅ Backup automático de Telegram enviado exitosamente');
-        
-        // Guardar timestamp del último backup exitoso
-        localStorage.setItem('lastTelegramBackup', Date.now().toString());
-        
-      } catch (err) {
-        console.error('❌ Error en backup automático a Telegram:', err);
-        // Guardar timestamp del último error
-        localStorage.setItem('lastTelegramBackupError', Date.now().toString());
-        localStorage.setItem('lastTelegramBackupErrorMsg', err.message || err.toString());
-      }
-    }, intervalMs);
-    
-    // Ejecutar backup inmediatamente si es la primera vez
-    if (!localStorage.getItem('lastTelegramBackup')) {
-      console.log('Ejecutando backup inicial de Telegram...');
-      setTimeout(async () => {
-        try {
-          const data = await getAllAppData();
-          await sendTelegramBackup(config, data);
-          console.log('Backup inicial de Telegram enviado exitosamente');
-          localStorage.setItem('lastTelegramBackup', Date.now().toString());
-        } catch (err) {
-          console.error('Error en backup inicial de Telegram:', err);
-        }
-      }, 5000); // Esperar 5 segundos antes del primer backup
-    }
-  }
-
-  // Obtener todos los datos de la app con metadatos y configuraciones
-  async function getAllAppData() {
-    console.log('📊 Recopilando todos los datos de la aplicación...');
-    
-    // Excluir claves internas de localforage (como _localforage_config)
-    const keys = await localforage.keys();
-    const data = {};
-    
-    for (const key of keys) {
-      if (!key.startsWith('_localforage')) {
-        data[key] = await localforage.getItem(key);
-      }
-    }
-    
-    // Agregar metadatos del backup
-    data.metadata = {
-      lastModified: Date.now(),
-      version: '1.0.0',
-      timestamp: new Date().toISOString(),
-      dataSize: JSON.stringify(data).length
-    };
-    
-    // Agregar configuraciones importantes
-    data.settings = {
-      pricePerPound: localStorage.getItem('pricePerPound') || '2.50',
-      costPerPound: localStorage.getItem('costPerPound') || '0',
-      theme: localStorage.getItem('theme') || 'light',
-      language: localStorage.getItem('language') || 'es'
-    };
-    
-    // Agregar configuraciones de backup
-    data.backupConfig = {
-      googleDriveInterval: localStorage.getItem('googleDriveBackupInterval') || '60',
-      telegramConfig: await localforage.getItem('telegram_backup_config'),
-      lastLocalBackup: localStorage.getItem('lastLocalBackup'),
-      lastGoogleDriveBackup: localStorage.getItem('lastGoogleDriveBackup'),
-      lastTelegramBackup: localStorage.getItem('lastTelegramBackup')
-    };
-    
-    console.log('📊 Datos recopilados:', {
-      totalKeys: Object.keys(data).length,
-      dataSize: data.metadata.dataSize,
-      timestamp: data.metadata.timestamp
-    });
-    
-    return data;
-  }
-
-  // Enviar backup a Telegram
-  async function sendTelegramBackup(config, dataOverride) {
-    // Si se pasa dataOverride, usarla; si no, obtener los datos normalmente
-    let data = dataOverride;
-    if (!data) {
-      if (typeof getAllAppData === 'function') {
-        data = await getAllAppData();
-      } else if (window.localforage) {
-        const keys = await localforage.keys();
-        data = {};
-        for (const key of keys) {
-          if (!key.startsWith('_localforage')) {
-            data[key] = await localforage.getItem(key);
-          }
-        }
-      } else {
-        data = {};
-      }
-    }
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const formData = new FormData();
-    formData.append('chat_id', config.chatId);
-    formData.append('caption', 'Backup TillUp POS (' + new Date().toLocaleString() + ')');
-    formData.append('document', blob, 'backup-tillup-' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.json');
-    const url = `https://api.telegram.org/bot${config.token}/sendDocument`;
-    const resp = await fetch(url, { method: 'POST', body: formData });
-    let result = null;
-    try {
-      result = await resp.json();
-    } catch (e) {
-      console.error('No se pudo parsear la respuesta de Telegram:', e);
-      throw new Error('Respuesta inválida de Telegram');
-    }
-    if (!resp.ok || !result.ok) {
-      console.error('Telegram API error:', result);
-      throw new Error((result && result.description) ? result.description : ('HTTP ' + resp.status));
-    }
-    return true;
-  }
-
-  // --- Filtro de estado de deudas y buscador ---
-
-  window.currentDebtStatusFilter = 'pending'; // 'pending' o 'paid'
-  
-  // --- Funciones globales para backups ---
-  window.showBackupStatus = showBackupStatus;
-  window.checkBackupStatus = checkBackupStatus;
-  window.clearBackupErrorHistory = clearBackupErrorHistory;
-
-  function setDebtStatusFilter(status) {
-    window.currentDebtStatusFilter = status;
-    // Botones activos
-    document.getElementById('btnDebtFilterPending').classList.toggle('active', status === 'pending');
-    document.getElementById('btnDebtFilterPaid').classList.toggle('active', status === 'paid');
-    if (typeof renderDebts === 'function') renderDebts();
-    filterDebtClients();
-    updateDebtTotalBalance();
-  }
-
-  function filterDebtClients() {
-    const search = document.getElementById('debtClientSearch').value.toLowerCase();
-    const debtList = document.getElementById('debtList');
-    if (!debtList) return;
-    const items = debtList.querySelectorAll('.debt-client-item');
-    items.forEach(item => {
-      // Determinar si el grupo de cliente tiene al menos una deuda del estado seleccionado
-      const debts = Array.from(item.querySelectorAll('.debt-item'));
-      let show = false;
-      debts.forEach(debtDiv => {
-        const badge = debtDiv.querySelector('.badge');
-        const isPaid = badge && badge.textContent.trim().toLowerCase().includes('pagad');
-        if ((currentDebtStatusFilter === 'paid' && isPaid) || (currentDebtStatusFilter === 'pending' && !isPaid)) {
-          show = true;
-        }
-      });
-      // Filtrar por nombre de cliente solo en el lado seleccionado
-      const name = item.getAttribute('data-client-name') || '';
-      if (show && name.toLowerCase().includes(search)) {
-        item.style.display = '';
-      } else {
-        item.style.display = 'none';
-      }
-    });
-    updateDebtTotalBalance();
-  }
-
-  function updateDebtTotalBalance() {
-    // Suma los saldos visibles según el filtro actual
-    const debtList = document.getElementById('debtList');
-    const totalSpan = document.getElementById('debtTotalBalance');
-    if (!debtList || !totalSpan) return;
-    let total = 0;
-    const items = debtList.querySelectorAll('.debt-client-item');
-    items.forEach(item => {
-      if (item.style.display === 'none') return;
-      const debts = Array.from(item.querySelectorAll('.debt-item'));
-      debts.forEach(debtDiv => {
-        const badge = debtDiv.querySelector('.badge');
-        const isPaid = badge && badge.textContent.trim().toLowerCase().includes('pagad');
-        if ((currentDebtStatusFilter === 'paid' && isPaid) || (currentDebtStatusFilter === 'pending' && !isPaid)) {
-          // Buscar el saldo en lugar del monto total
-          let saldoText = '';
-          // Busca span con clase 'debt-saldo' que contiene el saldo real
-          const saldoSpan = debtDiv.querySelector('.debt-saldo');
-          if (saldoSpan) {
-            saldoText = saldoSpan.textContent;
-          } else {
-            // Si no encuentra debt-saldo, busca "Saldo: $" en el texto
-            const match = debtDiv.textContent.match(/Saldo:\s*\$\s*([\d.,]+)/i);
-            if (match) saldoText = match[1];
-          }
-          if (saldoText) {
-            // Elimina espacios, separadores de miles y normaliza decimales
-            let clean = saldoText.replace(/\s/g, '').replace(/Saldo:\s*\$/i, '').replace(/\$/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(/,/g, '.');
-            let amount = parseFloat(clean);
-            if (!isNaN(amount) && amount >= 0) total += amount;
-          }
-        }
-      });
-    });
-    totalSpan.textContent = 'Total: $' + total.toLocaleString('es-EC', {minimumFractionDigits:2, maximumFractionDigits:2});
-  }
-
-  function openAddClientModalFromDebt() {
-    const modal = document.getElementById('modalClient');
-    if (modal) {
-      const modalInstance = bootstrap.Modal.getOrCreateInstance(modal);
-      modalInstance.show();
-    }
-  }
-
-  // Actualizar el total al cargar la vista de deudas
-  document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('view-debt')) {
-      setTimeout(updateDebtTotalBalance, 500);
-    }
-  });
-  </script>
-
-  <!-- Botón de Acciones Rápidas Fijo -->
+  <!-- ========================================= -->
+  <!-- ⚡ BOTÓN DE ACCIONES RÁPIDAS -->
+  <!-- ========================================= -->
   <div class="dropup quick-actions-fixed">
-    <button class="btn btn-outline-light" type="button" id="quickActionsBtn" data-bs-toggle="dropdown" aria-expanded="false">
+    <button class="btn btn-outline-light" type="button" id="quickActionsBtn" data-bs-toggle="dropdown"
+      aria-expanded="false">
       <i class="bi bi-lightning-charge fs-4"></i>
     </button>
     <ul class="dropdown-menu dropdown-menu-end quick-actions-menu" aria-labelledby="quickActionsBtn">
-      <li><h6 class="dropdown-header"><i class="bi bi-lightning-charge"></i> Acciones Rápidas</h6></li>
-      <li><hr class="dropdown-divider"></li>
+      <li>
+        <h6 class="dropdown-header"><i class="bi bi-lightning-charge"></i> Acciones Rápidas</h6>
+      </li>
+      <li>
+        <hr class="dropdown-divider">
+      </li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('newSale')">
-        <i class="bi bi-cart-plus"></i> Nueva Venta
-      </a></li>
+          <i class="bi bi-cart-plus"></i> Nueva Venta
+        </a></li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('newChickenSale')">
-        <i class="bi bi-egg-fried"></i> Venta de Pollos
-      </a></li>
+          <i class="bi bi-egg-fried"></i> Venta de Pollos
+        </a></li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('addProduct')">
-        <i class="bi bi-box-seam"></i> Agregar Producto
-      </a></li>
+          <i class="bi bi-box-seam"></i> Agregar Producto
+        </a></li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('addClient')">
-        <i class="bi bi-person-plus"></i> Agregar Cliente
-      </a></li>
+          <i class="bi bi-person-plus"></i> Agregar Cliente
+        </a></li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('viewBalance')">
-        <i class="bi bi-graph-up"></i> Ver Balance
-      </a></li>
+          <i class="bi bi-graph-up"></i> Ver Balance
+        </a></li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('viewDebts')">
-        <i class="bi bi-cash-stack"></i> Ver Deudas
-      </a></li>
+          <i class="bi bi-cash-stack"></i> Ver Deudas
+        </a></li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('filterByDate')">
-        <i class="bi bi-calendar-event"></i> Filtrar por Fecha
-      </a></li>
+          <i class="bi bi-calendar-event"></i> Filtrar por Fecha
+        </a></li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('exportData')">
-        <i class="bi bi-download"></i> Exportar Datos
-      </a></li>
+          <i class="bi bi-download"></i> Exportar Datos
+        </a></li>
       </a></li>
       <li><a class="dropdown-item" href="#" onclick="quickAction('clearCache')">
-        <i class="bi bi-trash"></i> Limpiar Cache
-      </a></li>
+          <i class="bi bi-trash"></i> Limpiar Cache
+        </a></li>
       <li><a class="dropdown-item" href="#" onclick="showView('telegram-backup')">
-        <i class="bi bi-cloud-arrow-up"></i> Backup Telegram
-      </a></li>
+          <i class="bi bi-cloud-arrow-up"></i> Backup Telegram
+        </a></li>
     </ul>
   </div>
-<!-- Modal de Merma de Pollo -->
-<div class="modal fade" id="modalMermaPollo" tabindex="-1" aria-labelledby="modalMermaPolloLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="modalMermaPolloLabel"><i class="bi bi-percent"></i> Cálculo de Merma de Pollo</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <form id="formMermaPollo">
-          <div class="mb-3">
-            <label for="precioPluma" class="form-label">Precio libra en pluma (vivo)</label>
-            <div class="input-group">
-              <span class="input-group-text">$</span>
-              <input type="number" class="form-control" id="precioPluma" step="0.01" min="0" required>
+  <!-- ========================================= -->
+  <!-- 🧮 MODAL: CALCULADORA DE MERMA DE POLLO -->
+  <!-- ========================================= -->
+  <div class="modal fade" id="modalMermaPollo" tabindex="-1" aria-labelledby="modalMermaPolloLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalMermaPolloLabel"><i class="bi bi-percent"></i> Cálculo de Merma de Pollo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formMermaPollo">
+            <div class="mb-3">
+              <label for="precioPluma" class="form-label">Precio libra en pluma (vivo)</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="precioPluma" step="0.01" min="0" required>
+              </div>
             </div>
-          </div>
-          <div class="mb-3">
-            <label for="manoObra" class="form-label">Mano de obra por pollo</label>
-            <div class="input-group">
-              <span class="input-group-text">$</span>
-              <input type="number" class="form-control" id="manoObra" step="0.01" min="0" required>
+            <div class="mb-3">
+              <label for="manoObra" class="form-label">Mano de obra por pollo</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="manoObra" step="0.01" min="0" required>
+              </div>
             </div>
-          </div>
-          <div class="mb-3">
-            <label for="pesoPluma" class="form-label">Peso total en pluma (lbs)</label>
-            <input type="number" class="form-control" id="pesoPluma" step="0.01" min="0" required>
-          </div>
-          <div class="mb-3">
-            <label for="pesoPelado" class="form-label">Peso total pelado (lbs)</label>
-            <input type="number" class="form-control" id="pesoPelado" step="0.01" min="0" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Porcentaje de merma</label>
-            <input type="text" class="form-control" id="porcentajeMerma" readonly>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Costo real por libra pelada</label>
-            <input type="text" class="form-control" id="costoRealLibra" readonly>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        <button type="button" class="btn btn-primary" id="btnActualizarCostoLibra">Actualizar costo por libra</button>
+            <div class="mb-3">
+              <label for="pesoPluma" class="form-label">Peso total en pluma (lbs)</label>
+              <input type="number" class="form-control" id="pesoPluma" step="0.01" min="0" required>
+            </div>
+            <div class="mb-3">
+              <label for="pesoPelado" class="form-label">Peso total pelado (lbs)</label>
+              <input type="number" class="form-control" id="pesoPelado" step="0.01" min="0" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Porcentaje de merma</label>
+              <input type="text" class="form-control" id="porcentajeMerma" readonly>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Costo real por libra pelada</label>
+              <input type="text" class="form-control" id="costoRealLibra" readonly>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <button type="button" class="btn btn-primary" id="btnActualizarCostoLibra">Actualizar costo por libra</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
-<!-- localForage CDN (recomendado) -->
-<script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
 </body>
+
 </html>
