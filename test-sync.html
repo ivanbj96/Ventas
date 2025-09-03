@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Sincronización Bidireccional - TillUp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-light">
+    <!-- Modal de Login -->
+    <div class="modal fade" id="loginModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-person-circle"></i> Seleccionar Usuario</h5>
+                </div>
+                <div class="modal-body text-center">
+                    <p>Selecciona tu usuario para continuar:</p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-lg" onclick="login('juan')">
+                            <i class="bi bi-person-fill"></i> Juan (Usuario 1)
+                        </button>
+                        <button class="btn btn-outline-success btn-lg" onclick="login('maria')">
+                            <i class="bi bi-person-fill"></i> María (Usuario 2)
+                        </button>
+                        <button class="btn btn-outline-warning btn-lg" onclick="login('carlos')">
+                            <i class="bi bi-person-fill"></i> Carlos (Usuario 3)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-4" id="main-content" style="display: none;">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h4><i class="bi bi-arrow-left-right"></i> Test Sincronización Bidireccional</h4>
+                                <small id="user-info"></small>
+                            </div>
+                            <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                                <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                            </button>
+                        </div>
+                        <div id="websocket-status" class="mt-2"></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Panel de Control -->
+                            <div class="col-md-6">
+                                <h5>Panel de Control</h5>
+                                
+                                <!-- Mensajes Privados del Usuario -->
+                                <div class="mb-4">
+                                    <h6><i class="bi bi-lock"></i> Mis Mensajes Privados</h6>
+                                    <div class="alert alert-info alert-sm">
+                                        <small><i class="bi bi-info-circle"></i> <strong>Instrucciones:</strong> Escribe algo aquí, cierra sesión, vuelve a entrar y debería aparecer tu mensaje.</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Nota personal (solo tú la ves):</label>
+                                        <input type="text" class="form-control" id="private-note" placeholder="Escribe una nota privada...">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Mensaje privado largo:</label>
+                                        <textarea class="form-control" id="private-message" rows="2" placeholder="Mensaje privado que solo tú verás..."></textarea>
+                                    </div>
+                                </div>
+                                
+                                <!-- Inputs de Texto en Tiempo Real -->
+                                <div class="mb-4">
+                                    <h6><i class="bi bi-keyboard"></i> Texto en Tiempo Real (Público)</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Escribe aquí (se sincroniza al escribir):</label>
+                                        <input type="text" class="form-control" id="realtime-input" placeholder="Escribe algo...">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Textarea sincronizado:</label>
+                                        <textarea class="form-control" id="realtime-textarea" rows="3" placeholder="Escribe un mensaje largo..."></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Número sincronizado:</label>
+                                        <input type="number" class="form-control" id="realtime-number" placeholder="0">
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-success" onclick="testBidirectionalSync()">
+                                        <i class="bi bi-send"></i> Enviar Test Message
+                                    </button>
+                                    <button class="btn btn-info" onclick="showWebSocketStatus()">
+                                        <i class="bi bi-info-circle"></i> Ver Estado
+                                    </button>
+                                    <button class="btn btn-warning" onclick="simulateSale()">
+                                        <i class="bi bi-cart-plus"></i> Simular Venta
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="simulateProductUpdate()">
+                                        <i class="bi bi-box-seam"></i> Simular Actualización Producto
+                                    </button>
+                                    <button class="btn btn-primary" onclick="simulateClientAdd()">
+                                        <i class="bi bi-person-plus"></i> Simular Agregar Cliente
+                                    </button>
+                                    <button class="btn btn-outline-info" onclick="loadPrivateDataFromCloud()">
+                                        <i class="bi bi-cloud-download"></i> Cargar Datos Privados
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Log de Mensajes -->
+                            <div class="col-md-6">
+                                <h5>Log de Mensajes</h5>
+                                <div id="message-log" class="border rounded p-3" style="height: 300px; overflow-y: auto; background: #f8f9fa;">
+                                    <small class="text-muted">Los mensajes aparecerán aquí...</small>
+                                </div>
+                                <button class="btn btn-outline-danger btn-sm mt-2" onclick="clearLog()">
+                                    <i class="bi bi-trash"></i> Limpiar Log
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- CRUD de Datos de la Nube -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                                        <h5><i class="bi bi-cloud-arrow-down"></i> Mis Datos en la Nube</h5>
+                                        <div>
+                                            <button class="btn btn-outline-light btn-sm" onclick="loadUserDataFromCloud()">
+                                                <i class="bi bi-arrow-clockwise"></i> Actualizar Vista
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="carlos-data-loading" class="text-center" style="display: none;">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Cargando...</span>
+                                            </div>
+                                            <p class="mt-2">Cargando datos de Carlos desde la nube...</p>
+                                        </div>
+                                        <div id="carlos-data-table">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Campo</th>
+                                                        <th>Valor</th>
+                                                        <th>Timestamp</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="carlos-data-tbody">
+                                                    <tr>
+                                                        <td colspan="4" class="text-center text-muted">
+                                                            <i class="bi bi-cloud-slash"></i> No hay datos cargados
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Estadísticas -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h5>Estadísticas de Sincronización</h5>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Mensajes Enviados</h6>
+                                                <h4 id="sent-count" class="text-primary">0</h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Mensajes Recibidos</h6>
+                                                <h4 id="received-count" class="text-success">0</h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Conexiones Activas</h6>
+                                                <h4 id="connections-count" class="text-info">1</h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Latencia (ms)</h6>
+                                                <h4 id="latency" class="text-warning">-</h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Instrucciones -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <h6><i class="bi bi-info-circle"></i> Instrucciones para Test</h6>
+                                    <ol>
+                                        <li>Abre esta página en <strong>2 navegadores diferentes</strong> (Chrome y Firefox, o 2 pestañas)</li>
+                                        <li>Verifica que ambos muestren "Conectado" en el estado</li>
+                                        <li>Envía un mensaje de test desde un navegador</li>
+                                        <li>Verifica que el mensaje aparezca en el otro navegador</li>
+                                        <li>Prueba simular ventas, productos y clientes</li>
+                                        <li>Observa la sincronización en tiempo real</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="websocket-sync-client.js"></script>
+    
+    <script>
+        // Contadores para estadísticas 
+        let sentCount = 0;
+        let receivedCount = 0;
+        let lastPingTime = 0;
+        let isUpdatingFromRemote = false; // Flag para evitar loops infinitos
+        
+        // Sistema de usuarios
+        let currentUser = null;
+        const users = {
+            juan: { name: 'Juan', color: 'primary', icon: 'person-fill' },
+            maria: { name: 'María', color: 'success', icon: 'person-fill' },
+            carlos: { name: 'Carlos', color: 'warning', icon: 'person-fill' }
+        };
+
+        // Función para agregar mensaje al log
+        function addToLog(message, type = 'info') {
+            const log = document.getElementById('message-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const typeClass = type === 'sent' ? 'text-primary' : type === 'received' ? 'text-success' : 'text-info';
+            
+            log.innerHTML += `
+                <div class="mb-1">
+                    <small class="text-muted">[${timestamp}]</small>
+                    <span class="${typeClass}">${message}</span>
+                </div>
+            `;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Función para limpiar log
+        function clearLog() {
+            document.getElementById('message-log').innerHTML = '<small class="text-muted">Log limpiado...</small>';
+        }
+        
+        // Funciones de autenticación
+        function login(userId) {
+            currentUser = userId;
+            localStorage.setItem('currentUser', userId);
+            
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            
+            const user = users[userId];
+            document.getElementById('user-info').innerHTML = `<i class="bi bi-${user.icon}"></i> Conectado como: ${user.name}`;
+            
+            loadUserData();
+            
+            setTimeout(() => {
+                if (wsSync) {
+                    wsSync.deviceId = `${userId}_${Date.now()}`;
+                    
+                    // Cargar datos del usuario automáticamente
+                    setTimeout(() => {
+                        loadUserDataFromCloud();
+                    }, 2000);
+                }
+                addToLog(`👤 Usuario ${user.name} conectado`, 'info');
+                addToLog(`🔒 Tus mensajes privados se sincronizan entre tus dispositivos`, 'info');
+            }, 1000);
+        }
+        
+        function logout() {
+            if (currentUser) {
+                saveUserData();
+                addToLog(`👤 Usuario ${users[currentUser].name} desconectado`, 'info');
+            }
+            
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            
+            // Limpiar campos
+            document.getElementById('private-note').value = '';
+            document.getElementById('private-message').value = '';
+            document.getElementById('realtime-input').value = '';
+            document.getElementById('realtime-textarea').value = '';
+            document.getElementById('realtime-number').value = '';
+            
+            document.getElementById('main-content').style.display = 'none';
+            document.getElementById('loginModal').style.display = 'block';
+        }
+        
+        function saveUserData() {
+            if (!currentUser) return;
+            
+            const userData = {
+                // Datos públicos (sincronizados)
+                inputText: document.getElementById('realtime-input').value,
+                textareaText: document.getElementById('realtime-textarea').value,
+                numberValue: document.getElementById('realtime-number').value,
+                // Datos privados (localStorage + sincronización)
+                privateNote: document.getElementById('private-note').value,
+                privateMessage: document.getElementById('private-message').value,
+                timestamp: Date.now()
+            };
+            
+            // Guardar todo en localStorage
+            localStorage.setItem(`userData_${currentUser}`, JSON.stringify(userData));
+            
+            // Sincronizar datos privados vía WebSocket para otros dispositivos del mismo usuario
+            if (wsSync && wsSync.isConnected && !isUpdatingFromRemote) {
+                wsSync.sendMessage('private_sync', {
+                    userId: currentUser,
+                    privateData: {
+                        privateNote: userData.privateNote,
+                        privateMessage: userData.privateMessage
+                    },
+                    timestamp: Date.now()
+                });
+                
+                // Subir automáticamente a la nube
+                uploadUserDataToCloud();
+            }
+        }
+        
+        function loadUserData() {
+            if (!currentUser) return;
+            
+            const savedData = localStorage.getItem(`userData_${currentUser}`);
+            if (savedData) {
+                const userData = JSON.parse(savedData);
+                
+                // Cargar datos públicos
+                document.getElementById('realtime-input').value = userData.inputText || '';
+                document.getElementById('realtime-textarea').value = userData.textareaText || '';
+                document.getElementById('realtime-number').value = userData.numberValue || '';
+                
+                // Cargar datos privados
+                document.getElementById('private-note').value = userData.privateNote || '';
+                document.getElementById('private-message').value = userData.privateMessage || '';
+                
+                addToLog(`💾 Datos de ${users[currentUser].name} cargados desde localStorage`, 'info');
+                
+                if (userData.privateNote || userData.privateMessage) {
+                    addToLog(`🔒 Mensajes privados restaurados: "${userData.privateNote}", "${userData.privateMessage}"`, 'info');
+                }
+            }
+        }
+        
+        function checkSession() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser && users[savedUser]) {
+                login(savedUser);
+            } else {
+                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                loginModal.show();
+            }
+        }
+        
+        // Manejar sincronización de datos privados
+        function handlePrivateSync(data) {
+            const { userId, privateData } = data;
+            
+            // Solo sincronizar si es el mismo usuario
+            if (userId === currentUser) {
+                isUpdatingFromRemote = true;
+                
+                // Actualizar campos privados
+                document.getElementById('private-note').value = privateData.privateNote || '';
+                document.getElementById('private-message').value = privateData.privateMessage || '';
+                
+                // Actualizar localStorage
+                const savedData = localStorage.getItem(`userData_${currentUser}`) || '{}';
+                const userData = JSON.parse(savedData);
+                userData.privateNote = privateData.privateNote;
+                userData.privateMessage = privateData.privateMessage;
+                userData.timestamp = Date.now();
+                localStorage.setItem(`userData_${currentUser}`, JSON.stringify(userData));
+                
+                // Efecto visual
+                ['private-note', 'private-message'].forEach(inputId => {
+                    const element = document.getElementById(inputId);
+                    if (element) {
+                        element.classList.add('border-info');
+                        setTimeout(() => element.classList.remove('border-info'), 1000);
+                    }
+                });
+                
+                addToLog(`🔒 Sincronizado desde otro dispositivo: "${privateData.privateNote}", "${privateData.privateMessage}"`, 'received');
+                
+                setTimeout(() => {
+                    isUpdatingFromRemote = false;
+                }, 500);
+            }
+        }
+        
+        // Función simplificada para debug
+        function loadPrivateDataFromCloud() {
+            addToLog(`🔒 Sistema simplificado: usando localStorage + sincronización WebSocket`, 'info');
+            loadUserData();
+        }
+        
+        // Subir datos locales de Carlos a DynamoDB
+        function uploadCarlosDataToCloud() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            
+            // Mostrar loading
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Subiendo...';
+            btn.disabled = true;
+            
+            const carlosData = localStorage.getItem('userData_carlos');
+            
+            if (!carlosData) {
+                addToLog(`⚠️ No hay datos locales de Carlos para subir`, 'info');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+            
+            if (!wsSync || !wsSync.isConnected) {
+                addToLog(`⚠️ WebSocket no conectado`, 'info');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+            
+            try {
+                const userData = JSON.parse(carlosData);
+                const dataToUpload = {
+                    privateNote: userData.privateNote || '',
+                    privateMessage: userData.privateMessage || '',
+                    inputText: userData.inputText || '',
+                    textareaText: userData.textareaText || '',
+                    numberValue: userData.numberValue || '',
+                    timestamp: userData.timestamp || Date.now()
+                };
+                
+                wsSync.sendMessage('upload_carlos_data', {
+                    userId: 'carlos',
+                    data: dataToUpload,
+                    timestamp: Date.now()
+                });
+                
+                addToLog(`📤 Subiendo datos locales de Carlos a DynamoDB...`, 'info');
+                
+                // Restaurar botón después de 3 segundos
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    loadCarlosDataFromCloud();
+                }, 3000);
+                
+            } catch (error) {
+                addToLog(`❌ Error al subir datos: ${error.message}`, 'info');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+        
+        // Cargar datos de Carlos desde DynamoDB
+        function loadCarlosDataFromCloud() {
+            if (!wsSync || !wsSync.isConnected) {
+                addToLog(`⚠️ WebSocket no conectado`, 'info');
+                return;
+            }
+            
+            document.getElementById('carlos-data-loading').style.display = 'block';
+            document.getElementById('carlos-data-table').style.display = 'none';
+            
+            wsSync.sendMessage('get_carlos_data', {
+                userId: 'carlos',
+                requestId: Date.now()
+            });
+            
+            addToLog(`🔍 Solicitando datos de Carlos desde DynamoDB...`, 'info');
+        }
+        
+        // Manejar respuesta de datos de Carlos
+        function handleCarlosDataResponse(data) {
+            document.getElementById('carlos-data-loading').style.display = 'none';
+            document.getElementById('carlos-data-table').style.display = 'block';
+            
+            const tbody = document.getElementById('carlos-data-tbody');
+            tbody.innerHTML = '';
+            
+            if (data.carlosData && Object.keys(data.carlosData).length > 0) {
+                Object.entries(data.carlosData).forEach(([key, value]) => {
+                    const row = `
+                        <tr>
+                            <td><strong>${key}</strong></td>
+                            <td>${value || '<em>vacío</em>'}</td>
+                            <td>${new Date(data.timestamp || Date.now()).toLocaleString()}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="editCarlosData('${key}', '${value}')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteCarlosData('${key}')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+                
+                addToLog(`📊 Datos de Carlos cargados: ${Object.keys(data.carlosData).length} campos`, 'info');
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">
+                            <i class="bi bi-inbox"></i> No hay datos de Carlos en DynamoDB
+                        </td>
+                    </tr>
+                `;
+                addToLog(`📊 No hay datos de Carlos en la nube`, 'info');
+            }
+        }
+        
+        // Subir datos del usuario actual a la nube automáticamente
+        function uploadUserDataToCloud() {
+            if (!currentUser || !wsSync || !wsSync.isConnected) return;
+            
+            const userData = localStorage.getItem(`userData_${currentUser}`);
+            if (!userData) return;
+            
+            try {
+                const parsedData = JSON.parse(userData);
+                const dataToUpload = {
+                    privateNote: parsedData.privateNote || '',
+                    privateMessage: parsedData.privateMessage || '',
+                    inputText: parsedData.inputText || '',
+                    textareaText: parsedData.textareaText || '',
+                    numberValue: parsedData.numberValue || '',
+                    timestamp: parsedData.timestamp || Date.now()
+                };
+                
+                wsSync.sendMessage('upload_user_data', {
+                    userId: currentUser,
+                    data: dataToUpload,
+                    timestamp: Date.now()
+                });
+                
+                // Notificar a otros usuarios que hay datos nuevos
+                wsSync.sendMessage('cloud_data_updated', {
+                    userId: currentUser,
+                    timestamp: Date.now()
+                });
+                
+                addToLog(`📤 Datos de ${users[currentUser].name} sincronizados automáticamente`, 'info');
+                
+            } catch (error) {
+                console.error('Error subiendo datos:', error);
+            }
+        }
+        
+        // Cargar datos del usuario actual desde DynamoDB
+        function loadUserDataFromCloud() {
+            if (!currentUser || !wsSync || !wsSync.isConnected) {
+                addToLog(`⚠️ WebSocket no conectado`, 'info');
+                return;
+            }
+            
+            document.getElementById('carlos-data-loading').style.display = 'block';
+            document.getElementById('carlos-data-table').style.display = 'none';
+            
+            wsSync.sendMessage('get_user_data', {
+                userId: currentUser,
+                requestId: Date.now()
+            });
+            
+            addToLog(`🔍 Cargando datos de ${users[currentUser].name} desde la nube...`, 'info');
+        }
+        
+        // Manejar respuesta de datos del usuario
+        function handleUserDataResponse(data) {
+            console.log('handleUserDataResponse called with:', data);
+            addToLog(`🔍 Debug: Datos de ${data.userId}: ${Object.keys(data.userData || {}).length} campos`, 'info');
+            
+            document.getElementById('carlos-data-loading').style.display = 'none';
+            document.getElementById('carlos-data-table').style.display = 'block';
+            
+            const tbody = document.getElementById('carlos-data-tbody');
+            tbody.innerHTML = '';
+            
+            const userData = data.userData || {};
+            const userName = users[data.userId]?.name || data.userId;
+            
+            // Cargar datos en los campos del formulario si es el usuario actual
+            if (data.userId === currentUser && Object.keys(userData).length > 0) {
+                loadCloudDataToForm(userData);
+            }
+            
+            if (userData && Object.keys(userData).length > 0) {
+                Object.entries(userData).forEach(([key, value]) => {
+                    const row = `
+                        <tr>
+                            <td><strong>${key}</strong></td>
+                            <td>${value || '<em>vacío</em>'}</td>
+                            <td>${new Date(data.timestamp || Date.now()).toLocaleString()}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="editUserData('${key}', '${value}')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteUserData('${key}')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+                
+                addToLog(`📊 Datos de ${userName} cargados: ${Object.keys(userData).length} campos`, 'info');
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">
+                            <i class="bi bi-inbox"></i> No hay datos de ${userName} en la nube
+                        </td>
+                    </tr>
+                `;
+                addToLog(`📊 No hay datos de ${userName} en la nube`, 'info');
+            }
+        }
+        
+        // Editar dato del usuario
+        function editUserData(key, currentValue) {
+            if (!currentUser) return;
+            
+            Swal.fire({
+                title: `Editar ${key}`,
+                input: 'text',
+                inputValue: currentValue,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    updateUserData(key, result.value);
+                }
+            });
+        }
+        
+        // Actualizar dato del usuario
+        function updateUserData(key, value) {
+            if (!currentUser || !wsSync || !wsSync.isConnected) return;
+            
+            wsSync.sendMessage('update_user_data', {
+                userId: currentUser,
+                key: key,
+                value: value,
+                timestamp: Date.now()
+            });
+            
+            addToLog(`📝 Actualizando ${key} de ${users[currentUser].name}: "${value}"`, 'info');
+            
+            // Recargar datos
+            setTimeout(() => loadUserDataFromCloud(), 1000);
+        }
+        
+        // Eliminar dato del usuario
+        function deleteUserData(key) {
+            if (!currentUser) return;
+            
+            const userName = users[currentUser].name;
+            Swal.fire({
+                title: '¿Eliminar dato?',
+                text: `Se eliminará el campo "${key}" de ${userName}`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (!wsSync || !wsSync.isConnected) return;
+                    
+                    wsSync.sendMessage('delete_user_data', {
+                        userId: currentUser,
+                        key: key,
+                        timestamp: Date.now()
+                    });
+                    
+                    addToLog(`🗑️ Eliminando ${key} de ${userName}`, 'info');
+                    
+                    // Recargar datos
+                    setTimeout(() => loadUserDataFromCloud(), 1000);
+                }
+            });
+        }
+        
+        // Sincronizar datos privados cuando cambian
+        function syncPrivateData() {
+            if (!currentUser || !wsSync || !wsSync.isConnected || isUpdatingFromRemote) return;
+            
+            wsSync.sendMessage('private_sync', {
+                userId: currentUser,
+                privateData: {
+                    privateNote: document.getElementById('private-note').value,
+                    privateMessage: document.getElementById('private-message').value
+                },
+                timestamp: Date.now()
+            });
+        }
+
+        // Función para actualizar contadores
+        function updateStats() {
+            document.getElementById('sent-count').textContent = sentCount;
+            document.getElementById('received-count').textContent = receivedCount;
+        }
+
+        // Simular venta
+        function simulateSale() {
+            if (!wsSync) return;
+            
+            const sale = {
+                id: 'sale_' + Date.now(),
+                total: Math.floor(Math.random() * 100) + 10,
+                client: 'Cliente Test',
+                products: [
+                    { name: 'Producto Test', quantity: 1, price: 25.50 }
+                ],
+                date: new Date().toISOString(),
+                paymentMethod: 'efectivo'
+            };
+            
+            wsSync.syncSale(sale);
+            addToLog(`📤 Venta simulada enviada: $${sale.total}`, 'sent');
+            sentCount++;
+            updateStats();
+        }
+
+        // Simular actualización de producto
+        function simulateProductUpdate() {
+            if (!wsSync) return;
+            
+            const product = {
+                id: 'product_' + Date.now(),
+                name: 'Producto Actualizado',
+                price: Math.floor(Math.random() * 50) + 5,
+                stock: Math.floor(Math.random() * 100) + 1,
+                category: 'Test'
+            };
+            
+            wsSync.syncProduct(product);
+            addToLog(`📤 Producto actualizado: ${product.name} - Stock: ${product.stock}`, 'sent');
+            sentCount++;
+            updateStats();
+        }
+
+        // Simular agregar cliente
+        function simulateClientAdd() {
+            if (!wsSync) return;
+            
+            const client = {
+                id: 'client_' + Date.now(),
+                name: 'Cliente Test ' + Math.floor(Math.random() * 1000),
+                phone: '555-' + Math.floor(Math.random() * 10000),
+                address: 'Dirección Test'
+            };
+            
+            wsSync.syncClient(client);
+            addToLog(`📤 Cliente agregado: ${client.name}`, 'sent');
+            sentCount++;
+            updateStats();
+        }
+
+        // Override del cliente WebSocket para capturar mensajes
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                if (wsSync) {
+                    // Interceptar mensajes recibidos
+                    const originalHandleMessage = wsSync.handleMessage;
+                    wsSync.handleMessage = function(message) {
+                        addToLog(`📨 Recibido: ${message.action} de ${message.sender || message.deviceId || 'servidor'}`, 'received');
+                        receivedCount++;
+                        updateStats();
+                        
+                        // Manejar cambios de input en tiempo real
+                        if (message.action === 'input_change') {
+                            handleRemoteInputChange(message.data);
+                            return;
+                        }
+                        
+                        // Manejar sincronización privada
+                        if (message.action === 'private_sync') {
+                            handlePrivateSync(message.data);
+                            return;
+                        }
+                        
+                        // Manejar respuesta de datos del usuario
+                        if (message.action === 'user_data_response') {
+                            handleUserDataResponse(message.data);
+                            return;
+                        }
+                        
+                        // Manejar notificación de datos actualizados en la nube
+                        if (message.action === 'cloud_data_updated') {
+                            const updatedUserId = message.data.userId;
+                            if (updatedUserId === currentUser) {
+                                addToLog(`🌍 Datos actualizados en la nube, recargando...`, 'received');
+                                setTimeout(() => loadUserDataFromCloud(), 500);
+                            }
+                            return;
+                        }
+                        
+                        // Manejar confirmación de subida
+                        if (message.action === 'upload_success') {
+                            addToLog(`✅ ${message.data.message}`, 'received');
+                            // Recargar datos automáticamente cuando alguien sube datos
+                            setTimeout(() => loadUserDataFromCloud(), 1000);
+                            return;
+                        }
+                        
+                        // Manejar error de subida
+                        if (message.action === 'upload_error') {
+                            addToLog(`❌ Error al subir: ${message.data.message}`, 'received');
+                            return;
+                        }
+                        
+                        // Calcular latencia si es un ping
+                        if (message.action === 'test_message' && message.data.timestamp) {
+                            const latency = Date.now() - message.data.timestamp;
+                            document.getElementById('latency').textContent = latency;
+                        }
+                        
+                        return originalHandleMessage.call(this, message);
+                    };
+                    
+                    addToLog('🚀 Cliente WebSocket inicializado');
+                }
+            }, 1500);
+        });
+
+        // Configurar listeners para inputs en tiempo real
+        function setupRealtimeInputs() {
+            const publicInputs = ['realtime-input', 'realtime-textarea', 'realtime-number'];
+            const privateInputs = ['private-note', 'private-message'];
+            
+            // Configurar inputs públicos (sincronizados)
+            publicInputs.forEach(inputId => {
+                const element = document.getElementById(inputId);
+                if (element) {
+                    // Sincronizar al escribir (con debounce mínimo)
+                    let timeout;
+                    element.addEventListener('input', (e) => {
+                        if (isUpdatingFromRemote) return; // Evitar loops
+                        
+                        clearTimeout(timeout);
+                        timeout = setTimeout(() => {
+                            if (wsSync && wsSync.isConnected) {
+                                wsSync.sendMessage('input_change', {
+                                    inputId: inputId,
+                                    value: e.target.value,
+                                    userId: currentUser,
+                                    timestamp: Date.now()
+                                });
+                                addToLog(`⌨️ Sincronizando: ${inputId} = "${e.target.value}"`, 'sent');
+                                sentCount++;
+                                updateStats();
+                            }
+                            // Guardar datos del usuario
+                            saveUserData();
+                        }, 100); // Debounce de 100ms
+                    });
+                }
+            });
+            
+            // Configurar inputs privados (guardado local + sincronización entre dispositivos del mismo usuario)
+            privateInputs.forEach(inputId => {
+                const element = document.getElementById(inputId);
+                if (element) {
+                    let timeout;
+                    element.addEventListener('input', (e) => {
+                        if (isUpdatingFromRemote) return;
+                        
+                        clearTimeout(timeout);
+                        timeout = setTimeout(() => {
+                            saveUserData();
+                            syncPrivateData();
+                            addToLog(`🔒 Nota privada guardada y sincronizada: ${inputId}`, 'info');
+                        }, 300);
+                    });
+                }
+            });
+        }
+        
+        // Manejar cambios de input remotos
+        function handleRemoteInputChange(data) {
+            const { inputId, value, userId } = data;
+            const element = document.getElementById(inputId);
+            
+            if (element && userId !== currentUser) {
+                isUpdatingFromRemote = true;
+                element.value = value;
+                
+                // Agregar efecto visual con color del usuario
+                const userColor = users[userId]?.color || 'success';
+                element.classList.add(`border-${userColor}`);
+                setTimeout(() => {
+                    element.classList.remove(`border-${userColor}`);
+                    isUpdatingFromRemote = false;
+                }, 500);
+                
+                const userName = users[userId]?.name || 'Usuario';
+                addToLog(`⌨️ ${userName}: ${inputId} = "${value}"`, 'received');
+            }
+        }
+        
+        // Test de latencia cada 30 segundos
+        setInterval(() => {
+            if (wsSync && wsSync.isConnected) {
+                lastPingTime = Date.now();
+                wsSync.sendMessage('ping', { timestamp: lastPingTime });
+            }
+        }, 30000);
+        
+        // Configurar inputs cuando se carga la página
+        document.addEventListener('DOMContentLoaded', () => {
+            checkSession();
+            setTimeout(() => {
+                setupRealtimeInputs();
+            }, 2000);
+        });
+        
+        // Escuchar respuestas de datos del usuario
+        window.addEventListener('userDataReceived', (event) => {
+            handleUserDataResponse(event.detail);
+        });
+        
+        // Cargar datos de la nube en el formulario
+        function loadCloudDataToForm(userData) {
+            if (!userData) return;
+            
+            // Cargar datos públicos
+            if (userData.inputText) document.getElementById('realtime-input').value = userData.inputText;
+            if (userData.textareaText) document.getElementById('realtime-textarea').value = userData.textareaText;
+            if (userData.numberValue) document.getElementById('realtime-number').value = userData.numberValue;
+            
+            // Cargar datos privados
+            if (userData.privateNote) document.getElementById('private-note').value = userData.privateNote;
+            if (userData.privateMessage) document.getElementById('private-message').value = userData.privateMessage;
+            
+            addToLog(`🌍 Datos cargados desde la nube al formulario`, 'info');
+        }
+        
+        // Guardar datos antes de cerrar la página
+        window.addEventListener('beforeunload', () => {
+            if (currentUser) {
+                saveUserData();
+            }
+        });
+    </script>
+</body>
+</html>
