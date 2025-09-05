@@ -153,6 +153,30 @@
 
       <div class="sidebar-section">
         <h6 class="sidebar-section-title">
+          <i class="bi bi-arrow-repeat"></i> Sincronización
+        </h6>
+        <div class="sidebar-actions">
+          <button class="sidebar-action-btn" onclick="setupSyncUser()" id="btn-setup-sync">
+            <i class="bi bi-person-gear"></i>
+            <span>Configurar Usuario</span>
+          </button>
+          <button class="sidebar-action-btn" onclick="showSyncStatus()" id="btn-sync-status">
+            <i class="bi bi-wifi"></i>
+            <span>Estado Conexión</span>
+          </button>
+          <button class="sidebar-action-btn" onclick="testBidirectionalSync()" id="btn-test-sync">
+            <i class="bi bi-arrow-left-right"></i>
+            <span>Probar Sync</span>
+          </button>
+          <button class="sidebar-action-btn" onclick="forceSyncAll()" id="btn-force-sync">
+            <i class="bi bi-cloud-upload"></i>
+            <span>Sincronizar Todo</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h6 class="sidebar-section-title">
           <i class="bi bi-gear"></i> Configuración
         </h6>
         <div class="sidebar-actions">
@@ -184,6 +208,10 @@
           <button class="sidebar-action-btn" onclick="showView('telegram-config')" id="btn-telegram-config">
             <i class="bi bi-telegram"></i>
             <span>Configurar Telegram</span>
+          </button>
+          <button class="sidebar-action-btn" onclick="configureSyncOptions()" id="btn-sync-options">
+            <i class="bi bi-sliders"></i>
+            <span>Opciones Sync</span>
           </button>
         </div>
       </div>
@@ -1301,6 +1329,12 @@
   <!-- ========================================= -->
   <!-- 🔧 SCRIPTS DE LA APLICACIÓN -->
   <!-- ========================================= -->
+  <!-- Cliente WebSocket para sincronización -->
+  <script src="websocket-sync-client.js"></script>
+  <!-- Gestor de sincronización -->
+  <script src="sync-manager.js"></script>
+  <!-- Integración de sincronización -->
+  <script src="sync-integration.js"></script>
   <!-- Utilidades y funciones auxiliares -->
   <script src="utils.js"></script>
   <!-- Generador de reportes PDF -->

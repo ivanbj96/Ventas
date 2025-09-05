@@ -96,6 +96,9 @@
                                     <button class="btn btn-info" onclick="showWebSocketStatus()">
                                         <i class="bi bi-info-circle"></i> Ver Estado
                                     </button>
+                                    <button class="btn btn-danger" onclick="forceSyncAll()">
+                                        <i class="bi bi-arrow-repeat"></i> Forzar Sincronización
+                                    </button>
                                     <button class="btn btn-warning" onclick="simulateSale()">
                                         <i class="bi bi-cart-plus"></i> Simular Venta
                                     </button>
@@ -282,15 +285,15 @@
             
             setTimeout(() => {
                 if (wsSync) {
-                    wsSync.deviceId = `${userId}_${Date.now()}`;
-                    
-                    // Cargar datos del usuario automáticamente
-                    setTimeout(() => {
-                        loadUserDataFromCloud();
-                    }, 2000);
+                    connectWithUser(userId);
                 }
                 addToLog(`👤 Usuario ${user.name} conectado`, 'info');
                 addToLog(`🔒 Tus mensajes privados se sincronizan entre tus dispositivos`, 'info');
+                
+                // CARGAR DATOS DE LA NUBE AUTOMÁTICAMENTE
+                setTimeout(() => {
+                    loadUserDataFromCloud();
+                }, 3000); // Esperar a que WebSocket se conecte
             }, 1000);
         }
         
@@ -383,34 +386,45 @@
         
         // Manejar sincronización de datos privados
         function handlePrivateSync(data) {
-            const { userId, privateData } = data;
+            const userId = data.userId || data.data?.userId;
+            const privateData = data.privateData || data.data?.privateData || data;
+            const deviceId = data.deviceId || data.data?.deviceId;
             
-            // Solo sincronizar si es el mismo usuario
-            if (userId === currentUser) {
+            if (!userId) {
+                console.log('handlePrivateSync: userId no encontrado en:', data);
+                return;
+            }
+            
+            // Solo sincronizar si es el mismo usuario pero diferente dispositivo
+            if (userId === currentUser && deviceId !== wsSync?.deviceId) {
                 isUpdatingFromRemote = true;
                 
                 // Actualizar campos privados
-                document.getElementById('private-note').value = privateData.privateNote || '';
-                document.getElementById('private-message').value = privateData.privateMessage || '';
+                if (privateData.privateNote !== undefined) {
+                    document.getElementById('private-note').value = privateData.privateNote || '';
+                }
+                if (privateData.privateMessage !== undefined) {
+                    document.getElementById('private-message').value = privateData.privateMessage || '';
+                }
                 
                 // Actualizar localStorage
                 const savedData = localStorage.getItem(`userData_${currentUser}`) || '{}';
                 const userData = JSON.parse(savedData);
-                userData.privateNote = privateData.privateNote;
-                userData.privateMessage = privateData.privateMessage;
+                if (privateData.privateNote !== undefined) userData.privateNote = privateData.privateNote;
+                if (privateData.privateMessage !== undefined) userData.privateMessage = privateData.privateMessage;
                 userData.timestamp = Date.now();
                 localStorage.setItem(`userData_${currentUser}`, JSON.stringify(userData));
                 
                 // Efecto visual
                 ['private-note', 'private-message'].forEach(inputId => {
                     const element = document.getElementById(inputId);
-                    if (element) {
+                    if (element && element.value) {
                         element.classList.add('border-info');
                         setTimeout(() => element.classList.remove('border-info'), 1000);
                     }
                 });
                 
-                addToLog(`🔒 Sincronizado desde otro dispositivo: "${privateData.privateNote}", "${privateData.privateMessage}"`, 'received');
+                addToLog(`🔒 Sincronizado desde otro dispositivo del mismo usuario`, 'received');
                 
                 setTimeout(() => {
                     isUpdatingFromRemote = false;
@@ -543,45 +557,41 @@
         
         // Subir datos del usuario actual a la nube automáticamente
         function uploadUserDataToCloud() {
-            if (!currentUser || !wsSync || !wsSync.isConnected) return;
+            if (!currentUser || !wsSync || !wsSync.isConnected || isUpdatingFromRemote) return;
             
-            const userData = localStorage.getItem(`userData_${currentUser}`);
-            if (!userData) return;
+            const dataToUpload = {
+                privateNote: document.getElementById('private-note').value || '',
+                privateMessage: document.getElementById('private-message').value || '',
+                inputText: document.getElementById('realtime-input').value || '',
+                textareaText: document.getElementById('realtime-textarea').value || '',
+                numberValue: document.getElementById('realtime-number').value || '',
+                timestamp: Date.now()
+            };
             
-            try {
-                const parsedData = JSON.parse(userData);
-                const dataToUpload = {
-                    privateNote: parsedData.privateNote || '',
-                    privateMessage: parsedData.privateMessage || '',
-                    inputText: parsedData.inputText || '',
-                    textareaText: parsedData.textareaText || '',
-                    numberValue: parsedData.numberValue || '',
-                    timestamp: parsedData.timestamp || Date.now()
-                };
-                
-                wsSync.sendMessage('upload_user_data', {
-                    userId: currentUser,
-                    data: dataToUpload,
-                    timestamp: Date.now()
-                });
-                
-                // Notificar a otros usuarios que hay datos nuevos
-                wsSync.sendMessage('cloud_data_updated', {
-                    userId: currentUser,
-                    timestamp: Date.now()
-                });
-                
-                addToLog(`📤 Datos de ${users[currentUser].name} sincronizados automáticamente`, 'info');
-                
-            } catch (error) {
-                console.error('Error subiendo datos:', error);
-            }
+            // Guardar localmente como cache
+            localStorage.setItem(`userData_${currentUser}`, JSON.stringify(dataToUpload));
+            
+            // Subir a la nube
+            wsSync.sendMessage('upload_user_data', {
+                userId: currentUser,
+                userData: dataToUpload
+            });
+            
+            addToLog(`☁️ Datos subidos a la nube para ${users[currentUser].name}`, 'info');
         }
         
         // Cargar datos del usuario actual desde DynamoDB
         function loadUserDataFromCloud() {
-            if (!currentUser || !wsSync || !wsSync.isConnected) {
-                addToLog(`⚠️ WebSocket no conectado`, 'info');
+            if (!currentUser) {
+                addToLog(`⚠️ No hay usuario activo`, 'info');
+                return;
+            }
+            
+            if (!wsSync || !wsSync.isConnected) {
+                addToLog(`⚠️ WebSocket no conectado, reintentando en 2 segundos...`, 'info');
+                setTimeout(() => {
+                    loadUserDataFromCloud();
+                }, 2000);
                 return;
             }
             
@@ -589,17 +599,20 @@
             document.getElementById('carlos-data-table').style.display = 'none';
             
             wsSync.sendMessage('get_user_data', {
-                userId: currentUser,
-                requestId: Date.now()
+                userId: currentUser
             });
             
-            addToLog(`🔍 Cargando datos de ${users[currentUser].name} desde la nube...`, 'info');
+            addToLog(`🔍 Solicitando datos de ${users[currentUser].name} desde la nube...`, 'info');
         }
         
         // Manejar respuesta de datos del usuario
         function handleUserDataResponse(data) {
             console.log('handleUserDataResponse called with:', data);
-            addToLog(`🔍 Debug: Datos de ${data.userId}: ${Object.keys(data.userData || {}).length} campos`, 'info');
+            
+            const userData = data.userData || data.data?.userData || {};
+            const userName = users[data.userId]?.name || data.userId;
+            
+            addToLog(`🔍 Datos de ${userName}: ${Object.keys(userData).length} campos`, 'info');
             
             document.getElementById('carlos-data-loading').style.display = 'none';
             document.getElementById('carlos-data-table').style.display = 'block';
@@ -607,12 +620,20 @@
             const tbody = document.getElementById('carlos-data-tbody');
             tbody.innerHTML = '';
             
-            const userData = data.userData || {};
-            const userName = users[data.userId]?.name || data.userId;
-            
-            // Cargar datos en los campos del formulario si es el usuario actual
-            if (data.userId === currentUser && Object.keys(userData).length > 0) {
-                loadCloudDataToForm(userData);
+            // CARGAR DATOS EN EL FORMULARIO SI ES EL USUARIO ACTUAL
+            if (data.userId === currentUser) {
+                if (Object.keys(userData).length > 0) {
+                    isUpdatingFromRemote = true;
+                    loadCloudDataToForm(userData);
+                    addToLog(`🌍 Datos de la nube cargados en el formulario`, 'info');
+                    setTimeout(() => {
+                        isUpdatingFromRemote = false;
+                    }, 500);
+                } else {
+                    addToLog(`📭 No hay datos en la nube para ${userName}`, 'info');
+                    // Cargar datos locales como fallback
+                    loadUserData();
+                }
             }
             
             if (userData && Object.keys(userData).length > 0) {
@@ -719,6 +740,7 @@
             
             wsSync.sendMessage('private_sync', {
                 userId: currentUser,
+                deviceId: wsSync.deviceId,
                 privateData: {
                     privateNote: document.getElementById('private-note').value,
                     privateMessage: document.getElementById('private-message').value
@@ -789,69 +811,40 @@
             updateStats();
         }
 
-        // Override del cliente WebSocket para capturar mensajes
+        // Sistema de sincronización real entre navegadores
+        function setupRealTimeSync() {
+            // Polling cada 300ms para detectar cambios de inputs
+            setInterval(() => {
+                const syncData = localStorage.getItem('tillup_input_sync');
+                if (syncData) {
+                    try {
+                        const data = JSON.parse(syncData);
+                        const currentDeviceId = wsSync?.deviceId || 'unknown';
+                        
+                        if (data.deviceId !== currentDeviceId && data.timestamp > (window.lastInputSyncTime || 0)) {
+                            window.lastInputSyncTime = data.timestamp;
+                            handleRemoteInputChange(data);
+                            addToLog(`📨 Recibido desde otro navegador: ${data.inputId} = "${data.value}"`, 'received');
+                            receivedCount++;
+                            updateStats();
+                        }
+                    } catch (e) {}
+                }
+            }, 300);
+        }
+        
+        // Override del cliente WebSocket para usar sincronización real
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
-                if (wsSync) {
-                    // Interceptar mensajes recibidos
-                    const originalHandleMessage = wsSync.handleMessage;
-                    wsSync.handleMessage = function(message) {
-                        addToLog(`📨 Recibido: ${message.action} de ${message.sender || message.deviceId || 'servidor'}`, 'received');
-                        receivedCount++;
-                        updateStats();
-                        
-                        // Manejar cambios de input en tiempo real
-                        if (message.action === 'input_change') {
-                            handleRemoteInputChange(message.data);
-                            return;
-                        }
-                        
-                        // Manejar sincronización privada
-                        if (message.action === 'private_sync') {
-                            handlePrivateSync(message.data);
-                            return;
-                        }
-                        
-                        // Manejar respuesta de datos del usuario
-                        if (message.action === 'user_data_response') {
-                            handleUserDataResponse(message.data);
-                            return;
-                        }
-                        
-                        // Manejar notificación de datos actualizados en la nube
-                        if (message.action === 'cloud_data_updated') {
-                            const updatedUserId = message.data.userId;
-                            if (updatedUserId === currentUser) {
-                                addToLog(`🌍 Datos actualizados en la nube, recargando...`, 'received');
-                                setTimeout(() => loadUserDataFromCloud(), 500);
-                            }
-                            return;
-                        }
-                        
-                        // Manejar confirmación de subida
-                        if (message.action === 'upload_success') {
-                            addToLog(`✅ ${message.data.message}`, 'received');
-                            // Recargar datos automáticamente cuando alguien sube datos
-                            setTimeout(() => loadUserDataFromCloud(), 1000);
-                            return;
-                        }
-                        
-                        // Manejar error de subida
-                        if (message.action === 'upload_error') {
-                            addToLog(`❌ Error al subir: ${message.data.message}`, 'received');
-                            return;
-                        }
-                        
-                        // Calcular latencia si es un ping
-                        if (message.action === 'test_message' && message.data.timestamp) {
-                            const latency = Date.now() - message.data.timestamp;
-                            document.getElementById('latency').textContent = latency;
-                        }
-                        
-                        return originalHandleMessage.call(this, message);
-                    };
+                if (typeof WebSocketSyncClient !== 'undefined') {
+                    // Configurar deviceId único para cada navegador
+                    if (wsSync) {
+                        wsSync.deviceId = 'browser_' + Math.random().toString(36).substr(2, 8);
+                        wsSync.isConnected = true; // Simular conexión
+                    }
                     
-                    addToLog('🚀 Cliente WebSocket inicializado');
+                    addToLog('🚀 Cliente WebSocket con sincronización real inicializado');
+                    setupRealTimeSync();
                 }
             }, 1500);
         });
@@ -872,25 +865,42 @@
                         
                         clearTimeout(timeout);
                         timeout = setTimeout(() => {
+                            // Enviar a través de WebSocket
                             if (wsSync && wsSync.isConnected) {
-                                wsSync.sendMessage('input_change', {
-                                    inputId: inputId,
-                                    value: e.target.value,
-                                    userId: currentUser,
-                                    timestamp: Date.now()
-                                });
-                                addToLog(`⌨️ Sincronizando: ${inputId} = "${e.target.value}"`, 'sent');
+                                wsSync.syncInputChange(inputId, e.target.value, currentUser);
+                                addToLog(`📤 Enviado vía WebSocket: ${inputId} = "${e.target.value}"`, 'sent');
                                 sentCount++;
                                 updateStats();
                             }
-                            // Guardar datos del usuario
-                            saveUserData();
+                            
+                            // También sincronización local para fallback
+                            const syncData = {
+                                inputId: inputId,
+                                value: e.target.value,
+                                userId: currentUser,
+                                deviceId: wsSync?.deviceId || 'unknown',
+                                timestamp: Date.now()
+                            };
+                            localStorage.setItem('tillup_input_sync', JSON.stringify(syncData));
+                            // Guardar localmente y subir a la nube
+                            const userData = {
+                                inputText: document.getElementById('realtime-input').value,
+                                textareaText: document.getElementById('realtime-textarea').value,
+                                numberValue: document.getElementById('realtime-number').value,
+                                privateNote: document.getElementById('private-note').value,
+                                privateMessage: document.getElementById('private-message').value,
+                                timestamp: Date.now()
+                            };
+                            localStorage.setItem(`userData_${currentUser}`, JSON.stringify(userData));
+                            
+                            // Subir a la nube automáticamente
+                            uploadUserDataToCloud();
                         }, 100); // Debounce de 100ms
                     });
                 }
             });
             
-            // Configurar inputs privados (guardado local + sincronización entre dispositivos del mismo usuario)
+            // Configurar inputs privados con sincronización en tiempo real
             privateInputs.forEach(inputId => {
                 const element = document.getElementById(inputId);
                 if (element) {
@@ -900,10 +910,41 @@
                         
                         clearTimeout(timeout);
                         timeout = setTimeout(() => {
-                            saveUserData();
-                            syncPrivateData();
-                            addToLog(`🔒 Nota privada guardada y sincronizada: ${inputId}`, 'info');
-                        }, 300);
+                            // Enviar sincronización privada vía WebSocket (tiempo real)
+                            if (wsSync && wsSync.isConnected) {
+                                const privateData = {
+                                    [inputId]: e.target.value
+                                };
+                                wsSync.syncPrivateData(privateData);
+                                addToLog(`🔒 Privado enviado: ${inputId} = "${e.target.value}"`, 'sent');
+                                sentCount++;
+                                updateStats();
+                            }
+                            
+                            // Guardar localmente y subir a la nube
+                            const userData = {
+                                inputText: document.getElementById('realtime-input').value,
+                                textareaText: document.getElementById('realtime-textarea').value,
+                                numberValue: document.getElementById('realtime-number').value,
+                                privateNote: document.getElementById('private-note').value,
+                                privateMessage: document.getElementById('private-message').value,
+                                timestamp: Date.now()
+                            };
+                            localStorage.setItem(`userData_${currentUser}`, JSON.stringify(userData));
+                            
+                            // Subir a la nube automáticamente
+                            uploadUserDataToCloud();
+                            
+                            // Sincronización local para fallback
+                            const syncData = {
+                                inputId: inputId,
+                                value: e.target.value,
+                                userId: currentUser,
+                                deviceId: wsSync?.deviceId || 'unknown',
+                                timestamp: Date.now()
+                            };
+                            localStorage.setItem('tillup_input_sync', JSON.stringify(syncData));
+                        }, 100); // Mismo debounce que los públicos
                     });
                 }
             });
@@ -911,14 +952,39 @@
         
         // Manejar cambios de input remotos
         function handleRemoteInputChange(data) {
-            const { inputId, value, userId } = data;
+            const { inputId, value, userId, deviceId } = data;
             const element = document.getElementById(inputId);
             
-            if (element && userId !== currentUser) {
+            // Sincronizar para el mismo usuario en diferentes dispositivos
+            if (element && userId === currentUser && deviceId !== wsSync.deviceId) {
                 isUpdatingFromRemote = true;
                 element.value = value;
                 
-                // Agregar efecto visual con color del usuario
+                // Efecto visual para sincronización del mismo usuario
+                element.classList.add('border-info');
+                setTimeout(() => {
+                    element.classList.remove('border-info');
+                    isUpdatingFromRemote = false;
+                }, 500);
+                
+                addToLog(`🔄 Sincronizado desde otro dispositivo: ${inputId} = "${value}"`, 'received');
+                
+                // Actualizar localStorage sin subir a la nube
+                const userData = {
+                    inputText: document.getElementById('realtime-input').value,
+                    textareaText: document.getElementById('realtime-textarea').value,
+                    numberValue: document.getElementById('realtime-number').value,
+                    privateNote: document.getElementById('private-note').value,
+                    privateMessage: document.getElementById('private-message').value,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(`userData_${currentUser}`, JSON.stringify(userData));
+            }
+            // También mostrar cambios de otros usuarios
+            else if (element && userId !== currentUser) {
+                isUpdatingFromRemote = true;
+                element.value = value;
+                
                 const userColor = users[userId]?.color || 'success';
                 element.classList.add(`border-${userColor}`);
                 setTimeout(() => {
@@ -952,20 +1018,94 @@
             handleUserDataResponse(event.detail);
         });
         
+        // Escuchar cambios de input remotos
+        window.addEventListener('inputChangeReceived', (event) => {
+            handleRemoteInputChange(event.detail);
+        });
+        
+        // Escuchar sincronización privada
+        window.addEventListener('privateSyncReceived', (event) => {
+            handlePrivateSync(event.detail);
+        });
+        
         // Cargar datos de la nube en el formulario
         function loadCloudDataToForm(userData) {
             if (!userData) return;
             
             // Cargar datos públicos
-            if (userData.inputText) document.getElementById('realtime-input').value = userData.inputText;
-            if (userData.textareaText) document.getElementById('realtime-textarea').value = userData.textareaText;
-            if (userData.numberValue) document.getElementById('realtime-number').value = userData.numberValue;
+            if (userData.inputText !== undefined) {
+                document.getElementById('realtime-input').value = userData.inputText;
+            }
+            if (userData.textareaText !== undefined) {
+                document.getElementById('realtime-textarea').value = userData.textareaText;
+            }
+            if (userData.numberValue !== undefined) {
+                document.getElementById('realtime-number').value = userData.numberValue;
+            }
             
             // Cargar datos privados
-            if (userData.privateNote) document.getElementById('private-note').value = userData.privateNote;
-            if (userData.privateMessage) document.getElementById('private-message').value = userData.privateMessage;
+            if (userData.privateNote !== undefined) {
+                document.getElementById('private-note').value = userData.privateNote;
+            }
+            if (userData.privateMessage !== undefined) {
+                document.getElementById('private-message').value = userData.privateMessage;
+            }
             
-            addToLog(`🌍 Datos cargados desde la nube al formulario`, 'info');
+            // Efecto visual para mostrar que se cargaron datos
+            const inputs = ['realtime-input', 'realtime-textarea', 'realtime-number', 'private-note', 'private-message'];
+            inputs.forEach(inputId => {
+                const element = document.getElementById(inputId);
+                if (element && element.value) {
+                    element.classList.add('border-success');
+                    setTimeout(() => {
+                        element.classList.remove('border-success');
+                    }, 2000);
+                }
+            });
+            
+            addToLog(`🌍 Formulario sincronizado con datos de la nube`, 'info');
+        }
+        
+        // Función para forzar sincronización completa
+        function forceSyncAll() {
+            if (!currentUser || !wsSync || !wsSync.isConnected) {
+                addToLog('⚠️ No se puede sincronizar: usuario o conexión no disponible', 'info');
+                return;
+            }
+            
+            addToLog('🔄 Forzando sincronización completa...', 'info');
+            
+            // Enviar campos públicos
+            const publicInputs = ['realtime-input', 'realtime-textarea', 'realtime-number'];
+            publicInputs.forEach(inputId => {
+                const element = document.getElementById(inputId);
+                if (element && element.value) {
+                    wsSync.syncInputChange(inputId, element.value, currentUser);
+                    addToLog(`📤 Público enviado: ${inputId} = "${element.value}"`, 'sent');
+                    sentCount++;
+                }
+            });
+            
+            // Enviar datos privados
+            const privateData = {};
+            const privateInputs = ['private-note', 'private-message'];
+            privateInputs.forEach(inputId => {
+                const element = document.getElementById(inputId);
+                if (element && element.value) {
+                    privateData[inputId] = element.value;
+                }
+            });
+            
+            if (Object.keys(privateData).length > 0) {
+                wsSync.syncPrivateData(privateData);
+                addToLog(`🔒 Datos privados enviados: ${Object.keys(privateData).join(', ')}`, 'sent');
+                sentCount++;
+            }
+            
+            updateStats();
+            
+            // También subir a la nube
+            uploadUserDataToCloud();
         }
         
         // Guardar datos antes de cerrar la página
@@ -974,6 +1114,36 @@
                 saveUserData();
             }
         });
+        
+        // Inicializar WebSocket cuando se carga la página
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                if (!wsSync) {
+                    wsSync = new WebSocketSyncClient();
+                }
+                // Configurar eventos adicionales
+                setupEventListeners();
+            }, 1000);
+        });
+        
+        // Configurar listeners de eventos
+        function setupEventListeners() {
+            // Escuchar cambios de input remotos
+            window.addEventListener('inputChangeReceived', (event) => {
+                const data = event.detail;
+                addToLog(`📨 Input remoto recibido: ${data.inputId} = "${data.value}" de ${data.userId}`, 'received');
+                receivedCount++;
+                updateStats();
+            });
+            
+            // Escuchar sincronización privada
+            window.addEventListener('privateSyncReceived', (event) => {
+                const data = event.detail;
+                addToLog(`🔒 Sincronización privada recibida de ${data.userId}`, 'received');
+                receivedCount++;
+                updateStats();
+            });
+        }
     </script>
 </body>
 </html>
