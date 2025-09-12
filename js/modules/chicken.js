@@ -827,6 +827,20 @@ export async function editChickenSale(index) {
   }
 }
 
+// === ACTUALIZAR DATOS DESDE STORAGE ===
+export function updateChickenSalesFromStorage() {
+  try {
+    const storedSales = JSON.parse(localStorage.getItem('chickenSales') || '[]');
+    if (Array.isArray(storedSales)) {
+      setChickenSales(storedSales);
+      updateChickenStats();
+      updateChickenSalesList();
+    }
+  } catch (error) {
+    console.error('Error actualizando ventas de pollos desde storage:', error);
+  }
+}
+
 // === ACTUALIZAR COSTO DESDE MERMA ===
 export function updateCostFromMerma() {
   const costoRealInput = document.getElementById('costoRealLibra');
@@ -864,6 +878,184 @@ export function updateCostFromMerma() {
   }
 }
 
+// === IMPRIMIR COMPROBANTE ===
+function printChickenReceipt(receiptHtml) {
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Comprobante de Venta - TillUp</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .modern-receipt { max-width: 400px; margin: 0 auto; }
+        .receipt-header-modern { text-align: center; margin-bottom: 20px; }
+        .receipt-brand { display: flex; align-items: center; justify-content: center; gap: 15px; }
+        .receipt-logo-modern { width: 50px; height: 50px; border-radius: 10px; }
+        .brand-name { margin: 0; color: #0d6efd; font-size: 24px; }
+        .brand-subtitle { margin: 0; color: #6c757d; font-size: 12px; }
+        .receipt-meta { margin-top: 15px; }
+        .receipt-number { font-weight: bold; font-size: 16px; }
+        .receipt-date, .receipt-time { color: #6c757d; font-size: 14px; }
+        .receipt-divider { border-top: 2px dashed #dee2e6; margin: 15px 0; }
+        .receipt-client-modern { display: flex; align-items: center; gap: 15px; }
+        .client-icon i { font-size: 24px; color: #0d6efd; }
+        .client-name { font-weight: bold; font-size: 16px; }
+        .items-header h4 { margin: 0 0 15px 0; color: #495057; }
+        .item-card { border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; }
+        .item-main { margin-bottom: 10px; }
+        .item-title { font-weight: bold; font-size: 16px; }
+        .item-specs { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px; }
+        .spec { font-size: 12px; color: #6c757d; }
+        .item-pricing { text-align: right; }
+        .price-per-unit { color: #6c757d; font-size: 14px; }
+        .item-total { font-weight: bold; font-size: 18px; color: #198754; }
+        .receipt-summary { }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .total-row { border-top: 2px solid #dee2e6; padding-top: 8px; font-weight: bold; font-size: 18px; }
+        .total-amount { color: #198754; }
+        .payment-info-modern { }
+        .payment-method { display: flex; align-items: center; gap: 15px; }
+        .payment-icon i { font-size: 24px; color: #0d6efd; }
+        .payment-type { font-weight: bold; }
+        .payment-breakdown { margin-top: 10px; }
+        .payment-line { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .debt { font-weight: bold; }
+        .receipt-footer-modern { text-align: center; margin-top: 20px; }
+        .thank-you { font-size: 16px; margin-bottom: 10px; }
+        .footer-note { color: #6c757d; font-size: 12px; margin-bottom: 15px; }
+        .qr-placeholder { }
+        .qr-code i { font-size: 30px; color: #6c757d; }
+        @media print {
+          body { margin: 0; padding: 10px; }
+          .modern-receipt { max-width: 100%; }
+        }
+      </style>
+    </head>
+    <body>
+      ${receiptHtml}
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.print();
+}
+
+// === DESCARGAR PDF ===
+function downloadChickenReceiptPDF(sale) {
+  if (typeof jsPDF === 'undefined') {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'La librería PDF no está disponible.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  // Configuración
+  const pageWidth = doc.internal.pageSize.width;
+  const margin = 20;
+  let yPos = 30;
+  
+  // Header
+  doc.setFontSize(20);
+  doc.setTextColor(13, 110, 253);
+  doc.text('TillUp POS', pageWidth / 2, yPos, { align: 'center' });
+  
+  yPos += 10;
+  doc.setFontSize(12);
+  doc.setTextColor(108, 117, 125);
+  doc.text('Sistema de Gestión de Ventas', pageWidth / 2, yPos, { align: 'center' });
+  
+  yPos += 20;
+  doc.setFontSize(16);
+  doc.setTextColor(0, 0, 0);
+  doc.text('COMPROBANTE DE VENTA DE POLLOS', pageWidth / 2, yPos, { align: 'center' });
+  
+  // Información del ticket
+  yPos += 20;
+  doc.setFontSize(10);
+  doc.text(`Ticket #${sale.id.toString().slice(-6)}`, margin, yPos);
+  doc.text(`Fecha: ${new Date(sale.date).toLocaleDateString()}`, pageWidth - margin, yPos, { align: 'right' });
+  
+  yPos += 10;
+  doc.text(`Hora: ${sale.time}`, pageWidth - margin, yPos, { align: 'right' });
+  
+  // Cliente
+  yPos += 20;
+  doc.setFontSize(12);
+  doc.text(`Cliente: ${sale.clientName}`, margin, yPos);
+  
+  // Línea divisoria
+  yPos += 15;
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  
+  // Detalles del producto
+  yPos += 15;
+  doc.setFontSize(14);
+  doc.text('DETALLE DE VENTA', margin, yPos);
+  
+  yPos += 15;
+  doc.setFontSize(10);
+  doc.text('Producto: Pollos Frescos', margin, yPos);
+  
+  yPos += 10;
+  doc.text(`Cantidad: ${sale.quantity} unidad${sale.quantity > 1 ? 'es' : ''}`, margin, yPos);
+  
+  yPos += 10;
+  doc.text(`Peso total: ${sale.weight} lbs`, margin, yPos);
+  
+  yPos += 10;
+  doc.text(`Peso promedio: ${(sale.weight / sale.quantity).toFixed(1)} lbs`, margin, yPos);
+  
+  yPos += 10;
+  doc.text(`Precio por libra: $${sale.pricePerPound.toFixed(2)}`, margin, yPos);
+  
+  // Total
+  yPos += 20;
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  
+  yPos += 15;
+  doc.setFontSize(16);
+  doc.text('TOTAL:', margin, yPos);
+  doc.text(`$${sale.total.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
+  
+  // Método de pago
+  yPos += 20;
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  
+  yPos += 15;
+  doc.setFontSize(12);
+  doc.text(`Método de pago: ${getPaymentText(sale.paymentType)}`, margin, yPos);
+  
+  if (sale.paymentType === 'credit') {
+    yPos += 10;
+    if (sale.abono > 0) {
+      doc.text(`Abono inicial: $${sale.abono.toFixed(2)}`, margin, yPos);
+      yPos += 10;
+      doc.text(`Saldo pendiente: $${(sale.total - sale.abono).toFixed(2)}`, margin, yPos);
+    } else {
+      doc.text(`Saldo pendiente: $${sale.total.toFixed(2)}`, margin, yPos);
+    }
+  }
+  
+  // Footer
+  yPos += 30;
+  doc.setFontSize(10);
+  doc.setTextColor(108, 117, 125);
+  doc.text('¡Gracias por su preferencia!', pageWidth / 2, yPos, { align: 'center' });
+  
+  yPos += 10;
+  doc.text('Conserve este comprobante para cualquier reclamo', pageWidth / 2, yPos, { align: 'center' });
+  
+  // Descargar
+  doc.save(`comprobante-pollos-${sale.id}.pdf`);
+}
+
 // === FUNCIONES AUXILIARES ===
 function getPaymentIcon(paymentType) {
   switch(paymentType) {
@@ -886,86 +1078,152 @@ function getPaymentText(paymentType) {
 }
 
 function showChickenReceipt(sale) {
+  const avgWeight = (sale.weight / sale.quantity).toFixed(1);
   const receiptHtml = `
-    <div class="receipt-treinta">
-      <div class="receipt-header">
-        <div class="receipt-logo">
-          <img src="TillUp.png" alt="TillUp" style="width: 40px; height: 40px; border-radius: 8px;">
-          <h3>TillUp POS</h3>
+    <div class="modern-receipt">
+      <div class="receipt-header-modern">
+        <div class="receipt-brand">
+          <img src="TillUp.png" alt="TillUp" class="receipt-logo-modern">
+          <div class="brand-info">
+            <h2 class="brand-name">TillUp POS</h2>
+            <p class="brand-subtitle">Sistema de Gestión de Ventas</p>
+          </div>
         </div>
-        <div class="receipt-info">
-          <div class="receipt-title">COMPROBANTE DE VENTA DE POLLOS</div>
-          <div class="receipt-number">Venta #${sale.id}</div>
-          <div class="receipt-date">${new Date(sale.date).toLocaleDateString()} ${sale.time}</div>
+        <div class="receipt-meta">
+          <div class="receipt-number">Ticket #${sale.id.toString().slice(-6)}</div>
+          <div class="receipt-date">${new Date(sale.date).toLocaleDateString('es-ES', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}</div>
+          <div class="receipt-time">${sale.time}</div>
         </div>
       </div>
       
-      <div class="receipt-client">
-        <i class="bi bi-person"></i>
-        <strong>Cliente:</strong> ${sale.clientName}
+      <div class="receipt-divider"></div>
+      
+      <div class="receipt-client-modern">
+        <div class="client-icon">
+          <i class="bi bi-person-circle"></i>
+        </div>
+        <div class="client-info">
+          <div class="client-label">Cliente</div>
+          <div class="client-name">${sale.clientName}</div>
+        </div>
       </div>
       
-      <div class="receipt-items">
-        <div class="receipt-items-header">
-          <div class="item-name">Descripción</div>
-          <div class="item-qty">Cant.</div>
-          <div class="item-price">Precio/Lb</div>
-          <div class="item-subtotal">Subtotal</div>
+      <div class="receipt-divider"></div>
+      
+      <div class="receipt-items-modern">
+        <div class="items-header">
+          <h4><i class="bi bi-egg-fried text-warning"></i> Detalle de Venta</h4>
         </div>
         
-        <div class="receipt-item">
-          <div class="item-name">Pollo(s) - ${sale.weight} lbs</div>
-          <div class="item-qty">${sale.quantity}</div>
-          <div class="item-price">$${sale.pricePerPound.toFixed(2)}</div>
-          <div class="item-subtotal">$${sale.total.toFixed(2)}</div>
+        <div class="item-card">
+          <div class="item-main">
+            <div class="item-title">Pollos Frescos</div>
+            <div class="item-specs">
+              <span class="spec"><i class="bi bi-123"></i> ${sale.quantity} unidad${sale.quantity > 1 ? 'es' : ''}</span>
+              <span class="spec"><i class="bi bi-speedometer2"></i> ${sale.weight} lbs total</span>
+              <span class="spec"><i class="bi bi-calculator"></i> ${avgWeight} lbs promedio</span>
+            </div>
+          </div>
+          <div class="item-pricing">
+            <div class="price-per-unit">$${sale.pricePerPound.toFixed(2)}/lb</div>
+            <div class="item-total">$${sale.total.toFixed(2)}</div>
+          </div>
         </div>
       </div>
       
-      <div class="receipt-total">
-        <div class="total-line final">
-          <span>TOTAL:</span>
-          <span class="total-amount">$${sale.total.toFixed(2)}</span>
+      <div class="receipt-divider"></div>
+      
+      <div class="receipt-summary">
+        <div class="summary-row">
+          <span class="summary-label">Subtotal</span>
+          <span class="summary-value">$${sale.total.toFixed(2)}</span>
+        </div>
+        <div class="summary-row total-row">
+          <span class="summary-label">TOTAL</span>
+          <span class="summary-value total-amount">$${sale.total.toFixed(2)}</span>
         </div>
       </div>
       
-      <div class="payment-type">
-        <i class="bi bi-${getPaymentIcon(sale.paymentType)}"></i>
-        <strong>Método de pago:</strong> ${getPaymentText(sale.paymentType)}
-        ${sale.paymentType === 'credit' && sale.abono > 0 ? `<br><small>Abono inicial: $${sale.abono.toFixed(2)}</small>` : ''}
+      <div class="receipt-divider"></div>
+      
+      <div class="payment-info-modern">
+        <div class="payment-method">
+          <div class="payment-icon">
+            <i class="bi bi-${getPaymentIcon(sale.paymentType)}"></i>
+          </div>
+          <div class="payment-details">
+            <div class="payment-type">${getPaymentText(sale.paymentType)}</div>
+            ${sale.paymentType === 'credit' ? `
+              <div class="payment-breakdown">
+                <div class="payment-line">
+                  <span>Total:</span>
+                  <span>$${sale.total.toFixed(2)}</span>
+                </div>
+                ${sale.abono > 0 ? `
+                  <div class="payment-line">
+                    <span>Abono inicial:</span>
+                    <span class="text-success">$${sale.abono.toFixed(2)}</span>
+                  </div>
+                  <div class="payment-line debt">
+                    <span>Saldo pendiente:</span>
+                    <span class="text-danger">$${(sale.total - sale.abono).toFixed(2)}</span>
+                  </div>
+                ` : `
+                  <div class="payment-line debt">
+                    <span>Saldo pendiente:</span>
+                    <span class="text-danger">$${sale.total.toFixed(2)}</span>
+                  </div>
+                `}
+              </div>
+            ` : ''}
+          </div>
+        </div>
       </div>
       
-      <div class="receipt-footer">
-        <div class="footer-message">
-          <i class="bi bi-heart"></i>
-          ¡Gracias por su compra!
+      <div class="receipt-footer-modern">
+        <div class="thank-you">
+          <i class="bi bi-heart-fill text-danger"></i>
+          <span>¡Gracias por su preferencia!</span>
         </div>
-        <div class="footer-brand">
-          <small>TillUp POS - Gestión de Ventas</small>
+        <div class="footer-note">
+          <small>Conserve este comprobante para cualquier reclamo</small>
+        </div>
+        <div class="qr-placeholder">
+          <div class="qr-code">
+            <i class="bi bi-qr-code"></i>
+          </div>
+          <small>Código QR para seguimiento</small>
         </div>
       </div>
     </div>
   `;
 
   Swal.fire({
-    title: 'Venta de Pollos Completada',
+    title: '✅ Venta Completada',
     html: receiptHtml,
     showCancelButton: true,
-    confirmButtonText: 'Imprimir',
-    cancelButtonText: 'Cerrar',
+    confirmButtonText: '<i class="bi bi-printer"></i> Imprimir',
+    cancelButtonText: '<i class="bi bi-x-circle"></i> Cerrar',
     showDenyButton: true,
-    denyButtonText: 'Descargar PDF',
-    width: 500,
+    denyButtonText: '<i class="bi bi-file-earmark-pdf"></i> PDF',
+    width: 600,
     customClass: {
-      popup: 'swal2-receipt-treinta',
-      confirmButton: 'btn btn-primary',
-      cancelButton: 'btn btn-secondary',
-      denyButton: 'btn btn-outline-primary'
-    }
+      popup: 'modern-receipt-popup',
+      confirmButton: 'btn btn-primary btn-lg',
+      cancelButton: 'btn btn-outline-secondary btn-lg',
+      denyButton: 'btn btn-outline-success btn-lg'
+    },
+    buttonsStyling: false
   }).then((result) => {
     if (result.isConfirmed) {
-      console.log('Imprimir comprobante');
+      printChickenReceipt(receiptHtml);
     } else if (result.isDenied) {
-      console.log('Descargar PDF');
+      downloadChickenReceiptPDF(sale);
     }
   });
 }

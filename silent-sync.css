@@ -58,11 +58,405 @@ select {
     display: none !important;
 }
 
+/* ========================================= */
+/* 📝 ESTILOS PARA COMPROBANTE MODERNO */
+/* ========================================= */
+
+.modern-receipt-popup {
+    border-radius: 15px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+.modern-receipt {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border-radius: 12px;
+    padding: 25px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.receipt-header-modern {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.receipt-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.receipt-logo-modern {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(13, 110, 253, 0.2);
+}
+
+.brand-info {
+    text-align: left;
+}
+
+.brand-name {
+    margin: 0;
+    color: #0d6efd;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.brand-subtitle {
+    margin: 0;
+    color: #6c757d;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.receipt-meta {
+    background: rgba(13, 110, 253, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 15px;
+}
+
+.receipt-number {
+    font-weight: 700;
+    font-size: 16px;
+    color: #0d6efd;
+    margin-bottom: 5px;
+}
+
+.receipt-date {
+    color: #495057;
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.receipt-time {
+    color: #6c757d;
+    font-size: 13px;
+    margin-top: 2px;
+}
+
+.receipt-divider {
+    border: none;
+    border-top: 2px dashed #dee2e6;
+    margin: 20px 0;
+    opacity: 0.7;
+}
+
+.receipt-client-modern {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(25, 135, 84, 0.05);
+    border-radius: 10px;
+    padding: 15px;
+    border-left: 4px solid #198754;
+}
+
+.client-icon i {
+    font-size: 28px;
+    color: #198754;
+}
+
+.client-info {
+    flex: 1;
+}
+
+.client-label {
+    font-size: 12px;
+    color: #6c757d;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.client-name {
+    font-weight: 700;
+    font-size: 18px;
+    color: #198754;
+    margin-top: 2px;
+}
+
+.receipt-items-modern {
+    margin: 20px 0;
+}
+
+.items-header h4 {
+    margin: 0 0 15px 0;
+    color: #495057;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.item-card {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
+}
+
+.item-card:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.item-main {
+    margin-bottom: 15px;
+}
+
+.item-title {
+    font-weight: 700;
+    font-size: 18px;
+    color: #212529;
+    margin-bottom: 8px;
+}
+
+.item-specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 8px;
+}
+
+.spec {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    color: #6c757d;
+    background: rgba(108, 117, 125, 0.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.spec i {
+    font-size: 12px;
+    color: #0d6efd;
+}
+
+.item-pricing {
+    text-align: right;
+    border-top: 1px solid #e9ecef;
+    padding-top: 15px;
+}
+
+.price-per-unit {
+    color: #6c757d;
+    font-size: 14px;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.item-total {
+    font-weight: 700;
+    font-size: 24px;
+    color: #198754;
+    text-shadow: 0 1px 2px rgba(25, 135, 84, 0.1);
+}
+
+.receipt-summary {
+    background: rgba(13, 110, 253, 0.05);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.summary-row:last-child {
+    margin-bottom: 0;
+}
+
+.total-row {
+    border-top: 2px solid #0d6efd;
+    padding-top: 15px;
+    margin-top: 15px;
+    font-weight: 700;
+    font-size: 20px;
+}
+
+.summary-label {
+    color: #495057;
+    font-weight: 600;
+}
+
+.summary-value {
+    font-weight: 700;
+    color: #212529;
+}
+
+.total-amount {
+    color: #198754 !important;
+    font-size: 24px;
+    text-shadow: 0 1px 2px rgba(25, 135, 84, 0.1);
+}
+
+.payment-info-modern {
+    background: rgba(255, 193, 7, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+    border-left: 4px solid #ffc107;
+}
+
+.payment-method {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.payment-icon i {
+    font-size: 28px;
+    color: #ffc107;
+}
+
+.payment-details {
+    flex: 1;
+}
+
+.payment-type {
+    font-weight: 700;
+    font-size: 16px;
+    color: #212529;
+    margin-bottom: 10px;
+}
+
+.payment-breakdown {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 10px;
+}
+
+.payment-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.payment-line:last-child {
+    margin-bottom: 0;
+}
+
+.payment-line.debt {
+    font-weight: 700;
+    padding-top: 8px;
+    border-top: 1px solid #dee2e6;
+}
+
+.receipt-footer-modern {
+    text-align: center;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.thank-you {
+    font-size: 18px;
+    font-weight: 600;
+    color: #198754;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.footer-note {
+    color: #6c757d;
+    font-size: 12px;
+    margin-bottom: 20px;
+    font-style: italic;
+}
+
+.qr-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.qr-code {
+    width: 60px;
+    height: 60px;
+    background: rgba(108, 117, 125, 0.1);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #dee2e6;
+}
+
+.qr-code i {
+    font-size: 30px;
+    color: #6c757d;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .modern-receipt {
+        padding: 20px 15px;
+    }
+    
+    .receipt-brand {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .brand-info {
+        text-align: center;
+    }
+    
+    .item-specs {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .payment-method {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
 /* Transiciones para contadores y números */
 .balance-amount,
 .stat-number,
 .total-amount {
     transition: all 0.2s ease-in-out;
+}
+
+/* Colores para estados de pago */
+.text-success {
+    color: #198754 !important;
+    font-weight: 600;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+    font-weight: 600;
+}
+
+.text-warning {
+    color: #ffc107 !important;
 }
 
 /* Efecto muy sutil para cambios de contenido */
@@ -74,4 +468,25 @@ select {
 .content-updated {
     opacity: 1;
     transition: opacity 0.1s ease;
+}
+
+/* Botones del comprobante */
+.modern-receipt-popup .swal2-actions {
+    gap: 10px !important;
+    margin-top: 25px !important;
+}
+
+.modern-receipt-popup .btn {
+    border-radius: 8px !important;
+    padding: 12px 20px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    transition: all 0.2s ease !important;
+}
+
+.modern-receipt-popup .btn:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
