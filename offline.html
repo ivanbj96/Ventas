@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TillUp - Sin Conexión</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 50px; 
+            background: #f8f9fa; 
+        }
+        .offline-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .offline-icon { font-size: 4rem; margin-bottom: 20px; }
+        .retry-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">📱</div>
+        <h2>TillUp POS</h2>
+        <p>Sin conexión a internet</p>
+        <p>Verifica tu conexión e intenta nuevamente</p>
+        <button class="retry-btn" onclick="window.location.reload()">Reintentar</button>
+    </div>
+</body>
+</html>

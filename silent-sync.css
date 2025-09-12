@@ -1,0 +1,77 @@
+/* ========================================= */
+/* 🔄 ESTILOS PARA SINCRONIZACIÓN SILENCIOSA */
+/* ========================================= */
+
+/* Transiciones suaves para elementos que se actualizan */
+.product-card,
+.client-card,
+.debt-item,
+.balance-card,
+.chicken-sale-item {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Animación sutil para elementos nuevos */
+@keyframes fadeInSilent {
+    from {
+        opacity: 0;
+        transform: translateY(-2px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Aplicar animación a elementos que aparecen */
+.sync-new-item {
+    animation: fadeInSilent 0.3s ease-out;
+}
+
+/* Transiciones para selectores */
+select {
+    transition: background-color 0.1s ease;
+}
+
+/* Indicador visual muy sutil de sincronización activa */
+.sync-active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(to bottom, transparent, #007bff, transparent);
+    opacity: 0.3;
+    animation: syncPulse 2s ease-in-out infinite;
+}
+
+@keyframes syncPulse {
+    0%, 100% { opacity: 0.1; }
+    50% { opacity: 0.3; }
+}
+
+/* Ocultar completamente cualquier notificación de sync */
+.sync-notification,
+.toast[data-sync="true"],
+.alert[data-sync="true"] {
+    display: none !important;
+}
+
+/* Transiciones para contadores y números */
+.balance-amount,
+.stat-number,
+.total-amount {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Efecto muy sutil para cambios de contenido */
+.content-updating {
+    opacity: 0.98;
+    transition: opacity 0.1s ease;
+}
+
+.content-updated {
+    opacity: 1;
+    transition: opacity 0.1s ease;
+}

@@ -3764,7 +3764,7 @@ button:active {
 
 .insight-title {
   font-size: 0.8rem;
-  color: #666;
+  color: #ffffff;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -3774,14 +3774,14 @@ button:active {
 .insight-value {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #1F2D3D;
+  color: #ffffff;
   margin-bottom: 0.25rem;
   line-height: 1.2;
 }
 
 .insight-subtitle {
   font-size: 0.85rem;
-  color: #666;
+  color: #ffffff;
   font-weight: 500;
 }
 
@@ -7964,3 +7964,55 @@ button:active {
 /* ========================================
    FIN DE ESTILOS ORGANIZADOS
    ======================================== */
+
+/* ========================================= */
+/* 🐔 ESTILOS PARA VENTAS DE POLLOS */
+/* ========================================= */
+
+/* Estilos para botones de acciones en ventas de pollos */
+.chicken-sale-header-treinta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chicken-sale-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.chicken-sale-actions .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  border-radius: 0.375rem;
+}
+
+.chicken-sale-client-treinta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+}
+
+.chicken-sale-date-treinta {
+  font-size: 0.875rem;
+  color: #6c757d;
+  white-space: nowrap;
+}
+
+@media (max-width: 576px) {
+  .chicken-sale-header-treinta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .chicken-sale-actions {
+    align-self: flex-end;
+    margin-top: 0.5rem;
+  }
+}

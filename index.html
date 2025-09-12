@@ -41,8 +41,12 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
   <!-- Estilos personalizados -->
   <link rel="stylesheet" href="style.css" />
+  <!-- Estilos modulares -->
+  <link rel="stylesheet" href="style-modular.css" />
+  <!-- Estilos para sincronización silenciosa -->
+  <link rel="stylesheet" href="silent-sync.css" />
 
-  <!-- ========================================= -->
+  <!-- ========================================= --> 
   <!-- 📊 LIBRERÍAS DE GRÁFICOS Y PDF -->
   <!-- ========================================= -->
   <!-- jsPDF para generación de PDFs -->
@@ -68,6 +72,9 @@
   <script src="https://apis.google.com/js/api.js"></script>
   <!-- Google Identity Services para OAuth 2.0 -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  
+  <!-- Sistema de actualizaciones silenciosas -->
+  <script src="silent-update.js"></script>
 </head>
 
 <body class="bg-light">
@@ -144,10 +151,7 @@
             <i class="bi bi-box-seam"></i>
             <span>Inventario</span>
           </button>
-          <button class="sidebar-nav-item" onclick="showView('movements')" id="nav-movements">
-            <i class="bi bi-calendar-range"></i>
-            <span>Movimientos</span>
-          </button>
+
         </nav>
       </div>
 
@@ -250,7 +254,7 @@
 
     <div class="sidebar-footer">
       <div class="sidebar-version">
-        <small>v1.0.0 - TillUp POS</small>
+        <small>v2.0.0 - TillUp POS Modular</small>
       </div>
     </div>
   </div>
@@ -297,6 +301,105 @@
       <!-- Tarjetas de balance -->
       <div id="balanceCards" class="balance-cards-treinta mb-4">
         <!-- Tarjetas generadas por JS -->
+      </div>
+
+      <!-- Estadísticas Avanzadas -->
+      <div id="advancedStats" class="advanced-stats-treinta mt-4">
+        <div class="advanced-stats-header">
+          <h5 class="mb-3">
+            <i class="bi bi-graph-up-arrow"></i> Estadísticas Avanzadas
+          </h5>
+        </div>
+        <div class="advanced-stats-grid">
+          <div class="stat-card-treinta">
+            <div class="stat-icon">
+              <i class="bi bi-cart-check"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="totalSalesCount">0</div>
+              <div class="stat-label">Total Ventas</div>
+            </div>
+          </div>
+          
+          <div class="stat-card-treinta">
+            <div class="stat-icon">
+              <i class="bi bi-people"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="totalClientsCount">0</div>
+              <div class="stat-label">Clientes</div>
+            </div>
+          </div>
+          
+          <div class="stat-card-treinta">
+            <div class="stat-icon">
+              <i class="bi bi-box-seam"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="totalProductsCount">0</div>
+              <div class="stat-label">Productos</div>
+            </div>
+          </div>
+          
+          <div class="stat-card-treinta">
+            <div class="stat-icon">
+              <i class="bi bi-currency-dollar"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="averageSale">$0.00</div>
+              <div class="stat-label">Promedio Venta</div>
+            </div>
+          </div>
+          
+          <div class="stat-card-treinta">
+            <div class="stat-icon">
+              <i class="bi bi-percent"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="profitMargin">0.0%</div>
+              <div class="stat-label">Margen Utilidad</div>
+            </div>
+          </div>
+          
+          <div class="stat-card-treinta">
+            <div class="stat-icon">
+              <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="debtRatio">0.0%</div>
+              <div class="stat-label">Ratio Deudas</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="insights-section mt-4">
+          <h6 class="mb-3">
+            <i class="bi bi-lightbulb"></i> Insights
+          </h6>
+          <div class="insights-grid">
+            <div class="insight-card-treinta">
+              <div class="insight-icon">
+                <i class="bi bi-trophy"></i>
+              </div>
+              <div class="insight-content">
+                <div class="insight-title">Producto Top</div>
+                <div class="insight-value" id="topProduct">Sin ventas</div>
+                <div class="insight-subtitle" id="topProductSales">0 ventas</div>
+              </div>
+            </div>
+            
+            <div class="insight-card-treinta">
+              <div class="insight-icon">
+                <i class="bi bi-star"></i>
+              </div>
+              <div class="insight-content">
+                <div class="insight-title">Cliente VIP</div>
+                <div class="insight-value" id="topClient">Sin ventas</div>
+                <div class="insight-subtitle" id="topClientAmount">$0.00</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Movimientos recientes -->
@@ -396,7 +499,7 @@
     </div>
 
     <!-- ========================================= -->
-    <!-- 🛒 VISTA: VENTAS TIPO E-COMMERCE -->
+    <!-- 🛍 VISTA: VENTAS TIPO E-COMMERCE -->
     <!-- ========================================= -->
     <section id="view-sales" class="app-view d-none">
       <div class="sales-temu-container">
@@ -602,219 +705,6 @@
         </div>
       </div>
       <div id="inventoryList" class="row gy-3"></div>
-    </section>
-
-    <!-- ========================================= -->
-    <!-- 📱 VISTA: CONFIGURACIÓN DE TELEGRAM -->
-    <!-- ========================================= -->
-    <section id="view-telegram-config" class="app-view d-none">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0"><i class="bi bi-telegram"></i> Configuración de Telegram</h2>
-        <div class="d-flex gap-2">
-          <button id="testTelegramConnection" class="btn btn-outline-success btn-sm" disabled>
-            <i class="bi bi-wifi"></i> Probar Conexión
-          </button>
-          <button id="fullBackupBtn" class="btn btn-primary btn-sm" disabled>
-            <i class="bi bi-cloud-upload"></i> Respaldo Completo
-          </button>
-        </div>
-      </div>
-
-      <!-- Estado de configuración -->
-      <div class="alert alert-info mb-4" id="telegramStatus">
-        <i class="bi bi-info-circle"></i> Telegram no configurado. Complete la configuración para habilitar el respaldo automático.
-      </div>
-
-      <!-- Configuración básica -->
-      <div class="card card-custom mb-4">
-        <div class="card-body">
-          <h5 class="card-title"><i class="bi bi-gear"></i> Configuración del Bot</h5>
-          <form id="telegramConfigForm">
-            <div class="row g-3 mb-3">
-              <div class="col-md-6">
-                <label for="botToken" class="form-label">
-                  <i class="bi bi-key"></i> Token del Bot
-                </label>
-                <input type="password" id="botToken" class="form-control form-control-treinta" 
-                       placeholder="123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" required>
-                <div class="form-text">Token proporcionado por @BotFather</div>
-              </div>
-              <div class="col-md-6">
-                <label for="channelId" class="form-label">
-                  <i class="bi bi-hash"></i> ID del Canal/Chat
-                </label>
-                <input type="text" id="channelId" class="form-control form-control-treinta" 
-                       placeholder="-1001234567890" required>
-                <div class="form-text">ID del canal privado donde se guardarán los respaldos</div>
-              </div>
-            </div>
-            <div class="d-grid gap-2">
-              <button type="submit" class="btn btn-primary btn-treinta">
-                <i class="bi bi-save"></i> Guardar Configuración
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- Opciones de respaldo -->
-      <div class="card card-custom mb-4" id="backupOptions" style="display: none;">
-        <div class="card-body">
-          <h5 class="card-title"><i class="bi bi-cloud-arrow-up"></i> Opciones de Respaldo</h5>
-          <div class="row g-3">
-            <div class="col-md-6">
-              <button class="btn btn-outline-primary w-100" onclick="telegramSync.backupSales(JSON.parse(localStorage.getItem('ventas') || '[]'))">
-                <i class="bi bi-cart-check"></i> Respaldar Ventas
-              </button>
-            </div>
-            <div class="col-md-6">
-              <button class="btn btn-outline-primary w-100" onclick="telegramSync.backupInventory(JSON.parse(localStorage.getItem('productos') || '[]'))">
-                <i class="bi bi-box-seam"></i> Respaldar Inventario
-              </button>
-            </div>
-            <div class="col-md-6">
-              <button class="btn btn-outline-primary w-100" onclick="telegramSync.backupClients(JSON.parse(localStorage.getItem('clientes') || '[]'))">
-                <i class="bi bi-people"></i> Respaldar Clientes
-              </button>
-            </div>
-            <div class="col-md-6">
-              <button class="btn btn-success w-100" onclick="performFullBackup()">
-                <i class="bi bi-cloud-upload"></i> Respaldo Completo
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Restaurar respaldos -->
-      <div class="card card-custom mb-4" id="restoreOptions" style="display: none;">
-        <div class="card-body">
-          <h5 class="card-title"><i class="bi bi-cloud-download"></i> Restaurar Datos</h5>
-          <div class="d-flex gap-2 mb-3">
-            <button class="btn btn-outline-info" onclick="loadAvailableBackups()">
-              <i class="bi bi-arrow-clockwise"></i> Buscar Respaldos
-            </button>
-          </div>
-          <div id="availableBackups" class="list-group">
-            <!-- Lista de respaldos disponibles -->
-          </div>
-        </div>
-      </div>
-
-      <!-- Guía de configuración -->
-      <div class="card card-custom">
-        <div class="card-body">
-          <h5 class="card-title"><i class="bi bi-question-circle"></i> Guía de Configuración</h5>
-          <div class="telegram-setup-guide">
-            <div class="step-item">
-              <div class="step-number">1</div>
-              <div class="step-content">
-                <h6>Crear el Bot</h6>
-                <p>Busca <strong>@BotFather</strong> en Telegram y envía <code>/newbot</code>. Sigue las instrucciones y guarda el token.</p>
-              </div>
-            </div>
-            <div class="step-item">
-              <div class="step-number">2</div>
-              <div class="step-content">
-                <h6>Crear Canal Privado</h6>
-                <p>Crea un canal privado en Telegram y agrega tu bot como administrador.</p>
-              </div>
-            </div>
-            <div class="step-item">
-              <div class="step-number">3</div>
-              <div class="step-content">
-                <h6>Obtener ID del Canal</h6>
-                <p>Busca <strong>@userinfobot</strong>, agrégalo a tu canal y te mostrará el ID del canal.</p>
-              </div>
-            </div>
-            <div class="step-item">
-              <div class="step-number">4</div>
-              <div class="step-content">
-                <h6>Configurar en TillUp</h6>
-                <p>Ingresa el token del bot y el ID del canal en el formulario de arriba.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========================================= -->
-    <!-- ☁️ VISTA: BACKUP AUTOMÁTICO TELEGRAM -->
-    <!-- ========================================= -->
-    <section id="view-telegram-backup" class="app-view d-none">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0"><i class="bi bi-cloud-arrow-up"></i> Backup Automático a Telegram</h2>
-      </div>
-      <div class="card card-custom mb-4">
-        <div class="card-body">
-          <h5 class="card-title"><i class="bi bi-gear"></i> Configuración de Telegram</h5>
-          <form id="telegramBackupForm" class="form-treinta">
-            <div class="row g-3 mb-3">
-              <div class="col-md-4">
-                <label for="telegramBotToken" class="form-label"><i class="bi bi-key"></i> Bot Token</label>
-                <input type="text" id="telegramBotToken" class="form-control form-control-treinta"
-                  placeholder="123456789:ABC..." required />
-              </div>
-              <div class="col-md-4">
-                <label for="telegramChatId" class="form-label"><i class="bi bi-person-badge"></i> Chat ID</label>
-                <input type="text" id="telegramChatId" class="form-control form-control-treinta"
-                  placeholder="Ej: 123456789" required />
-              </div>
-              <div class="col-md-4">
-                <label for="telegramBackupInterval" class="form-label"><i class="bi bi-clock-history"></i> Intervalo
-                  (minutos)</label>
-                <input type="number" id="telegramBackupInterval" class="form-control form-control-treinta" min="5"
-                  max="1440" value="60" required />
-                <div class="form-text">Mínimo: 5 min, Máximo: 1440 min (24h)</div>
-              </div>
-              <div class="col-md-4">
-                <label for="googleDriveBackupInterval" class="form-label"><i class="bi bi-cloud-arrow-up"></i> Intervalo
-                  Google Drive (minutos)</label>
-                <input type="number" id="googleDriveBackupInterval" class="form-control form-control-treinta" min="5"
-                  max="1440" value="60" required />
-                <div class="form-text">Mínimo: 5 min, Máximo: 1440 min (24h)</div>
-              </div>
-            </div>
-            <div class="d-grid gap-2 mb-3">
-              <button type="submit" class="btn btn-primary btn-treinta">
-                <i class="bi bi-save"></i> Guardar Configuración
-              </button>
-              <button type="button" class="btn btn-outline-success btn-treinta" id="testTelegramBackup">
-                <i class="bi bi-send"></i> Probar Envío Manual
-              </button>
-              <button type="button" class="btn btn-outline-secondary btn-treinta" id="importTelegramBackupBtn">
-                <i class="bi bi-upload"></i> Importar Backup
-              </button>
-              <input type="file" id="importTelegramBackupInput" accept="application/json" style="display:none" />
-            </div>
-          </form>
-        </div>
-      </div>
-      <div class="card card-custom">
-        <div class="card-body">
-          <h5 class="card-title"><i class="bi bi-question-circle"></i> Guía paso a paso</h5>
-          <ol class="telegram-guide-list">
-            <li>Abre <b>Telegram</b> y busca <b>@BotFather</b>.</li>
-            <li>Envía <code>/newbot</code> y sigue las instrucciones para crear un nuevo bot.<br>Guarda el <b>Token</b>
-              que te entrega BotFather.</li>
-            <li>Agrega tu bot al chat o grupo donde quieras recibir los backups.<br>Si es grupo, hazlo administrador.
-            </li>
-            <li>Para obtener el <b>Chat ID</b>:
-              <ul>
-                <li>Busca el bot <b>@userinfobot</b> en Telegram y escríbele o agrégalo al grupo.</li>
-                <li>Te mostrará tu <b>Chat ID</b> o el del grupo.</li>
-              </ul>
-            </li>
-            <li>Ingresa el <b>Token</b> y <b>Chat ID</b> en el formulario de arriba y guarda.</li>
-            <li>Configura el intervalo de respaldo automático (en minutos).</li>
-            <li>Pulsa <b>Probar Envío Manual</b> para verificar que todo funciona.</li>
-          </ol>
-          <div class="alert alert-info mt-3">
-            <b>Nota:</b> El backup enviará un archivo con todos tus datos de la app en formato JSON.
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- ========================================= -->
@@ -1081,160 +971,218 @@
     </section>
 
     <!-- ========================================= -->
-    <!-- 📈 VISTA: MOVIMIENTOS Y ESTADÍSTICAS -->
+    <!-- 📱 VISTA: CONFIGURACIÓN DE TELEGRAM -->
     <!-- ========================================= -->
-    <section id="view-movements" class="app-view d-none">
-      <!-- Header minimalista -->
-      <div class="movements-header">
-        <div class="header-content">
-          <div class="header-left">
-            <h1 class="header-title">Movimientos</h1>
-            <p class="header-subtitle" id="periodDisplay">Hoy</p>
-          </div>
-          <div class="header-actions">
-            <button id="btnClearFilters" class="btn-clear-filters" onclick="clearMovementFilters()"
-              style="display: none;">
-              <i class="bi bi-arrow-clockwise"></i>
-            </button>
-            <button onclick="generatePDF('movements')" class="btn-export">
-              <i class="bi bi-download"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Filtros superiores minimalistas -->
-      <div class="period-filters">
-        <div class="filter-tabs">
-          <button class="filter-tab active" data-period="today" onclick="setPeriodFilter('today')">
-            <span class="tab-label">Hoy</span>
+    <section id="view-telegram-config" class="app-view d-none">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="bi bi-telegram"></i> Configuración de Telegram</h2>
+        <div class="d-flex gap-2">
+          <button id="testTelegramConnection" class="btn btn-outline-success btn-sm" disabled>
+            <i class="bi bi-wifi"></i> Probar Conexión
           </button>
-          <button class="filter-tab" data-period="week" onclick="setPeriodFilter('week')">
-            <span class="tab-label">Semana</span>
-          </button>
-          <button class="filter-tab" data-period="month" onclick="setPeriodFilter('month')">
-            <span class="tab-label">Mes</span>
-          </button>
-          <button class="filter-tab" data-period="year" onclick="setPeriodFilter('year')">
-            <span class="tab-label">Año</span>
-          </button>
-          <button class="filter-tab" data-period="custom" onclick="setPeriodFilter('custom')">
-            <span class="tab-label">Personalizado</span>
+          <button id="fullBackupBtn" class="btn btn-primary btn-sm" disabled>
+            <i class="bi bi-cloud-upload"></i> Respaldo Completo
           </button>
         </div>
       </div>
 
-      <!-- Selector de fechas personalizadas -->
-      <div id="customDateSelector" class="custom-date-selector" style="display: none;">
-        <div class="date-inputs">
-          <div class="date-input-group">
-            <label for="startDate">Desde</label>
-            <input type="date" id="startDate" class="date-input" />
-          </div>
-          <div class="date-input-group">
-            <label for="endDate">Hasta</label>
-            <input type="date" id="endDate" class="date-input" />
-          </div>
-          <button onclick="applyCustomFilter()" class="btn-apply-filter">
-            <i class="bi bi-check"></i>
-          </button>
-        </div>
+      <!-- Estado de configuración -->
+      <div class="alert alert-info mb-4" id="telegramStatus">
+        <i class="bi bi-info-circle"></i> Telegram no configurado. Complete la configuración para habilitar el respaldo automático.
       </div>
 
-      <!-- Métricas principales -->
-      <div class="metrics-overview">
-        <div class="metric-card primary">
-          <div class="metric-icon">
-            <i class="bi bi-graph-up"></i>
-          </div>
-          <div class="metric-content">
-            <div class="metric-value" id="totalRevenue">$0.00</div>
-            <div class="metric-label">Ingresos Totales</div>
-            <div class="metric-subtitle">Ganancias reales (PVP - Costo)</div>
-          </div>
-          <button class="metric-toggle" id="toggleRevenue" onclick="toggleRevenueVisibility()"
-            title="Mostrar/Ocultar ganancias">
-            <i class="bi bi-eye" id="revenueEyeIcon"></i>
-          </button>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-icon">
-            <i class="bi bi-cart-check"></i>
-          </div>
-          <div class="metric-content">
-            <div class="metric-value" id="totalSales">0</div>
-            <div class="metric-label">Ventas Normales</div>
-            <div class="metric-amount" id="totalSalesAmount">$0.00</div>
-          </div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-icon">
-            <i class="bi bi-egg-fried"></i>
-          </div>
-          <div class="metric-content">
-            <div class="metric-value" id="totalChickenSales">0</div>
-            <div class="metric-label">Ventas de Pollos</div>
-            <div class="metric-amount" id="totalChickenAmount">$0.00</div>
-          </div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-icon">
-            <i class="bi bi-cash-stack"></i>
-          </div>
-          <div class="metric-content">
-            <div class="metric-value" id="totalDebts">0</div>
-            <div class="metric-label">Deudas</div>
-            <div class="metric-amount" id="totalDebtsAmount">$0.00</div>
-          </div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-icon">
-            <i class="bi bi-cash-coin"></i>
-          </div>
-          <div class="metric-content">
-            <div class="metric-value" id="totalPayments">0</div>
-            <div class="metric-label">Pagos</div>
-            <div class="metric-subtitle">Abonos a deudas</div>
-            <div class="metric-amount" id="totalPaymentsAmount">$0.00</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Gráficas -->
-      <div class="charts-section">
-        <div class="chart-container">
-          <div class="chart-header">
-            <h3 class="chart-title">Tendencias de Ventas</h3>
-            <div class="chart-controls">
-              <button class="chart-control active" data-chart="trend" onclick="showChart('trend')">
-                <i class="bi bi-graph-up"></i>
+      <!-- Configuración básica -->
+      <div class="card card-custom mb-4">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-gear"></i> Configuración del Bot</h5>
+          <form id="telegramConfigForm">
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label for="botToken" class="form-label">
+                  <i class="bi bi-key"></i> Token del Bot
+                </label>
+                <input type="password" id="botToken" class="form-control form-control-treinta" 
+                       placeholder="123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" required>
+                <div class="form-text">Token proporcionado por @BotFather</div>
+              </div>
+              <div class="col-md-6">
+                <label for="channelId" class="form-label">
+                  <i class="bi bi-hash"></i> ID del Canal/Chat
+                </label>
+                <input type="text" id="channelId" class="form-control form-control-treinta" 
+                       placeholder="-1001234567890" required>
+                <div class="form-text">ID del canal privado donde se guardarán los respaldos</div>
+              </div>
+            </div>
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary btn-treinta">
+                <i class="bi bi-save"></i> Guardar Configuración
               </button>
-              <button class="chart-control" data-chart="distribution" onclick="showChart('distribution')">
-                <i class="bi bi-pie-chart"></i>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Opciones de respaldo -->
+      <div class="card card-custom mb-4" id="backupOptions" style="display: none;">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-cloud-arrow-up"></i> Opciones de Respaldo</h5>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <button class="btn btn-outline-primary w-100" onclick="telegramSync.backupSales(JSON.parse(localStorage.getItem('ventas') || '[]'))">
+                <i class="bi bi-cart-check"></i> Respaldar Ventas
+              </button>
+            </div>
+            <div class="col-md-6">
+              <button class="btn btn-outline-primary w-100" onclick="telegramSync.backupInventory(JSON.parse(localStorage.getItem('productos') || '[]'))">
+                <i class="bi bi-box-seam"></i> Respaldar Inventario
+              </button>
+            </div>
+            <div class="col-md-6">
+              <button class="btn btn-outline-primary w-100" onclick="telegramSync.backupClients(JSON.parse(localStorage.getItem('clientes') || '[]'))">
+                <i class="bi bi-people"></i> Respaldar Clientes
+              </button>
+            </div>
+            <div class="col-md-6">
+              <button class="btn btn-success w-100" onclick="performFullBackup()">
+                <i class="bi bi-cloud-upload"></i> Respaldo Completo
               </button>
             </div>
           </div>
-          <div class="chart-content">
-            <canvas id="mainChart" width="800" height="300"></canvas>
+        </div>
+      </div>
+
+      <!-- Restaurar respaldos -->
+      <div class="card card-custom mb-4" id="restoreOptions" style="display: none;">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-cloud-download"></i> Restaurar Datos</h5>
+          <div class="d-flex gap-2 mb-3">
+            <button class="btn btn-outline-info" onclick="loadAvailableBackups()">
+              <i class="bi bi-arrow-clockwise"></i> Buscar Respaldos
+            </button>
+          </div>
+          <div id="availableBackups" class="list-group">
+            <!-- Lista de respaldos disponibles -->
           </div>
         </div>
       </div>
 
-      <!-- Timeline de movimientos -->
-      <div class="movements-timeline">
-        <div class="timeline-header">
-          <h3 class="timeline-title">Movimientos Recientes</h3>
-          <div class="timeline-count" id="filteredMovementsCount">0 movimientos</div>
-        </div>
-        <div id="filteredMovementsList" class="timeline-content">
-          <!-- Movimientos generados por JS -->
+      <!-- Guía de configuración -->
+      <div class="card card-custom">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-question-circle"></i> Guía de Configuración</h5>
+          <div class="telegram-setup-guide">
+            <div class="step-item">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h6>Crear el Bot</h6>
+                <p>Busca <strong>@BotFather</strong> en Telegram y envía <code>/newbot</code>. Sigue las instrucciones y guarda el token.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <h6>Crear Canal Privado</h6>
+                <p>Crea un canal privado en Telegram y agrega tu bot como administrador.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <h6>Obtener ID del Canal</h6>
+                <p>Busca <strong>@userinfobot</strong>, agrégalo a tu canal y te mostrará el ID del canal.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-number">4</div>
+              <div class="step-content">
+                <h6>Configurar en TillUp</h6>
+                <p>Ingresa el token del bot y el ID del canal en el formulario de arriba.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
+
+    <!-- ========================================= -->
+    <!-- ☁️ VISTA: BACKUP AUTOMÁTICO TELEGRAM -->
+    <!-- ========================================= -->
+    <section id="view-telegram-backup" class="app-view d-none">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="bi bi-cloud-arrow-up"></i> Backup Automático a Telegram</h2>
+      </div>
+      <div class="card card-custom mb-4">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-gear"></i> Configuración de Telegram</h5>
+          <form id="telegramBackupForm" class="form-treinta">
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label for="telegramBotToken" class="form-label"><i class="bi bi-key"></i> Bot Token</label>
+                <input type="text" id="telegramBotToken" class="form-control form-control-treinta"
+                  placeholder="123456789:ABC..." required />
+              </div>
+              <div class="col-md-4">
+                <label for="telegramChatId" class="form-label"><i class="bi bi-person-badge"></i> Chat ID</label>
+                <input type="text" id="telegramChatId" class="form-control form-control-treinta"
+                  placeholder="Ej: 123456789" required />
+              </div>
+              <div class="col-md-4">
+                <label for="telegramBackupInterval" class="form-label"><i class="bi bi-clock-history"></i> Intervalo
+                  (minutos)</label>
+                <input type="number" id="telegramBackupInterval" class="form-control form-control-treinta" min="5"
+                  max="1440" value="60" required />
+                <div class="form-text">Mínimo: 5 min, Máximo: 1440 min (24h)</div>
+              </div>
+              <div class="col-md-4">
+                <label for="googleDriveBackupInterval" class="form-label"><i class="bi bi-cloud-arrow-up"></i> Intervalo
+                  Google Drive (minutos)</label>
+                <input type="number" id="googleDriveBackupInterval" class="form-control form-control-treinta" min="5"
+                  max="1440" value="60" required />
+                <div class="form-text">Mínimo: 5 min, Máximo: 1440 min (24h)</div>
+              </div>
+            </div>
+            <div class="d-grid gap-2 mb-3">
+              <button type="submit" class="btn btn-primary btn-treinta">
+                <i class="bi bi-save"></i> Guardar Configuración
+              </button>
+              <button type="button" class="btn btn-outline-success btn-treinta" id="testTelegramBackup">
+                <i class="bi bi-send"></i> Probar Envío Manual
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-treinta" id="importTelegramBackupBtn">
+                <i class="bi bi-upload"></i> Importar Backup
+              </button>
+              <input type="file" id="importTelegramBackupInput" accept="application/json" style="display:none" />
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="card card-custom">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-question-circle"></i> Guía paso a paso</h5>
+          <ol class="telegram-guide-list">
+            <li>Abre <b>Telegram</b> y busca <b>@BotFather</b>.</li>
+            <li>Envía <code>/newbot</code> y sigue las instrucciones para crear un nuevo bot.<br>Guarda el <b>Token</b>
+              que te entrega BotFather.</li>
+            <li>Agrega tu bot al chat o grupo donde quieras recibir los backups.<br>Si es grupo, hazlo administrador.
+            </li>
+            <li>Para obtener el <b>Chat ID</b>:
+              <ul>
+                <li>Busca el bot <b>@userinfobot</b> en Telegram y escríbele o agrégalo al grupo.</li>
+                <li>Te mostrará tu <b>Chat ID</b> o el del grupo.</li>
+              </ul>
+            </li>
+            <li>Ingresa el <b>Token</b> y <b>Chat ID</b> en el formulario de arriba y guarda.</li>
+            <li>Configura el intervalo de respaldo automático (en minutos).</li>
+            <li>Pulsa <b>Probar Envío Manual</b> para verificar que todo funciona.</li>
+          </ol>
+          <div class="alert alert-info mt-3">
+            <b>Nota:</b> El backup enviará un archivo con todos tus datos de la app en formato JSON.
+          </div>
+        </div>
+      </div>
+    </section>
+
 
   </main>
 
@@ -1329,18 +1277,348 @@
   <!-- ========================================= -->
   <!-- 🔧 SCRIPTS DE LA APLICACIÓN -->
   <!-- ========================================= -->
+
   <!-- Cliente WebSocket para sincronización -->
   <script src="websocket-sync-client.js"></script>
   <!-- Gestor de sincronización -->
   <script src="sync-manager.js"></script>
-  <!-- Integración de sincronización -->
-  <script src="sync-integration.js"></script>
-  <!-- Utilidades y funciones auxiliares -->
-  <script src="utils.js"></script>
-  <!-- Generador de reportes PDF -->
-  <script src="pdf-generator.js"></script>
+  <!-- Debug de sincronización -->
+  <script src="test-sync-debug.js"></script>
+  <!-- Test final -->
+  <script src="test-sync-final.js"></script>
+  <!-- Limpieza de cache -->
+  <script src="clear-cache.js"></script>
+  <!-- Hot Reload System -->
+  <script src="hot-reload.js"></script>
   <!-- Lógica principal de la aplicación -->
-  <script src="app.js"></script>
+  <script type="module" src="js/app.js"></script>
+  
+  <!-- ========================================= -->
+  <!-- 🧾 FUNCIONES DE COMPROBANTES -->
+  <!-- ========================================= -->
+  <script>
+    // Función para mostrar detalles del movimiento y su comprobante
+    function showMovementDetail(movementIndex) {
+      const movements = getRecentMovements(document.querySelector('input[name="periodFilter"]:checked')?.value || 'day');
+      const movement = movements[movementIndex];
+      
+      if (!movement || !movement.data) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo encontrar la información del movimiento.',
+          confirmButtonText: 'Aceptar'
+        });
+        return;
+      }
+      
+      // Mostrar comprobante según el tipo de movimiento
+      switch(movement.type) {
+        case 'sale':
+          showSaleReceipt(movement.data);
+          break;
+        case 'chicken_sale':
+          showChickenReceipt(movement.data);
+          break;
+        case 'debt':
+          showDebtDetail(movement.data);
+          break;
+        case 'payment':
+          showPaymentDetail(movement.data);
+          break;
+        default:
+          showGenericMovementDetail(movement);
+      }
+    }
+    
+    // Función para mostrar comprobante de venta normal
+    function showSaleReceipt(sale) {
+      const receiptHtml = `
+        <div class="receipt-treinta">
+          <div class="receipt-header">
+            <div class="receipt-logo">
+              <img src="TillUp.png" alt="TillUp" style="width: 40px; height: 40px; border-radius: 8px;">
+              <h3>TillUp POS</h3>
+            </div>
+            <div class="receipt-info">
+              <div class="receipt-title">COMPROBANTE DE VENTA</div>
+              <div class="receipt-number">Venta #${sale.id}</div>
+              <div class="receipt-date">${new Date(sale.date).toLocaleDateString()} ${sale.time || ''}</div>
+            </div>
+          </div>
+          
+          <div class="receipt-client">
+            <i class="bi bi-person"></i>
+            <strong>Cliente:</strong> ${sale.clientName}
+          </div>
+          
+          <div class="receipt-items">
+            <div class="receipt-items-header">
+              <div class="item-name">Producto</div>
+              <div class="item-qty">Cant.</div>
+              <div class="item-price">Precio</div>
+              <div class="item-subtotal">Subtotal</div>
+            </div>
+            
+            ${sale.items.map(item => `
+              <div class="receipt-item">
+                <div class="item-name">${item.name}</div>
+                <div class="item-qty">${item.qty}</div>
+                <div class="item-price">$${item.price.toFixed(2)}</div>
+                <div class="item-subtotal">$${(item.price * item.qty).toFixed(2)}</div>
+              </div>
+            `).join('')}
+          </div>
+          
+          <div class="receipt-total">
+            ${sale.discount > 0 ? `
+              <div class="total-line">
+                <span>Subtotal:</span>
+                <span>$${sale.originalTotal.toFixed(2)}</span>
+              </div>
+              <div class="total-line">
+                <span>Descuento:</span>
+                <span>-$${sale.discount.toFixed(2)}</span>
+              </div>
+            ` : ''}
+            <div class="total-line final">
+              <span>TOTAL:</span>
+              <span class="total-amount">$${sale.total.toFixed(2)}</span>
+            </div>
+          </div>
+          
+          <div class="payment-type">
+            <i class="bi bi-${getPaymentIcon(sale.paymentType)}"></i>
+            <strong>Método de pago:</strong> ${getPaymentText(sale.paymentType)}
+          </div>
+          
+          <div class="receipt-footer">
+            <div class="footer-message">
+              <i class="bi bi-heart"></i>
+              ¡Gracias por su compra!
+            </div>
+            <div class="footer-brand">
+              <small>TillUp POS - Gestión de Ventas</small>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      Swal.fire({
+        title: 'Comprobante de Venta',
+        html: receiptHtml,
+        showCancelButton: true,
+        confirmButtonText: 'Imprimir',
+        cancelButtonText: 'Cerrar',
+        showDenyButton: true,
+        denyButtonText: 'Descargar PDF',
+        width: 500,
+        customClass: {
+          popup: 'swal2-receipt-treinta',
+          confirmButton: 'btn btn-primary',
+          cancelButton: 'btn btn-secondary',
+          denyButton: 'btn btn-outline-primary'
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          printSaleReceipt(sale);
+        } else if (result.isDenied) {
+          downloadSaleReceiptPDF(sale);
+        }
+      });
+    }
+    
+    // Función para mostrar comprobante de venta de pollos
+    function showChickenReceipt(sale) {
+      const receiptHtml = `
+        <div class="receipt-treinta">
+          <div class="receipt-header">
+            <div class="receipt-logo">
+              <img src="TillUp.png" alt="TillUp" style="width: 40px; height: 40px; border-radius: 8px;">
+              <h3>TillUp POS</h3>
+            </div>
+            <div class="receipt-info">
+              <div class="receipt-title">COMPROBANTE DE VENTA DE POLLOS</div>
+              <div class="receipt-number">Venta #${sale.id}</div>
+              <div class="receipt-date">${new Date(sale.date).toLocaleDateString()} ${sale.time}</div>
+            </div>
+          </div>
+          
+          <div class="receipt-client">
+            <i class="bi bi-person"></i>
+            <strong>Cliente:</strong> ${sale.clientName}
+          </div>
+          
+          <div class="receipt-items">
+            <div class="receipt-items-header">
+              <div class="item-name">Descripción</div>
+              <div class="item-qty">Cant.</div>
+              <div class="item-price">Precio/Lb</div>
+              <div class="item-subtotal">Subtotal</div>
+            </div>
+            
+            <div class="receipt-item">
+              <div class="item-name">Pollo(s) - ${sale.weight} lbs</div>
+              <div class="item-qty">${sale.quantity}</div>
+              <div class="item-price">$${sale.pricePerPound.toFixed(2)}</div>
+              <div class="item-subtotal">$${sale.total.toFixed(2)}</div>
+            </div>
+          </div>
+          
+          <div class="receipt-total">
+            <div class="total-line final">
+              <span>TOTAL:</span>
+              <span class="total-amount">$${sale.total.toFixed(2)}</span>
+            </div>
+          </div>
+          
+          <div class="payment-type">
+            <i class="bi bi-${getPaymentIcon(sale.paymentType)}"></i>
+            <strong>Método de pago:</strong> ${getPaymentText(sale.paymentType)}
+            ${sale.paymentType === 'credit' && sale.abono > 0 ? `<br><small>Abono inicial: $${sale.abono.toFixed(2)}</small>` : ''}
+          </div>
+          
+          <div class="receipt-footer">
+            <div class="footer-message">
+              <i class="bi bi-heart"></i>
+              ¡Gracias por su compra!
+            </div>
+            <div class="footer-brand">
+              <small>TillUp POS - Gestión de Ventas</small>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      Swal.fire({
+        title: 'Comprobante de Venta de Pollos',
+        html: receiptHtml,
+        showCancelButton: true,
+        confirmButtonText: 'Imprimir',
+        cancelButtonText: 'Cerrar',
+        showDenyButton: true,
+        denyButtonText: 'Descargar PDF',
+        width: 500,
+        customClass: {
+          popup: 'swal2-receipt-treinta',
+          confirmButton: 'btn btn-primary',
+          cancelButton: 'btn btn-secondary',
+          denyButton: 'btn btn-outline-primary'
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          printChickenReceipt(sale);
+        } else if (result.isDenied) {
+          downloadChickenReceiptPDF(sale);
+        }
+      });
+    }
+    
+    // Función para mostrar detalle de deuda
+    function showDebtDetail(debt) {
+      const html = `
+        <div style='max-width:340px;margin:auto;background:#fff;border-radius:10px;padding:1.2rem 1rem 1rem 1rem;box-shadow:0 2px 12px #0001;font-family:monospace;'>
+          <div style='text-align:center;font-weight:bold;font-size:1.1rem;letter-spacing:1px;'>TillUp POS</div>
+          <div style='text-align:center;font-size:0.95rem;color:#888;margin-bottom:0.5rem;'>${debt.date}</div>
+          <hr style='margin:0.5rem 0;border-top:1.5px dashed #bbb;' />
+          <div style='font-size:0.98rem;'><strong>Cliente:</strong> ${debt.clientName}</div>
+          <div class='mb-2'><strong>Monto original:</strong> $${(debt.total || debt.amount + (debt.abono || 0)).toFixed(2)}</div>
+          ${debt.abono ? `<div class='mb-2'><strong>Abonado:</strong> $${debt.abono.toFixed(2)}</div>` : ''}
+          <div class='mb-2'><strong>Saldo:</strong> <span class='text-danger'>$${debt.amount.toFixed(2)}</span></div>
+          <hr style='margin:0.5rem 0;border-top:1.5px dashed #bbb;' />
+          <div class='mb-2'><strong>Motivo:</strong> ${debt.reason || 'Venta a crédito'}</div>
+        </div>
+      `;
+      
+      Swal.fire({
+        title: 'Detalle de Deuda',
+        html: html,
+        confirmButtonText: 'Cerrar',
+        customClass: { popup: 'swal2-pos-ticket' }
+      });
+    }
+    
+    // Función para mostrar detalle de pago
+    function showPaymentDetail(data) {
+      const { debt, payment } = data;
+      const html = `
+        <div style='max-width:340px;margin:auto;background:#fff;border-radius:10px;padding:1.2rem 1rem 1rem 1rem;box-shadow:0 2px 12px #0001;font-family:monospace;'>
+          <div style='text-align:center;font-weight:bold;font-size:1.1rem;letter-spacing:1px;'>TillUp POS</div>
+          <div style='text-align:center;font-size:0.95rem;color:#888;margin-bottom:0.5rem;'>${payment.date}</div>
+          <hr style='margin:0.5rem 0;border-top:1.5px dashed #bbb;' />
+          <div style='font-size:0.98rem;'><strong>Cliente:</strong> ${debt.clientName}</div>
+          <div class='mb-2'><strong>Pago realizado:</strong> <span class='text-success'>$${payment.amount.toFixed(2)}</span></div>
+          <div class='mb-2'><strong>Deuda original:</strong> $${debt.id}</div>
+          <hr style='margin:0.5rem 0;border-top:1.5px dashed #bbb;' />
+          <div class='mb-2'><strong>Concepto:</strong> Abono a deuda</div>
+        </div>
+      `;
+      
+      Swal.fire({
+        title: 'Comprobante de Pago',
+        html: html,
+        confirmButtonText: 'Cerrar',
+        customClass: { popup: 'swal2-pos-ticket' }
+      });
+    }
+    
+    // Función para mostrar detalle genérico de movimiento
+    function showGenericMovementDetail(movement) {
+      const html = `
+        <div class="movement-detail-card">
+          <div class="movement-detail-header">
+            <div class="movement-icon ${movement.type}">
+              <i class="bi ${movement.icon}"></i>
+            </div>
+            <div class="movement-info">
+              <h5>${movement.title}</h5>
+              <p class="text-muted">${movement.subtitle}</p>
+            </div>
+          </div>
+          <div class="movement-detail-amount">
+            <span class="amount ${movement.amountClass}">
+              ${movement.amountClass === 'positive' ? '+' : ''}$${movement.amount.toFixed(2)}
+            </span>
+          </div>
+          <div class="movement-detail-date">
+            <i class="bi bi-calendar"></i> ${movement.date.toLocaleDateString()}
+          </div>
+        </div>
+      `;
+      
+      Swal.fire({
+        title: 'Detalle del Movimiento',
+        html: html,
+        confirmButtonText: 'Cerrar',
+        width: 400
+      });
+    }
+    
+    // Funciones auxiliares para imprimir y descargar PDFs
+    function printSaleReceipt(sale) {
+      // Implementar lógica de impresión
+      window.print();
+    }
+    
+    function downloadSaleReceiptPDF(sale) {
+      // Implementar descarga de PDF usando jsPDF
+      if (typeof generatePDF === 'function') {
+        generatePDF('sale', sale);
+      }
+    }
+    
+    function printChickenReceipt(sale) {
+      // Implementar lógica de impresión para pollos
+      window.print();
+    }
+    
+    function downloadChickenReceiptPDF(sale) {
+      // Implementar descarga de PDF para pollos usando jsPDF
+      if (typeof generatePDF === 'function') {
+        generatePDF('chicken', sale);
+      }
+    }
+  </script>
 
   <!-- ========================================= -->
   <!-- ⚡ BOTÓN DE ACCIONES RÁPIDAS -->
