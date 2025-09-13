@@ -180,10 +180,15 @@ function initializeAutoSync() {
         initTillUpSync(currentSyncUser);
         tillupSync = window.syncManager;
         
-        // Enviar datos automáticamente al conectar
+        // Verificar si necesita datos al conectar
         setTimeout(() => {
           if (tillupSync && tillupSync.isEnabled) {
-            autoSyncAllData();
+            const totalItems = (products?.length || 0) + (clients?.length || 0) + (sales?.length || 0) + (debts?.length || 0) + JSON.parse(localStorage.getItem('chickenSales') || '[]').length;
+            if (totalItems === 0) {
+              requestDataFromOtherDevices();
+            } else {
+              autoSyncAllData();
+            }
           }
         }, 3000);
       }
@@ -203,13 +208,98 @@ function autoSyncAllData() {
     chickenSales: JSON.parse(localStorage.getItem('chickenSales') || '[]')
   };
   
+  const totalItems = allData.products.length + allData.clients.length + allData.sales.length + allData.debts.length + allData.chickenSales.length;
+  
   if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
-    window.tillupWebSocketClient.send({
-      action: 'full_sync_data',
-      data: allData
-    });
-    console.log('🔄 Sincronización automática enviada');
+    if (totalItems === 0) {
+      // Si no hay datos, solicitar en lugar de enviar vacío
+      window.tillupWebSocketClient.send({
+        action: 'request_sync_data',
+        data: { userId: currentSyncUser }
+      });
+      console.log('🔄 Solicitando datos automáticamente (dispositivo vacío)');
+    } else {
+      // Si hay datos, enviar normalmente
+      window.tillupWebSocketClient.send({
+        action: 'full_sync_data',
+        data: allData
+      });
+      console.log('🔄 Sincronización automática enviada');
+    }
   }
+}
+
+// === SOLICITAR DATOS DE OTROS DISPOSITIVOS ===
+function requestDataFromOtherDevices() {
+  if (!tillupSync || !tillupSync.isEnabled) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Sincronización no configurada',
+      text: 'Configura un usuario primero.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+  
+  const currentData = {
+    products: products?.length || 0,
+    clients: clients?.length || 0,
+    sales: sales?.length || 0,
+    debts: debts?.length || 0,
+    chickenSales: JSON.parse(localStorage.getItem('chickenSales') || '[]').length
+  };
+  
+  const totalItems = currentData.products + currentData.clients + currentData.sales + currentData.debts + currentData.chickenSales;
+  
+  Swal.fire({
+    icon: 'question',
+    title: 'Solicitar datos de otros dispositivos',
+    html: `
+      <div class="text-start">
+        <p><strong>Datos actuales en este dispositivo:</strong></p>
+        <ul>
+          <li>${currentData.products} productos</li>
+          <li>${currentData.clients} clientes</li>
+          <li>${currentData.sales} ventas</li>
+          <li>${currentData.debts} deudas</li>
+          <li>${currentData.chickenSales} ventas de pollos</li>
+        </ul>
+        ${totalItems > 0 ? 
+          '<div class="alert alert-info"><i class="bi bi-info-circle"></i> Los datos recibidos se combinarán con los existentes.</div>' :
+          '<div class="alert alert-success"><i class="bi bi-download"></i> Perfecto para recibir datos en un dispositivo nuevo.</div>'
+        }
+        <p>¿Solicitar datos de otros dispositivos conectados?</p>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: '<i class="bi bi-cloud-download"></i> Solicitar Datos',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#198754'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+        window.tillupWebSocketClient.send({
+          action: 'request_sync_data',
+          data: { userId: currentSyncUser }
+        });
+        console.log('🔄 Solicitando datos de otros dispositivos');
+        
+        Swal.fire({
+          icon: 'info',
+          title: 'Solicitud enviada',
+          text: 'Se ha enviado una solicitud para recibir datos de otros dispositivos conectados.',
+          confirmButtonText: 'Aceptar'
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Sin conexión',
+          text: 'No hay conexión WebSocket activa.',
+          confirmButtonText: 'Aceptar'
+        });
+      }
+    }
+  });
 }
 
 // Cargar usuario guardado al iniciar
@@ -799,6 +889,7 @@ function showSyncStatus() {
 window.setupSyncUser = setupSyncUser;
 window.showSyncStatus = showSyncStatus;
 window.autoSyncAllData = autoSyncAllData;
+window.requestDataFromOtherDevices = requestDataFromOtherDevices;
 window.initializeAutoSync = initializeAutoSync;
 
 // Funciones adicionales de sincronización
@@ -914,8 +1005,6 @@ window.testBidirectionalSync = function() {
 };
 
 window.forceSyncAll = function() {
-  autoSyncAllData();
-  
   if (!tillupSync || !tillupSync.isEnabled) {
     Swal.fire({
       icon: 'warning',
@@ -934,16 +1023,126 @@ window.forceSyncAll = function() {
     chickenSales: JSON.parse(localStorage.getItem('chickenSales') || '[]')
   };
   
+  const totalItems = allData.products.length + allData.clients.length + allData.sales.length + allData.debts.length + allData.chickenSales.length;
+  
+  if (totalItems === 0) {
+    Swal.fire({
+      icon: 'warning',
+      title: '⚠️ Dispositivo sin datos',
+      html: `
+        <div class="text-start">
+          <p><strong>Este dispositivo no tiene datos para sincronizar.</strong></p>
+          <p>Si presionas "Solicitar Datos" recibirás los datos de otros dispositivos.</p>
+          <p>Si presionas "Enviar Vacío" borrarás los datos de otros dispositivos.</p>
+          <div class="alert alert-danger mt-3">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>¡CUIDADO!</strong> "Enviar Vacío" eliminará todos los datos de otros dispositivos.
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: '<i class="bi bi-download"></i> Solicitar Datos',
+      denyButtonText: '<i class="bi bi-upload"></i> Enviar Vacío',
+      cancelButtonText: '<i class="bi bi-x-circle"></i> Cancelar',
+      confirmButtonColor: '#198754',
+      denyButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Solicitar datos de otros dispositivos
+        if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+          window.tillupWebSocketClient.send({
+            action: 'request_sync_data',
+            data: { userId: currentSyncUser }
+          });
+          Swal.fire({
+            icon: 'info',
+            title: 'Solicitando datos...',
+            text: 'Se ha enviado una solicitud para recibir datos de otros dispositivos.',
+            confirmButtonText: 'Aceptar'
+          });
+        }
+      } else if (result.isDenied) {
+        // Confirmar envío de datos vacíos
+        Swal.fire({
+          icon: 'error',
+          title: '¿Estás completamente seguro?',
+          html: `
+            <div class="text-start">
+              <p><strong>Esta acción BORRARÁ TODOS LOS DATOS de otros dispositivos:</strong></p>
+              <ul>
+                <li>Productos</li>
+                <li>Clientes</li>
+                <li>Ventas</li>
+                <li>Deudas</li>
+                <li>Ventas de pollos</li>
+              </ul>
+              <div class="alert alert-danger">
+                <strong>¡ESTA ACCIÓN NO SE PUEDE DESHACER!</strong>
+              </div>
+            </div>
+          `,
+          showCancelButton: true,
+          confirmButtonText: 'Sí, borrar todo',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#dc3545'
+        }).then((confirmResult) => {
+          if (confirmResult.isConfirmed) {
+            autoSyncAllData();
+            Swal.fire({
+              icon: 'success',
+              title: 'Datos vacíos enviados',
+              text: 'Se han enviado datos vacíos a otros dispositivos.',
+              confirmButtonText: 'Aceptar'
+            });
+          }
+        });
+      }
+    });
+    return;
+  }
+  
+  // Si hay datos, mostrar confirmación normal
   Swal.fire({
-    icon: 'success',
-    title: 'Sincronización Manual',
-    html: `Datos enviados:<br>
-           • ${allData.products.length} productos<br>
-           • ${allData.clients.length} clientes<br>
-           • ${allData.sales.length} ventas<br>
-           • ${allData.debts.length} deudas<br>
-           • ${allData.chickenSales.length} ventas de pollos`,
-    confirmButtonText: 'Aceptar'
+    icon: 'question',
+    title: 'Sincronizar datos de este dispositivo',
+    html: `
+      <div class="text-start">
+        <p><strong>Este dispositivo tiene datos:</strong></p>
+        <ul>
+          <li>${allData.products.length} productos</li>
+          <li>${allData.clients.length} clientes</li>
+          <li>${allData.sales.length} ventas</li>
+          <li>${allData.debts.length} deudas</li>
+          <li>${allData.chickenSales.length} ventas de pollos</li>
+        </ul>
+        <p>¿Enviar estos datos a otros dispositivos?</p>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i>
+          Los datos se combinarán con los de otros dispositivos.
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: '<i class="bi bi-cloud-upload"></i> Enviar Datos',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#0d6efd'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      autoSyncAllData();
+      Swal.fire({
+        icon: 'success',
+        title: 'Sincronización enviada',
+        html: `Datos enviados correctamente:<br>
+               • ${allData.products.length} productos<br>
+               • ${allData.clients.length} clientes<br>
+               • ${allData.sales.length} ventas<br>
+               • ${allData.debts.length} deudas<br>
+               • ${allData.chickenSales.length} ventas de pollos`,
+        confirmButtonText: 'Aceptar'
+      });
+    }
   });
 };
 
