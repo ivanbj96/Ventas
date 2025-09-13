@@ -4,6 +4,7 @@
 
 import { chickenSales, pricePerPound, costPerPound, setPricePerPound, setCostPerPound, setChickenSales, clients, debts, movements } from './state.js';
 import { saveToStorage } from './persistence.js';
+import { getLocalDateString, getLocalDateTime } from './utils.js';
 // import webSocketSync from './websocket.js'; // DESHABILITADO TEMPORALMENTE
 
 // === INICIALIZACIÓN DE POLLOS ===
@@ -15,8 +16,7 @@ export function initializeChickenData() {
   if (priceInput) priceInput.value = pricePerPound.toFixed(2);
   if (costInput) costInput.value = costPerPound.toFixed(2);
   if (saleDateInput) {
-    const today = new Date();
-    saleDateInput.value = today.toISOString().slice(0,10);
+    saleDateInput.value = getLocalDateString();
   }
   
   updateChickenCalculation();
@@ -192,17 +192,9 @@ export async function handleChickenSale(e) {
   const total = pricePerPound * weight;
   const profit = (pricePerPound - costPerPound) * weight;
   
-  // Crear objeto de venta con fecha y hora local
-  let now = new Date();
-  let [year, month, day] = (saleDate || now.toLocaleDateString('es-EC')).split('-');
-  let localDate = new Date(
-    parseInt(year),
-    parseInt(month) - 1,
-    parseInt(day),
-    now.getHours(),
-    now.getMinutes(),
-    now.getSeconds()
-  );
+  // Crear objeto de venta con fecha y hora local correcta
+  const dateTime = getLocalDateTime();
+  const finalDate = saleDate || dateTime.date;
   
   const sale = {
     id: Date.now(),
@@ -217,9 +209,9 @@ export async function handleChickenSale(e) {
     paymentType: paymentType,
     abono: abono,
     debt: paymentType === 'credit' ? total - abono : 0,
-    date: `${year}-${month}-${day}T${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`,
-    time: localDate.toLocaleTimeString(),
-    timestamp: localDate.toLocaleString()
+    date: `${finalDate}T${dateTime.time}`,
+    time: dateTime.time,
+    timestamp: dateTime.timestamp
   };
   
   await processChickenSale(sale);
@@ -318,7 +310,7 @@ export async function processChickenSale(sale) {
         date: sale.date,
         type: 'chicken_sale',
         saleId: sale.id,
-        createdAt: new Date().toISOString()
+        createdAt: getLocalDateTime().timestamp
       };
       
       debts.push(debt);
@@ -341,7 +333,7 @@ export async function processChickenSale(sale) {
       amount: sale.total,
       description: `Venta de pollos - ${sale.clientName}`,
       date: sale.date,
-      timestamp: new Date().toISOString(),
+      timestamp: getLocalDateTime().timestamp,
       details: {
         quantity: sale.quantity,
         weight: sale.weight,
@@ -361,7 +353,7 @@ export async function processChickenSale(sale) {
     
     // Limpiar formulario
     document.getElementById('chickenSaleForm').reset();
-    document.getElementById('chickenSaleDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('chickenSaleDate').value = getLocalDateString();
     document.getElementById('chickenQuantity').value = '1';
     document.getElementById('chickenAbonoSection').style.display = 'none';
     
@@ -385,8 +377,7 @@ export function updateChickenStats(opts = {}) {
   if (opts && opts.fecha) {
     todayStr = opts.fecha;
   } else {
-    const today = new Date();
-    todayStr = today.toISOString().split('T')[0];
+    todayStr = getLocalDateString();
   }
   
   // Verificar que chickenSales sea un array válido
@@ -493,7 +484,7 @@ export function updateChickenSalesList(opts = {}) {
     );
   } else {
     // Por defecto, mostrar solo ventas de hoy
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     filteredSales = chickenSales.filter(sale => 
       sale && sale.date && sale.date.startsWith(today)
     );

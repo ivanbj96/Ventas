@@ -4,7 +4,7 @@
 
 import { products, clients, setCart, setCurrentClientId } from './state.js';
 import { cart, currentClientId } from './state.js';
-import { generateId } from './utils.js';
+import { generateId, getLocalDateString, getLocalDateTime } from './utils.js';
 import { saveToStorage } from './persistence.js';
 // import webSocketSync from './websocket.js'; // DESHABILITADO TEMPORALMENTE
 
@@ -306,23 +306,11 @@ export async function finalizeSale() {
         }
       });
       
-      // Obtener fecha local
-      let now = new Date();
-      let saleDateStr = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
+      // Obtener fecha local correcta
+      const dateTime = getLocalDateTime();
       const dateInput = document.getElementById('saleDateDrawer');
-      if (dateInput && dateInput.value) {
-        saleDateStr = dateInput.value;
-      }
-      let [year, month, day] = saleDateStr.split('-');
-      let localDate = new Date(
-        parseInt(year),
-        parseInt(month) - 1,
-        parseInt(day),
-        now.getHours(),
-        now.getMinutes(),
-        now.getSeconds()
-      );
-      let saleDate = `${year}-${month}-${day}T${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+      const finalDate = (dateInput && dateInput.value) ? dateInput.value : dateTime.date;
+      const saleDate = `${finalDate}T${dateTime.time}`;
       
       // Registrar venta
       const sale = {
@@ -337,7 +325,7 @@ export async function finalizeSale() {
         profit: finalTotal - cost,
         paymentType,
         date: saleDate,
-        time: localDate.toLocaleTimeString()
+        time: dateTime.time
       };
       
       // Agregar movimiento para la sección de movimientos
@@ -577,7 +565,7 @@ function showCreditSaleModal(total, cost, client) {
         amount: remainingDebt,
         abono: abono,
         reason: reason,
-        date: new Date().toISOString(),
+        date: getLocalDateTime().timestamp,
         items: [...cart]
       };
       

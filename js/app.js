@@ -25,7 +25,10 @@ import {
   formatCurrency, 
   formatDate, 
   generateId,
-  isMobileDevice 
+  isMobileDevice,
+  getLocalDateString,
+  getLocalDate,
+  getLocalDateTime
 } from './modules/utils.js';
 
 import { 
@@ -1108,7 +1111,7 @@ window.updateClientSelector = function() {
 
 // Función para inicializar fechas
 window.initializeDates = function() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   const dateInputs = [
     document.getElementById('saleDateDrawer'),
     document.getElementById('chickenSaleDate'),
@@ -1577,7 +1580,7 @@ function closeSidebar() {
 
 // Función para inicializar fechas
 function initializeDates() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   const dateInputs = [
     document.getElementById('saleDateDrawer'),
     document.getElementById('chickenSaleDate'),
