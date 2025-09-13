@@ -483,11 +483,8 @@ export function updateChickenSalesList(opts = {}) {
       sale && sale.date && sale.date.startsWith(opts.fecha)
     );
   } else {
-    // Por defecto, mostrar solo ventas de hoy
-    const today = getLocalDateString();
-    filteredSales = chickenSales.filter(sale => 
-      sale && sale.date && sale.date.startsWith(today)
-    );
+    // Por defecto, mostrar todas las ventas (no filtrar por fecha)
+    filteredSales = [...chickenSales];
   }
   
   // Ordenar por fecha más reciente
@@ -499,14 +496,14 @@ export function updateChickenSalesList(opts = {}) {
   if (countElement) {
     const periodText = opts && opts.fecha ? 
       `del ${new Date(opts.fecha).toLocaleDateString()}` : 
-      'de hoy';
+      'registradas';
     countElement.textContent = `${filteredSales.length} ventas ${periodText}`;
   }
   
   if (filteredSales.length === 0) {
     const periodText = opts && opts.fecha ? 
       `del ${new Date(opts.fecha).toLocaleDateString()}` : 
-      'hoy';
+      'registradas';
     container.innerHTML = `
       <div class="text-center py-4">
         <i class="bi bi-egg-fried" style="font-size: 3rem; color: #ccc;"></i>
