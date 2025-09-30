@@ -55,32 +55,60 @@ class TillUpSyncManager {
     handleIncomingData(data) {
         if (!this.isEnabled) return;
 
-        const { type, action, data: payload } = data;
+        const { action, data: payload, userId, deviceId } = data;
+
+        // Validar que no sea de este mismo dispositivo
+        if (deviceId === localStorage.getItem('tillup_device_id')) {
+            console.log('🔄 Ignorando datos del mismo dispositivo en sync manager');
+            return;
+        }
+
+        console.log('🔄 Procesando acción:', action, 'de usuario:', userId);
+        
+        // Mostrar notificación de recepción
+        if (window.syncNotifications) {
+            window.syncNotifications.showSyncNotification('receiving');
+        }
 
         switch (action) {
             case 'sync_product':
                 this.handleProductSync(payload);
+                this.updateUIAfterItemSync('products');
+                this.forceImmediateUIUpdate();
                 break;
             case 'sync_client':
                 this.handleClientSync(payload);
+                this.updateUIAfterItemSync('clients');
+                this.forceImmediateUIUpdate();
                 break;
             case 'sync_sale':
                 this.handleSaleSync(payload);
+                this.updateUIAfterItemSync('sales');
+                this.forceImmediateUIUpdate();
                 break;
             case 'sync_chicken_sale':
                 this.handleChickenSaleSync(payload);
+                this.updateUIAfterItemSync('chickenSales');
+                this.forceImmediateUIUpdate();
                 break;
             case 'sync_debt':
                 this.handleDebtSync(payload);
+                this.updateUIAfterItemSync('debts');
+                this.forceImmediateUIUpdate();
                 break;
             case 'full_sync_data':
                 this.handleFullSyncData(payload);
+                this.updateUIAfterFullSync();
+                this.forceImmediateUIUpdate();
+                break;
+            case 'request_sync_data':
+                this.handleSyncDataRequest(payload);
                 break;
             case 'test_message':
                 this.handleTestMessage(payload);
                 break;
             default:
-                console.log('🔄 Unknown sync action:', action, 'data:', data);
+                console.log('🔄 Acción desconocida:', action, 'data:', data);
         }
     }
 
@@ -149,6 +177,9 @@ class TillUpSyncManager {
         // Actualizar UI silenciosamente
         if (typeof renderInventory === 'function') renderInventory();
         if (typeof renderSalesProducts === 'function') renderSalesProducts();
+        
+        // Mostrar indicador de sincronización
+        this.showQuickSyncIndicator('product');
     }
 
     handleClientSync(client) {
@@ -210,6 +241,9 @@ class TillUpSyncManager {
         
         // Actualizar UI silenciosamente
         this.forceUpdateClientUI();
+        
+        // Mostrar indicador de sincronización
+        this.showQuickSyncIndicator('client');
     }
 
     handleSaleSync(sale) {
@@ -253,13 +287,31 @@ class TillUpSyncManager {
     handleChickenSaleSync(sale) {
         console.log('🔄 Syncing chicken sale:', sale);
         
+        // Decodificar si viene en Base64
+        let decodedSale = sale;
+        if (typeof sale === 'string') {
+            try {
+                const decoded = atob(sale);
+                decodedSale = JSON.parse(decoded);
+                console.log('🔄 Venta decodificada:', decodedSale);
+            } catch (error) {
+                console.error('⚠️ Error decodificando venta:', error);
+                return;
+            }
+        }
+        
+        if (!decodedSale || !decodedSale.id) {
+            console.warn('⚠️ Venta inválida:', decodedSale);
+            return;
+        }
+        
         // Obtener ventas actuales desde localStorage
         let chickenSales = JSON.parse(localStorage.getItem('chickenSales') || '[]');
-        const existingIndex = chickenSales.findIndex(s => s.id === sale.id);
+        const existingIndex = chickenSales.findIndex(s => s.id === decodedSale.id);
         
         if (existingIndex === -1) {
             // Agregar nueva venta
-            chickenSales.push(sale);
+            chickenSales.push(decodedSale);
             
             // Actualizar localStorage
             localStorage.setItem('chickenSales', JSON.stringify(chickenSales));
@@ -292,66 +344,65 @@ class TillUpSyncManager {
                 updateBalanceUI();
             }
             
-            // Actualizar UI silenciosamente
-            if (typeof updateChickenStats === 'function') updateChickenStats();
-            if (typeof updateChickenSalesList === 'function') updateChickenSalesList();
-            if (typeof updateBalanceUI === 'function') updateBalanceUI();
+            console.log('✅ Venta de pollos agregada exitosamente:', decodedSale.id);
         } else {
-            console.log('🔄 Venta de pollos ya existe, omitiendo:', sale.id);
+            console.log('🔄 Venta de pollos ya existe, omitiendo:', decodedSale.id);
         }
     }
 
     handleDebtSync(debt) {
         console.log('🔄 Syncing debt:', debt);
         
-        // Obtener deudas actuales
-        let debtsData = window.debts || [];
-        if (!Array.isArray(debtsData)) {
-            debtsData = JSON.parse(localStorage.getItem('debts') || '[]');
-        }
-        
-        const existingIndex = debtsData.findIndex(d => d.id === debt.id);
+        // Obtener deudas actuales desde localStorage
+        const currentDebts = JSON.parse(localStorage.getItem('debts') || '[]');
+        const existingIndex = currentDebts.findIndex(d => d.id === debt.id);
         
         if (existingIndex >= 0) {
-            // Actualizar deuda existente
-            debtsData[existingIndex] = debt;
+            currentDebts[existingIndex] = debt;
         } else {
-            // Agregar nueva deuda
-            debtsData.push(debt);
+            currentDebts.push(debt);
         }
         
-        // Usar función setter si está disponible
+        // Actualizar localStorage primero
+        localStorage.setItem('debts', JSON.stringify(currentDebts));
+        
+        // Actualizar estado global
         if (typeof window.setDebts === 'function') {
-            window.setDebts(debtsData);
-        } else if (window.debts && Array.isArray(window.debts)) {
-            window.debts.length = 0;
-            window.debts.push(...debtsData);
+            window.setDebts(currentDebts);
         }
         
-        // Guardar en localStorage
-        if (typeof saveToStorage === 'function') {
-            saveToStorage('debts', debtsData);
-        } else {
-            localStorage.setItem('debts', JSON.stringify(debtsData));
-        }
-        
-        // Actualizar UI silenciosamente
+        // Actualizar UI
         if (typeof renderDebts === 'function') renderDebts();
     }
 
     handleFullSyncData(syncData) {
         console.log('🔄 Handling full sync data:', syncData);
         
-        // Actualizar todos los datos
-        if (syncData.products && Array.isArray(syncData.products)) {
-            // Mezclar productos sin duplicar
+        // Decodificar si viene en Base64
+        let decodedData = syncData;
+        if (typeof syncData === 'string') {
+            try {
+                const decoded = atob(syncData);
+                decodedData = JSON.parse(decoded);
+                console.log('🔄 Datos completos decodificados:', decodedData);
+            } catch (error) {
+                console.error('⚠️ Error decodificando datos completos:', error);
+                return;
+            }
+        }
+        
+        let updated = false;
+        
+        // Actualizar productos
+        if (decodedData.products && Array.isArray(decodedData.products) && decodedData.products.length > 0) {
             let localProducts = JSON.parse(localStorage.getItem('products') || '[]');
-            syncData.products.forEach(syncProduct => {
+            decodedData.products.forEach(syncProduct => {
                 const existingIndex = localProducts.findIndex(p => p.id === syncProduct.id);
                 if (existingIndex >= 0) {
                     localProducts[existingIndex] = syncProduct;
                 } else {
                     localProducts.push(syncProduct);
+                    updated = true;
                 }
             });
             
@@ -366,15 +417,16 @@ class TillUpSyncManager {
             }
         }
         
-        if (syncData.clients && Array.isArray(syncData.clients)) {
-            // Mezclar clientes sin duplicar
+        // Actualizar clientes
+        if (decodedData.clients && Array.isArray(decodedData.clients) && decodedData.clients.length > 0) {
             let localClients = JSON.parse(localStorage.getItem('clients') || '[]');
-            syncData.clients.forEach(syncClient => {
+            decodedData.clients.forEach(syncClient => {
                 const existingIndex = localClients.findIndex(c => c.id === syncClient.id);
                 if (existingIndex >= 0) {
                     localClients[existingIndex] = syncClient;
                 } else {
                     localClients.push(syncClient);
+                    updated = true;
                 }
             });
             
@@ -389,13 +441,14 @@ class TillUpSyncManager {
             }
         }
         
-        if (syncData.sales && Array.isArray(syncData.sales)) {
-            // Mezclar ventas sin duplicar
+        // Actualizar ventas
+        if (decodedData.sales && Array.isArray(decodedData.sales) && decodedData.sales.length > 0) {
             let localSales = JSON.parse(localStorage.getItem('sales') || '[]');
-            syncData.sales.forEach(syncSale => {
+            decodedData.sales.forEach(syncSale => {
                 const existingIndex = localSales.findIndex(s => s.id === syncSale.id);
                 if (existingIndex === -1) {
                     localSales.push(syncSale);
+                    updated = true;
                 }
             });
             
@@ -410,15 +463,16 @@ class TillUpSyncManager {
             }
         }
         
-        if (syncData.debts && Array.isArray(syncData.debts)) {
-            // Mezclar deudas sin duplicar
+        // Actualizar deudas
+        if (decodedData.debts && Array.isArray(decodedData.debts) && decodedData.debts.length > 0) {
             let localDebts = JSON.parse(localStorage.getItem('debts') || '[]');
-            syncData.debts.forEach(syncDebt => {
+            decodedData.debts.forEach(syncDebt => {
                 const existingIndex = localDebts.findIndex(d => d.id === syncDebt.id);
                 if (existingIndex >= 0) {
                     localDebts[existingIndex] = syncDebt;
                 } else {
                     localDebts.push(syncDebt);
+                    updated = true;
                 }
             });
             
@@ -433,20 +487,27 @@ class TillUpSyncManager {
             }
         }
         
-        if (syncData.chickenSales && Array.isArray(syncData.chickenSales)) {
-            // Actualizar localStorage
-            localStorage.setItem('chickenSales', JSON.stringify(syncData.chickenSales));
+        // Actualizar ventas de pollos
+        if (decodedData.chickenSales && Array.isArray(decodedData.chickenSales) && decodedData.chickenSales.length > 0) {
+            let localChickenSales = JSON.parse(localStorage.getItem('chickenSales') || '[]');
+            decodedData.chickenSales.forEach(syncChickenSale => {
+                const existingIndex = localChickenSales.findIndex(s => s.id === syncChickenSale.id);
+                if (existingIndex === -1) {
+                    localChickenSales.push(syncChickenSale);
+                    updated = true;
+                }
+            });
             
-            // Actualizar estado global usando setChickenSales
+            localStorage.setItem('chickenSales', JSON.stringify(localChickenSales));
+            
             if (typeof setChickenSales === 'function') {
-                setChickenSales(syncData.chickenSales);
+                setChickenSales(localChickenSales);
             } else if (window.setChickenSales && typeof window.setChickenSales === 'function') {
-                window.setChickenSales(syncData.chickenSales);
+                window.setChickenSales(localChickenSales);
             }
             
-            // Usar saveToStorage si está disponible
             if (typeof saveToStorage === 'function') {
-                saveToStorage('chickenSales', syncData.chickenSales);
+                saveToStorage('chickenSales', localChickenSales);
             }
         }
         
@@ -467,14 +528,18 @@ class TillUpSyncManager {
         if (typeof updateChickenSalesList === 'function') updateChickenSalesList();
         if (window.updateClientSelector) window.updateClientSelector();
         
-        // Sincronización completa silenciosa
+        console.log('🔄 Sincronización completa procesada');
+        this.refreshAllUI();
+        
+        // Mostrar notificación de éxito
+        if (window.syncNotifications) {
+            window.syncNotifications.showSyncNotification('success');
+            window.syncNotifications.showDataStats(decodedData);
+        }
     }
 
     refreshAllUI() {
-        // Actualizar todas las vistas inmediatamente sin delay
-        this.reloadDataFromStorage();
-        
-        // Actualizar UI de forma síncrona
+        // Actualizar todas las vistas instantáneamente
         if (typeof renderInventory === 'function') renderInventory();
         if (typeof renderClients === 'function') renderClients();
         if (typeof renderDebts === 'function') renderDebts();
@@ -484,11 +549,39 @@ class TillUpSyncManager {
         if (typeof updateClientSelector === 'function') updateClientSelector();
         if (typeof updateChickenStats === 'function') updateChickenStats();
         if (typeof updateChickenSalesList === 'function') updateChickenSalesList();
-        
-        // Actualizar selector global
-        if (window.updateClientSelector) {
-            window.updateClientSelector();
+        if (window.updateClientSelector) window.updateClientSelector();
+    }
+
+    updateUIAfterItemSync(dataType) {
+        // Actualizar UI específica según el tipo de dato
+        switch (dataType) {
+            case 'products':
+                if (typeof renderInventory === 'function') renderInventory();
+                if (typeof renderSalesProducts === 'function') renderSalesProducts();
+                break;
+            case 'clients':
+                if (typeof renderClients === 'function') renderClients();
+                if (typeof updateClientSelector === 'function') updateClientSelector();
+                if (window.updateClientSelector) window.updateClientSelector();
+                break;
+            case 'sales':
+                if (typeof renderBalanceGrid === 'function') renderBalanceGrid();
+                if (typeof updateBalanceUI === 'function') updateBalanceUI();
+                break;
+            case 'debts':
+                if (typeof renderDebts === 'function') renderDebts();
+                break;
+            case 'chickenSales':
+                if (typeof updateChickenStats === 'function') updateChickenStats();
+                if (typeof updateChickenSalesList === 'function') updateChickenSalesList();
+                if (typeof updateBalanceUI === 'function') updateBalanceUI();
+                break;
         }
+    }
+
+    updateUIAfterFullSync() {
+        // Actualizar todas las vistas después de sincronización completa
+        this.refreshAllUI();
     }
     
     reloadDataFromStorage() {
@@ -508,40 +601,32 @@ class TillUpSyncManager {
                 chickenSales: chickenSalesData.length
             });
             
-            // Forzar actualización del estado global usando los módulos
-            if (typeof window.setProducts === 'function') {
-                window.setProducts(productsData);
-            } else if (window.products && Array.isArray(window.products)) {
+            // NO llamar a los setters que resetean los datos
+            // Solo actualizar los arrays globales directamente
+            if (window.products && Array.isArray(window.products)) {
                 window.products.length = 0;
                 window.products.push(...productsData);
             }
             
-            if (typeof window.setClients === 'function') {
-                window.setClients(clientsData);
-            } else if (window.clients && Array.isArray(window.clients)) {
+            if (window.clients && Array.isArray(window.clients)) {
                 window.clients.length = 0;
                 window.clients.push(...clientsData);
             }
             
-            if (typeof window.setSales === 'function') {
-                window.setSales(salesData);
-            } else if (window.sales && Array.isArray(window.sales)) {
+            if (window.sales && Array.isArray(window.sales)) {
                 window.sales.length = 0;
                 window.sales.push(...salesData);
             }
             
-            if (typeof window.setDebts === 'function') {
-                window.setDebts(debtsData);
-            } else if (window.debts && Array.isArray(window.debts)) {
+            if (window.debts && Array.isArray(window.debts)) {
                 window.debts.length = 0;
                 window.debts.push(...debtsData);
             }
             
-            // Actualizar estado de pollos
-            if (typeof setChickenSales === 'function') {
-                setChickenSales(chickenSalesData);
-            } else if (window.setChickenSales && typeof window.setChickenSales === 'function') {
-                window.setChickenSales(chickenSalesData);
+            // Para pollos, usar el array global si existe
+            if (window.chickenSales && Array.isArray(window.chickenSales)) {
+                window.chickenSales.length = 0;
+                window.chickenSales.push(...chickenSalesData);
             }
             
             console.log('🔄 Estado global actualizado correctamente');
@@ -607,6 +692,33 @@ class TillUpSyncManager {
         // Mensaje de prueba recibido silenciosamente
     }
 
+    handleSyncDataRequest(data) {
+        console.log('🔄 Solicitud de datos recibida de:', data?.userId);
+        
+        // Enviar todos los datos locales usando el cliente WebSocket
+        if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+            const allData = {
+                products: JSON.parse(localStorage.getItem('products') || '[]'),
+                clients: JSON.parse(localStorage.getItem('clients') || '[]'),
+                sales: JSON.parse(localStorage.getItem('sales') || '[]'),
+                debts: JSON.parse(localStorage.getItem('debts') || '[]'),
+                chickenSales: JSON.parse(localStorage.getItem('chickenSales') || '[]')
+            };
+            
+            const totalItems = allData.products.length + allData.clients.length + allData.sales.length + allData.debts.length + allData.chickenSales.length;
+            
+            if (totalItems > 0) {
+                window.tillupWebSocketClient.send({
+                    action: 'full_sync_data',
+                    data: allData
+                });
+                console.log('🔄 Datos enviados en respuesta a solicitud:', totalItems, 'elementos');
+            } else {
+                console.log('🔄 No hay datos para enviar');
+            }
+        }
+    }
+
     forceUpdateClientUI() {
         // Obtener datos actuales desde localStorage
         const clientsData = JSON.parse(localStorage.getItem('clients') || '[]');
@@ -648,9 +760,108 @@ class TillUpSyncManager {
         }
     }
 
+    forceImmediateUIUpdate() {
+        // Actualización instantánea sin delays
+        this.reloadDataFromStorage();
+        this.refreshAllUI();
+        
+        // Forzar actualización de selectores
+        setTimeout(() => {
+            if (window.updateClientSelector) window.updateClientSelector();
+        }, 10);
+    }
+
+    showSyncIndicator() {
+        // Mostrar indicador visual discreto de sincronización
+        const indicator = document.createElement('div');
+        indicator.innerHTML = '🔄';
+        indicator.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 9999;
+            animation: fadeInOut 2s ease-in-out;
+        `;
+        
+        // Añadir animación CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateY(-10px); }
+                50% { opacity: 1; transform: translateY(0); }
+                100% { opacity: 0; transform: translateY(-10px); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        document.body.appendChild(indicator);
+        
+        setTimeout(() => {
+            if (indicator.parentNode) {
+                indicator.parentNode.removeChild(indicator);
+            }
+            if (style.parentNode) {
+                style.parentNode.removeChild(style);
+            }
+        }, 2000);
+    }
+
     showSyncNotification(message, type = 'info') {
         // Sincronización silenciosa - solo log en consola
         console.log(`🔄 ${message}`);
+    }
+    
+    showQuickSyncIndicator(dataType) {
+        const icons = {
+            product: '📦',
+            client: '👥',
+            sale: '🛍️',
+            debt: '💰',
+            chicken_sale: '🐔'
+        };
+        
+        const indicator = document.createElement('div');
+        indicator.innerHTML = icons[dataType] || '🔄';
+        indicator.style.cssText = `
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            background: rgba(40, 167, 69, 0.9);
+            color: white;
+            padding: 8px;
+            border-radius: 50%;
+            font-size: 16px;
+            z-index: 9999;
+            animation: quickPulse 0.6s ease-out;
+        `;
+        
+        // Añadir animación CSS si no existe
+        if (!document.getElementById('quickSyncStyle')) {
+            const style = document.createElement('style');
+            style.id = 'quickSyncStyle';
+            style.textContent = `
+                @keyframes quickPulse {
+                    0% { transform: translateY(-50%) scale(0.5); opacity: 0; }
+                    50% { transform: translateY(-50%) scale(1.2); opacity: 1; }
+                    100% { transform: translateY(-50%) scale(1); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        document.body.appendChild(indicator);
+        
+        setTimeout(() => {
+            if (indicator.parentNode) {
+                indicator.parentNode.removeChild(indicator);
+            }
+        }, 600);
     }
 }
 

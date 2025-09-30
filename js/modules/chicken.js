@@ -2,7 +2,7 @@
 // 🐔 GESTIÓN ESPECIALIZADA DE POLLOS
 // ========================================
 
-import { chickenSales, pricePerPound, costPerPound, setPricePerPound, setCostPerPound, setChickenSales, clients, debts, movements } from './state.js';
+import { chickenSales, pricePerPound, costPerPound, setPricePerPound, setCostPerPound, setChickenSales, clients, debts, movements, setDebts } from './state.js';
 import { saveToStorage } from './persistence.js';
 import { getLocalDateString, getLocalDateTime } from './utils.js';
 // import webSocketSync from './websocket.js'; // DESHABILITADO TEMPORALMENTE
@@ -283,7 +283,6 @@ export function setupChickenDateFilter() {
 // === PROCESAMIENTO DE VENTA DE POLLOS ===
 export async function processChickenSale(sale) {
   try {
-    // Agregar a la lista de ventas
     chickenSales.push(sale);
     await saveToStorage('chickenSales', chickenSales);
     
@@ -306,7 +305,7 @@ export async function processChickenSale(sale) {
         clientName: sale.clientName,
         amount: sale.debt,
         originalAmount: sale.debt,
-        description: `Venta de pollos - ${sale.quantity} pollo(s), ${sale.weight} lbs`,
+        reason: `Venta de pollos - ${sale.quantity} pollo(s), ${sale.weight} lbs`,
         date: sale.date,
         type: 'chicken_sale',
         saleId: sale.id,
@@ -314,15 +313,12 @@ export async function processChickenSale(sale) {
       };
       
       debts.push(debt);
+      setDebts(debts);
       await saveToStorage('debts', debts);
       
-      // Sincronizar deuda con WebSocket
-      if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
-        window.tillupWebSocketClient.send({
-          action: 'sync_debt',
-          data: debt
-        });
-        console.log('🔄 Deuda enviada por WebSocket:', debt.id);
+      // Sincronizar con WebSocket igual que clientes
+      if (window.syncManager && window.syncManager.isEnabled) {
+        window.syncManager.syncDebt(debt);
       }
     }
     
@@ -350,6 +346,16 @@ export async function processChickenSale(sale) {
     // Actualizar estadísticas
     updateChickenStats();
     updateChickenSalesList();
+    
+    // Actualizar UI de deudas
+    if (typeof window.renderDebts === 'function') {
+      window.renderDebts();
+    }
+    if (typeof window.updateBalanceUI === 'function') {
+      window.updateBalanceUI();
+    }
+    
+
     
     // Limpiar formulario
     document.getElementById('chickenSaleForm').reset();
@@ -536,31 +542,31 @@ export function updateChickenSalesList(opts = {}) {
       <div class="chicken-sale-details-treinta">
         <div class="chicken-sale-detail-treinta">
           <div class="chicken-sale-detail-label-treinta">Cantidad</div>
-          <div class="chicken-sale-detail-value-treinta">${sale.quantity} pollo(s)</div>
+          <div class="chicken-sale-detail-value-treinta">${sale.quantity || 0} pollo(s)</div>
         </div>
         <div class="chicken-sale-detail-treinta">
           <div class="chicken-sale-detail-label-treinta">Peso Total</div>
-          <div class="chicken-sale-detail-value-treinta">${sale.weight} lbs</div>
+          <div class="chicken-sale-detail-value-treinta">${(sale.weight || 0)} lbs</div>
         </div>
         <div class="chicken-sale-detail-treinta">
           <div class="chicken-sale-detail-label-treinta">Precio/Lb</div>
-          <div class="chicken-sale-detail-value-treinta">$${sale.pricePerPound.toFixed(2)}</div>
+          <div class="chicken-sale-detail-value-treinta">$${(sale.pricePerPound || 0).toFixed(2)}</div>
         </div>
         <div class="chicken-sale-detail-treinta">
           <div class="chicken-sale-detail-label-treinta">Peso Promedio</div>
-          <div class="chicken-sale-detail-value-treinta">${(sale.weight / sale.quantity).toFixed(1)} lbs</div>
+          <div class="chicken-sale-detail-value-treinta">${((sale.weight || 0) / (sale.quantity || 1)).toFixed(1)} lbs</div>
         </div>
       </div>
       
       <div class="chicken-sale-total-treinta">
         <div class="chicken-sale-total-label-treinta">Total</div>
-        <div class="chicken-sale-total-amount-treinta">$${sale.total.toFixed(2)}</div>
+        <div class="chicken-sale-total-amount-treinta">$${(sale.total || 0).toFixed(2)}</div>
       </div>
       
       <div class="chicken-sale-payment-treinta ${sale.paymentType}">
         <i class="bi bi-${getPaymentIcon(sale.paymentType)}"></i>
         ${getPaymentText(sale.paymentType)}
-        ${sale.paymentType === 'credit' && sale.abono > 0 ? ` (Abono: $${sale.abono.toFixed(2)})` : ''}
+        ${sale.paymentType === 'credit' && (sale.abono || 0) > 0 ? ` (Abono: $${(sale.abono || 0).toFixed(2)})` : ''}
       </div>
     </div>
   `).join('');

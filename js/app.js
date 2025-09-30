@@ -174,25 +174,18 @@ function initializeAutoSync() {
   const savedUser = localStorage.getItem('tillup_sync_user');
   if (savedUser) {
     currentSyncUser = savedUser;
-    // Inicializar sincronización automáticamente
-    setTimeout(() => {
-      if (typeof initTillUpSync === 'function') {
-        initTillUpSync(currentSyncUser);
-        tillupSync = window.syncManager;
-        
-        // Verificar si necesita datos al conectar
-        setTimeout(() => {
-          if (tillupSync && tillupSync.isEnabled) {
-            const totalItems = (products?.length || 0) + (clients?.length || 0) + (sales?.length || 0) + (debts?.length || 0) + JSON.parse(localStorage.getItem('chickenSales') || '[]').length;
-            if (totalItems === 0) {
-              requestDataFromOtherDevices();
-            } else {
-              autoSyncAllData();
-            }
-          }
-        }, 3000);
-      }
-    }, 1000);
+    // Inicializar sincronización inmediatamente
+    if (typeof initTillUpSync === 'function') {
+      initTillUpSync(currentSyncUser);
+      tillupSync = window.syncManager;
+      
+      // Solicitar datos inmediatamente al conectar
+      setTimeout(() => {
+        if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+          window.tillupWebSocketClient.requestDataFromAllDevices();
+        }
+      }, 500);
+    }
   }
 }
 
@@ -229,23 +222,50 @@ function autoSyncAllData() {
   }
 }
 
+// === INTEGRACIÓN DE SINCRONIZACIÓN EN FUNCIONES EXISTENTES ===
+// Función auxiliar para sincronizar después de operaciones
+function syncAfterOperation(type, data) {
+  if (window.syncManager && window.syncManager.isEnabled) {
+    console.log('🔄 Sincronizando', type, ':', data.id || data.name);
+    switch (type) {
+      case 'product':
+        window.syncManager.syncProduct(data);
+        break;
+      case 'client':
+        window.syncManager.syncClient(data);
+        break;
+      case 'sale':
+        window.syncManager.syncSale(data);
+        break;
+      case 'chicken_sale':
+        window.syncManager.syncChickenSale(data);
+        break;
+      case 'debt':
+        window.syncManager.syncDebt(data);
+        break;
+    }
+  } else {
+    console.log('⚠️ Sync manager no disponible para sincronizar', type);
+  }
+}
+
 // === SOLICITAR DATOS DE OTROS DISPOSITIVOS ===
 function requestDataFromOtherDevices() {
-  if (!tillupSync || !tillupSync.isEnabled) {
+  if (!window.tillupWebSocketClient || !window.tillupWebSocketClient.isConnected) {
     Swal.fire({
       icon: 'warning',
-      title: 'Sincronización no configurada',
-      text: 'Configura un usuario primero.',
+      title: 'Sin conexión WebSocket',
+      text: 'Configura un usuario y verifica la conexión.',
       confirmButtonText: 'Aceptar'
     });
     return;
   }
   
   const currentData = {
-    products: products?.length || 0,
-    clients: clients?.length || 0,
-    sales: sales?.length || 0,
-    debts: debts?.length || 0,
+    products: JSON.parse(localStorage.getItem('products') || '[]').length,
+    clients: JSON.parse(localStorage.getItem('clients') || '[]').length,
+    sales: JSON.parse(localStorage.getItem('sales') || '[]').length,
+    debts: JSON.parse(localStorage.getItem('debts') || '[]').length,
     chickenSales: JSON.parse(localStorage.getItem('chickenSales') || '[]').length
   };
   
@@ -277,27 +297,18 @@ function requestDataFromOtherDevices() {
     confirmButtonColor: '#198754'
   }).then((result) => {
     if (result.isConfirmed) {
-      if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
-        window.tillupWebSocketClient.send({
-          action: 'request_sync_data',
-          data: { userId: currentSyncUser }
-        });
-        console.log('🔄 Solicitando datos de otros dispositivos');
-        
-        Swal.fire({
-          icon: 'info',
-          title: 'Solicitud enviada',
-          text: 'Se ha enviado una solicitud para recibir datos de otros dispositivos conectados.',
-          confirmButtonText: 'Aceptar'
-        });
-      } else {
-        Swal.fire({
-          icon: 'error',
-          title: 'Sin conexión',
-          text: 'No hay conexión WebSocket activa.',
-          confirmButtonText: 'Aceptar'
-        });
-      }
+      window.tillupWebSocketClient.send({
+        action: 'request_sync_data',
+        data: { userId: window.tillupWebSocketClient.userId }
+      });
+      console.log('🔄 Solicitando datos de otros dispositivos');
+      
+      Swal.fire({
+        icon: 'info',
+        title: 'Solicitud enviada',
+        text: 'Se ha enviado una solicitud para recibir datos de otros dispositivos conectados.',
+        confirmButtonText: 'Aceptar'
+      });
     }
   });
 }
@@ -326,6 +337,21 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   // Inicializar sincronización automática
   initializeAutoSync();
+  
+  // Activar sincronización instantánea si hay usuario configurado
+  setTimeout(() => {
+    if (currentSyncUser && window.tillupWebSocketClient) {
+      window.tillupWebSocketClient.init(currentSyncUser);
+      
+      // Sincronizar datos inmediatamente al conectar
+      setTimeout(() => {
+        if (window.tillupWebSocketClient.isConnected) {
+          syncAllDataAfterOperation();
+          window.tillupWebSocketClient.requestDataFromAllDevices();
+        }
+      }, 3000);
+    }
+  }, 1000);
   
   // Configurar eventos de pollos
   setupChickenDateFilter();
@@ -520,7 +546,9 @@ function setupGlobalEvents() {
 // 🔗 FUNCIONES GLOBALES EXPUESTAS
 // ========================================
 
-// === CAMBIO DE VISTAS ===
+
+
+// === FUNCIÓN SHOWVIEW GLOBAL ===
 function showView(viewName) {
   // Ocultar todas las vistas
   document.querySelectorAll('.app-view').forEach(v => v.classList.add('d-none'));
@@ -536,67 +564,6 @@ function showView(viewName) {
   const activeNavBtn = document.getElementById(`nav-${viewName}`);
   if (activeNavBtn) {
     activeNavBtn.classList.add('active');
-  }
-  
-  // Actualizar navegación inferior
-  document.querySelectorAll('.navbar .btn').forEach(btn => btn.classList.remove('active'));
-  const activeBottomBtn = document.getElementById(`nav-bottom-${viewName}`);
-  if (activeBottomBtn) {
-    activeBottomBtn.classList.add('active');
-  }
-  
-  // Ejecutar funciones específicas de cada vista
-  switch (viewName) {
-    case 'balance':
-      renderBalanceGrid();
-      showAdvancedStats();
-      break;
-    case 'sales':
-      renderSalesProducts();
-      setTimeout(() => {
-        renderCart();
-        updateClientSelector();
-      }, 100);
-      break;
-    case 'debt':
-      // Inicializar filtro por defecto
-      currentDebtStatusFilter = 'pending';
-      document.querySelectorAll('[id^="btnDebtFilter"]').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      const pendingBtn = document.getElementById('btnDebtFilterPending');
-      if (pendingBtn) pendingBtn.classList.add('active');
-      
-      renderDebts('', 'pending');
-      break;
-    case 'clients':
-      renderClients();
-      break;
-    case 'inventory':
-      renderInventory();
-      break;
-    case 'chickens':
-      initializeChickenData();
-      updateChickenStats();
-      updateChickenSalesList();
-      setTimeout(() => {
-        updateClientSelector();
-        // Forzar actualización específica del selector de pollos
-        const chickenSelect = document.getElementById('chickenClient');
-        if (chickenSelect && clients && Array.isArray(clients)) {
-          chickenSelect.innerHTML = '<option value="">Seleccionar cliente...</option>';
-          clients.forEach(client => {
-            const option = document.createElement('option');
-            option.value = client.id;
-            option.textContent = client.name;
-            if (client.debt && client.debt > 0) {
-              option.textContent += ` (Deuda: $${client.debt.toFixed(2)})`;
-            }
-            chickenSelect.appendChild(option);
-          });
-        }
-      }, 300);
-      break;
   }
   
   // Cerrar sidebar en móvil
@@ -817,6 +784,11 @@ function setupSyncUser() {
                 tillupSync = window.syncManager;
             }
             
+            // Inicializar sistema avanzado
+            if (window.advancedSyncSystem) {
+                window.advancedSyncSystem.enable(currentSyncUser);
+            }
+            
             Swal.fire({
                 icon: 'success',
                 title: '¡Sincronización Configurada!',
@@ -829,20 +801,75 @@ function setupSyncUser() {
 
 // Configurar eventos de visibilidad para sincronización automática
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && tillupSync && tillupSync.isEnabled) {
-    // Cuando la página vuelve a ser visible, sincronizar automáticamente
-    setTimeout(() => {
-      autoSyncAllData();
-    }, 1000);
+  if (!document.hidden && window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+    // Solicitar datos inmediatamente al volver a la app
+    window.tillupWebSocketClient.requestDataFromAllDevices();
   }
 });
 
-// Sincronización periódica cada 30 segundos
+// Sincronización cada 3 segundos para tiempo real
 setInterval(() => {
-  if (tillupSync && tillupSync.isEnabled && !document.hidden) {
-    autoSyncAllData();
+  if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected && !document.hidden) {
+    window.tillupWebSocketClient.requestDataFromAllDevices();
   }
-}, 30000);
+}, 3000);
+
+// Sincronización automática al detectar cambios en localStorage
+let lastStorageCheck = {
+  products: 0,
+  clients: 0,
+  sales: 0,
+  debts: 0,
+  chickenSales: 0
+};
+
+setInterval(() => {
+  if (!window.tillupWebSocketClient || !window.tillupWebSocketClient.isConnected) return;
+  
+  const currentCounts = {
+    products: JSON.parse(localStorage.getItem('products') || '[]').length,
+    clients: JSON.parse(localStorage.getItem('clients') || '[]').length,
+    sales: JSON.parse(localStorage.getItem('sales') || '[]').length,
+    debts: JSON.parse(localStorage.getItem('debts') || '[]').length,
+    chickenSales: JSON.parse(localStorage.getItem('chickenSales') || '[]').length
+  };
+  
+  let hasChanges = false;
+  Object.keys(currentCounts).forEach(key => {
+    if (currentCounts[key] !== lastStorageCheck[key]) {
+      hasChanges = true;
+      lastStorageCheck[key] = currentCounts[key];
+    }
+  });
+  
+  if (hasChanges) {
+    console.log('🔄 Cambios detectados en localStorage, sincronizando...');
+    syncAllDataAfterOperation();
+  }
+}, 2000);
+
+// Interceptar operaciones de deudas para sincronización completa
+setTimeout(() => {
+  // Interceptar cualquier función que modifique deudas
+  const originalShowDebtDetailModal = window.showDebtDetailModal;
+  if (originalShowDebtDetailModal) {
+    window.showDebtDetailModal = function(debtId) {
+      const result = originalShowDebtDetailModal.call(this, debtId);
+      // Si se modifica una deuda, sincronizar
+      setTimeout(() => {
+        const observer = new MutationObserver(() => {
+          syncAllDataAfterOperation();
+          observer.disconnect();
+        });
+        const debtsContainer = document.getElementById('debtsList');
+        if (debtsContainer) {
+          observer.observe(debtsContainer, { childList: true, subtree: true });
+        }
+      }, 100);
+      return result;
+    };
+  }
+}, 2000);
 
 // Función para mostrar estado de sincronización
 function showSyncStatus() {
@@ -862,7 +889,7 @@ function showSyncStatus() {
         return;
     }
     
-    const status = tillupSync ? tillupSync.getStatus() : { enabled: false, connected: false };
+    const status = window.syncManager ? window.syncManager.getStatus() : { enabled: false, connected: false };
     
     Swal.fire({
         title: 'Estado de Sincronización',
@@ -891,6 +918,152 @@ window.showSyncStatus = showSyncStatus;
 window.autoSyncAllData = autoSyncAllData;
 window.requestDataFromOtherDevices = requestDataFromOtherDevices;
 window.initializeAutoSync = initializeAutoSync;
+window.syncAfterOperation = syncAfterOperation;
+window.syncAllDataAfterOperation = syncAllDataAfterOperation;
+
+// Función para inicializar sincronización automática inmediata
+window.enableInstantSync = function() {
+  if (!currentSyncUser) {
+    setupSyncUser();
+    return;
+  }
+  
+  // Conectar inmediatamente
+  if (window.tillupWebSocketClient) {
+    window.tillupWebSocketClient.init(currentSyncUser);
+    
+    // Verificar conexión y sincronizar
+    setTimeout(() => {
+      if (window.tillupWebSocketClient.isConnected) {
+        syncAllDataAfterOperation();
+        window.tillupWebSocketClient.requestDataFromAllDevices();
+        
+        Swal.fire({
+          icon: 'success',
+          title: '🔄 Sincronización Instantánea Activada',
+          text: 'Todos los cambios se sincronizarán automáticamente',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      }
+    }, 2000);
+  }
+};
+
+// === SINCRONIZACIÓN AUTOMÁTICA COMPLETA ===
+// Interceptar TODAS las operaciones para sincronización automática
+
+// Función para sincronizar todos los datos después de cualquier operación
+function syncAllDataAfterOperation() {
+  if (!window.tillupWebSocketClient || !window.tillupWebSocketClient.isConnected) {
+    return;
+  }
+  
+  const allData = {
+    products: JSON.parse(localStorage.getItem('products') || '[]'),
+    clients: JSON.parse(localStorage.getItem('clients') || '[]'),
+    sales: JSON.parse(localStorage.getItem('sales') || '[]'),
+    debts: JSON.parse(localStorage.getItem('debts') || '[]'),
+    chickenSales: JSON.parse(localStorage.getItem('chickenSales') || '[]')
+  };
+  
+  window.tillupWebSocketClient.send({
+    action: 'full_sync_data',
+    data: allData
+  });
+  
+  console.log('🔄 Sincronización automática completa enviada');
+}
+
+// Interceptar addProduct para sincronización completa
+const originalAddProduct = window.addProduct;
+if (originalAddProduct) {
+  window.addProduct = async function(event) {
+    const result = await originalAddProduct.call(this, event);
+    setTimeout(() => syncAllDataAfterOperation(), 200);
+    return result;
+  };
+}
+
+// Interceptar editProduct para sincronización completa
+const originalEditProduct = window.editProduct;
+if (originalEditProduct) {
+  window.editProduct = async function(productId) {
+    const result = await originalEditProduct.call(this, productId);
+    setTimeout(() => syncAllDataAfterOperation(), 200);
+    return result;
+  };
+}
+
+// Interceptar deleteProduct para sincronización completa
+const originalDeleteProduct = window.deleteProduct;
+if (originalDeleteProduct) {
+  window.deleteProduct = async function(productId) {
+    const result = await originalDeleteProduct.call(this, productId);
+    setTimeout(() => syncAllDataAfterOperation(), 200);
+    return result;
+  };
+}
+
+// Interceptar addClient para sincronización completa
+const originalAddClient = window.addClient;
+if (originalAddClient) {
+  window.addClient = async function(event) {
+    const result = await originalAddClient.call(this, event);
+    setTimeout(() => syncAllDataAfterOperation(), 200);
+    return result;
+  };
+}
+
+// Interceptar editClient para sincronización completa
+const originalEditClient = window.editClient;
+if (originalEditClient) {
+  window.editClient = async function(clientId) {
+    const result = await originalEditClient.call(this, clientId);
+    setTimeout(() => syncAllDataAfterOperation(), 200);
+    return result;
+  };
+}
+
+// Interceptar deleteClient para sincronización completa
+const originalDeleteClient = window.deleteClient;
+if (originalDeleteClient) {
+  window.deleteClient = async function(clientId) {
+    const result = await originalDeleteClient.call(this, clientId);
+    setTimeout(() => syncAllDataAfterOperation(), 200);
+    return result;
+  };
+}
+
+// Interceptar finalizeSale para sincronización completa
+const originalFinalizeSale = window.finalizeSale;
+if (originalFinalizeSale) {
+  window.finalizeSale = async function() {
+    const result = await originalFinalizeSale.call(this);
+    setTimeout(() => syncAllDataAfterOperation(), 200);
+    return result;
+  };
+}
+
+// Interceptar processChickenSale para sincronización completa
+const originalProcessChickenSale = window.processChickenSale;
+if (originalProcessChickenSale) {
+  window.processChickenSale = function(saleData) {
+    const result = originalProcessChickenSale.call(this, saleData);
+    setTimeout(() => syncAllDataAfterOperation(), 200);
+    return result;
+  };
+}
+
+// Interceptar handleChickenSale para sincronización completa
+const originalHandleChickenSale = window.handleChickenSale;
+if (originalHandleChickenSale) {
+  window.handleChickenSale = function() {
+    const result = originalHandleChickenSale.call(this);
+    setTimeout(() => syncAllDataAfterOperation(), 200);
+    return result;
+  };
+}
 
 // Funciones adicionales de sincronización
 window.setupSyncUserOld = function() {
@@ -1005,21 +1178,21 @@ window.testBidirectionalSync = function() {
 };
 
 window.forceSyncAll = function() {
-  if (!tillupSync || !tillupSync.isEnabled) {
+  if (!window.tillupWebSocketClient || !window.tillupWebSocketClient.isConnected) {
     Swal.fire({
       icon: 'warning',
-      title: 'Sincronización no configurada',
-      text: 'Configura un usuario primero.',
+      title: 'Sin conexión WebSocket',
+      text: 'Configura un usuario y verifica la conexión.',
       confirmButtonText: 'Aceptar'
     });
     return;
   }
   
   const allData = {
-    products: products || [],
-    clients: clients || [],
-    sales: sales || [],
-    debts: debts || [],
+    products: JSON.parse(localStorage.getItem('products') || '[]'),
+    clients: JSON.parse(localStorage.getItem('clients') || '[]'),
+    sales: JSON.parse(localStorage.getItem('sales') || '[]'),
+    debts: JSON.parse(localStorage.getItem('debts') || '[]'),
     chickenSales: JSON.parse(localStorage.getItem('chickenSales') || '[]')
   };
   
@@ -1051,18 +1224,16 @@ window.forceSyncAll = function() {
     }).then((result) => {
       if (result.isConfirmed) {
         // Solicitar datos de otros dispositivos
-        if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
-          window.tillupWebSocketClient.send({
-            action: 'request_sync_data',
-            data: { userId: currentSyncUser }
-          });
-          Swal.fire({
-            icon: 'info',
-            title: 'Solicitando datos...',
-            text: 'Se ha enviado una solicitud para recibir datos de otros dispositivos.',
-            confirmButtonText: 'Aceptar'
-          });
-        }
+        window.tillupWebSocketClient.send({
+          action: 'request_sync_data',
+          data: { userId: window.tillupWebSocketClient.userId }
+        });
+        Swal.fire({
+          icon: 'info',
+          title: 'Solicitando datos...',
+          text: 'Se ha enviado una solicitud para recibir datos de otros dispositivos.',
+          confirmButtonText: 'Aceptar'
+        });
       } else if (result.isDenied) {
         // Confirmar envío de datos vacíos
         Swal.fire({
@@ -1089,7 +1260,7 @@ window.forceSyncAll = function() {
           confirmButtonColor: '#dc3545'
         }).then((confirmResult) => {
           if (confirmResult.isConfirmed) {
-            autoSyncAllData();
+            window.tillupWebSocketClient.sendAllLocalData();
             Swal.fire({
               icon: 'success',
               title: 'Datos vacíos enviados',
@@ -1130,7 +1301,7 @@ window.forceSyncAll = function() {
     confirmButtonColor: '#0d6efd'
   }).then((result) => {
     if (result.isConfirmed) {
-      autoSyncAllData();
+      window.tillupWebSocketClient.sendAllLocalData();
       Swal.fire({
         icon: 'success',
         title: 'Sincronización enviada',
@@ -1687,6 +1858,31 @@ window.forceUpdateSelectors = function() {
   }, 100);
 };
 
+// Función para forzar sincronización de deudas
+window.forceSyncDebts = function() {
+  console.log('🔄 Forzando sincronización de deudas...');
+  
+  const localStorageDebts = JSON.parse(localStorage.getItem('debts') || '[]');
+  
+  // Actualizar estado global
+  if (typeof window.setDebts === 'function') {
+    window.setDebts(localStorageDebts);
+  }
+  
+  // Actualizar estado del módulo
+  if (window.debts && Array.isArray(window.debts)) {
+    window.debts.length = 0;
+    window.debts.push(...localStorageDebts);
+  }
+  
+  // Forzar renderizado
+  if (typeof window.renderDebts === 'function') {
+    window.renderDebts();
+  }
+  
+  console.log('✅ Sincronización de deudas completada');
+};
+
 // Función para limpiar modal backdrops y problemas de aria-hidden
 window.clearModalBackdrops = function() {
   // Remover backdrops
@@ -1724,16 +1920,7 @@ setInterval(() => {
   }
 }, 3000);
 
-// Hot reload control
-window.toggleHotReload = function() {
-  if (window.hotReload) {
-    if (window.hotReload.isEnabled) {
-      window.hotReload.disable();
-    } else {
-      window.hotReload.enable();
-    }
-  }
-};
+
 
 // Función para actualizar fecha y hora
 function updateDateTime() {
@@ -1763,6 +1950,50 @@ function updateDateTime() {
 window.showAddClientModal = function() {
   const modal = new bootstrap.Modal(document.getElementById('modalClient'));
   modal.show();
+};
+
+// Función de debug para verificar estado de deudas
+window.debugDebts = function() {
+  console.log('=== 🔍 DEBUG DEUDAS ===');
+  
+  const localStorageDebts = JSON.parse(localStorage.getItem('debts') || '[]');
+  const memoryDebts = debts || [];
+  const globalDebts = window.debts || [];
+  
+  console.log('📦 localStorage deudas:', localStorageDebts.length);
+  localStorageDebts.forEach((d, i) => {
+    console.log(`  ${i}: ${d.clientName} - $${d.amount} (${d.id})`);
+  });
+  
+  console.log('🧠 memoria deudas:', memoryDebts.length);
+  memoryDebts.forEach((d, i) => {
+    console.log(`  ${i}: ${d.clientName} - $${d.amount} (${d.id})`);
+  });
+  
+  console.log('🌐 global deudas:', globalDebts.length);
+  globalDebts.forEach((d, i) => {
+    console.log(`  ${i}: ${d.clientName} - $${d.amount} (${d.id})`);
+  });
+  
+  // Verificar si hay discrepancias
+  if (localStorageDebts.length !== memoryDebts.length || localStorageDebts.length !== globalDebts.length) {
+    console.warn('⚠️ DISCREPANCIA DETECTADA entre localStorage, memoria y global');
+    console.log('Sincronizando...');
+    
+    // Forzar sincronización
+    if (typeof window.setDebts === 'function') {
+      window.setDebts(localStorageDebts);
+      console.log('✅ Estado sincronizado usando setDebts');
+    }
+    
+    // Forzar renderizado
+    if (typeof window.renderDebts === 'function') {
+      window.renderDebts();
+      console.log('✅ UI actualizada');
+    }
+  } else {
+    console.log('✅ Todos los estados están sincronizados');
+  }
 };
 
 

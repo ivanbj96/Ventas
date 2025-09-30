@@ -61,7 +61,16 @@ async function loadAllCriticalData() {
       // Usar solo localStorage para evitar problemas con localforage
       const value = localStorage.getItem(key);
       if (value !== null) {
-        data[key] = key.includes('price') || key.includes('cost') ? parseFloat(value) : JSON.parse(value);
+        if (key.includes('price') || key.includes('cost')) {
+          data[key] = parseFloat(value) || 0;
+        } else {
+          try {
+            data[key] = JSON.parse(value);
+          } catch (parseError) {
+            console.warn(`Error parsing ${key}:`, parseError);
+            data[key] = Array.isArray(data[key]) ? [] : null;
+          }
+        }
       }
     } catch (error) {
       console.warn(`Error cargando ${key}:`, error);
@@ -74,7 +83,14 @@ async function loadAllCriticalData() {
 // === GUARDADO DE DATOS ===
 export async function saveToStorage(key, data) {
   try {
-    localStorage.setItem(key, JSON.stringify(data));
+    if (!key || typeof key !== 'string') {
+      throw new Error('Key must be a non-empty string');
+    }
+    if (data === undefined) {
+      throw new Error('Data cannot be undefined');
+    }
+    const serializedData = JSON.stringify(data);
+    localStorage.setItem(key, serializedData);
   } catch (error) {
     console.error(`Error guardando ${key}:`, error);
     throw error;

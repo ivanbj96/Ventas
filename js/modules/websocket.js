@@ -17,7 +17,7 @@ import {
   setChickenSales
 } from './state.js';
 
-class WebSocketSync_DISABLED {
+class WebSocketSync {
   constructor() {
     this.ws = null;
     this.isConnected = false;
@@ -25,7 +25,7 @@ class WebSocketSync_DISABLED {
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 1000;
     this.userId = this.getUserId();
-    this.serverUrl = 'wss://your-websocket-server.com'; // Configurar URL del servidor
+    this.serverUrl = 'wss://ya76uc6b7j.execute-api.us-east-1.amazonaws.com/prod';
     this.messageQueue = [];
     this.isOnline = navigator.onLine;
     
@@ -522,7 +522,10 @@ class WebSocketSync_DISABLED {
   }
 }
 
-// DESHABILITADO TEMPORALMENTE - CONFLICTO CON websocket-sync-client.js
-// const webSocketSync = new WebSocketSync_DISABLED();
-// export default webSocketSync;
-// export { WebSocketSync_DISABLED as WebSocketSync };
+// Instancia global del WebSocket Sync
+const webSocketSync = new WebSocketSync();
+export default webSocketSync;
+export { WebSocketSync };
+
+// Exponer al scope global para compatibilidad
+window.webSocketSync = webSocketSync;

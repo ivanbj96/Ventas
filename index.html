@@ -182,6 +182,18 @@
             <i class="bi bi-cloud-download"></i>
             <span>Solicitar Datos</span>
           </button>
+          <button class="sidebar-action-btn" onclick="testInstantSync()" id="btn-test-instant">
+            <i class="bi bi-lightning"></i>
+            <span>Prueba Instantánea</span>
+          </button>
+          <button class="sidebar-action-btn" onclick="testClientSync()" id="btn-test-client">
+            <i class="bi bi-person-check"></i>
+            <span>Prueba Cliente</span>
+          </button>
+          <button class="sidebar-action-btn" onclick="showConnectionStatus()" id="btn-connection-status">
+            <i class="bi bi-info-circle"></i>
+            <span>Estado Conexión</span>
+          </button>
         </div>
       </div>
 
@@ -222,6 +234,10 @@
           <button class="sidebar-action-btn" onclick="configureSyncOptions()" id="btn-sync-options">
             <i class="bi bi-sliders"></i>
             <span>Opciones Sync</span>
+          </button>
+          <button class="sidebar-action-btn" onclick="openSyncDashboard()" id="btn-sync-dashboard">
+            <i class="bi bi-speedometer2"></i>
+            <span>Dashboard Sync</span>
           </button>
         </div>
       </div>
@@ -681,6 +697,7 @@
           <div class="flex-grow-1 ms-0 ms-md-3" style="min-width:220px;">
             <div class="input-group">
               <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <label for="debtClientSearch" class="visually-hidden">Buscar cliente por nombre</label>
               <input type="text" id="debtClientSearch" class="form-control" placeholder="Buscar cliente por nombre..."
                 oninput="filterDebtClients()">
             </div>
@@ -1207,6 +1224,7 @@
         </button>
       </div>
       <div class="search-input-container">
+        <label for="clientSearchInput" class="visually-hidden">Buscar cliente</label>
         <input type="text" id="clientSearchInput" class="search-input" placeholder="Escribe el nombre del cliente..."
           autocomplete="off">
         <i class="bi bi-search search-icon"></i>
@@ -1229,6 +1247,7 @@
         </button>
       </div>
       <div class="search-input-container">
+        <label for="clientsSearchInput" class="visually-hidden">Buscar cliente</label>
         <input type="text" id="clientsSearchInput" class="search-input" placeholder="Escribe el nombre del cliente..."
           autocomplete="off">
         <i class="bi bi-search search-icon"></i>
@@ -1268,7 +1287,7 @@
         <i class="bi bi-box-seam"></i>
         <span>Inventario</span>
       </button>
-      <!-- Botón de backup eliminado de la barra inferior -->
+
     </div>
   </nav>
 
@@ -1288,16 +1307,49 @@
   <script src="websocket-sync-client.js"></script>
   <!-- Gestor de sincronización -->
   <script src="sync-manager.js"></script>
-  <!-- Debug de sincronización -->
-  <script src="test-sync-debug.js"></script>
-  <!-- Test final -->
-  <script src="test-sync-final.js"></script>
+  <!-- Sistema de sincronización avanzado -->
+  <script src="advanced-sync-system.js"></script>
+  <!-- Dashboard de sincronización -->
+  <script src="sync-dashboard.js"></script>
+  <!-- Configuración rápida -->
+  <script src="quick-sync-setup.js"></script>
+
   <!-- Limpieza de cache -->
   <script src="clear-cache.js"></script>
-  <!-- Hot Reload System -->
-  <script src="hot-reload.js"></script>
+  <!-- Funciones de prueba de sincronización -->
+  <script src="test-sync-functions.js"></script>
+  <!-- Sistema de sincronización instantánea -->
+  <script src="instant-sync.js"></script>
+  <!-- Notificaciones de sincronización -->
+  <script src="instant-sync-notifications.js"></script>
+  <!-- Gestor de sincronización inicial completa -->
+  <script src="initial-sync-manager.js"></script>
+  <!-- Parche para corregir sincronización -->
+  <script src="sync-fix-patch.js"></script>
+  <!-- Correción de loop infinito -->
+  <script src="sync-loop-fix.js"></script>
+  <!-- Detener loop inmediatamente -->
+  <script src="stop-loop.js"></script>
+
   <!-- Lógica principal de la aplicación -->
   <script type="module" src="js/app.js"></script>
+  
+  <!-- Función global para forzar sync -->
+  <script>
+    window.forceSyncNow = function() {
+      if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+        console.log('🔄 Forzando sincronización...');
+        const success = window.tillupWebSocketClient.forceCompleteSync();
+        if (success) {
+          console.log('✅ Sincronización iniciada');
+        } else {
+          console.log('❌ WebSocket no conectado');
+        }
+      } else {
+        console.log('❌ Cliente WebSocket no disponible');
+      }
+    };
+  </script>
   
   <!-- ========================================= -->
   <!-- 🧾 FUNCIONES DE COMPROBANTES -->

@@ -2,8 +2,7 @@
 // 🛒 GESTIÓN DEL CARRITO DE COMPRAS
 // ========================================
 
-import { products, clients, setCart, setCurrentClientId } from './state.js';
-import { cart, currentClientId } from './state.js';
+import { products, clients, cart, currentClientId, setCart, setCurrentClientId } from './state.js';
 import { generateId, getLocalDateString, getLocalDateTime } from './utils.js';
 import { saveToStorage } from './persistence.js';
 // import webSocketSync from './websocket.js'; // DESHABILITADO TEMPORALMENTE

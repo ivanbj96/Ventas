@@ -55,7 +55,7 @@ select {
 .sync-notification,
 .toast[data-sync="true"],
 .alert[data-sync="true"] {
-    display: none !important;
+    display: none;
 }
 
 /* ========================================= */
@@ -63,8 +63,8 @@ select {
 /* ========================================= */
 
 .modern-receipt-popup {
-    border-radius: 15px !important;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
 }
 
 .modern-receipt {
