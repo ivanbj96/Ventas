@@ -34,10 +34,18 @@ class TillUpSyncManager {
         this.isEnabled = true;
         
         // Usar el cliente WebSocket global
-        this.client = window.tillupWebSocketClient;
+        try {
+            this.client = window.tillupWebSocketClient;
+        } catch (error) {
+            console.error('Error accessing WebSocket client:', error);
+        }
         
         if (this.client) {
-            this.client.init(userId);
+            try {
+                this.client.init(userId);
+            } catch (error) {
+                console.error('Error initializing WebSocket client:', error);
+            }
         }
         
         console.log('🔄 Sync Manager enabled for user:', userId);
@@ -46,7 +54,11 @@ class TillUpSyncManager {
     disable() {
         this.isEnabled = false;
         if (this.client) {
-            this.client.disconnect();
+            try {
+                this.client.disconnect();
+            } catch (error) {
+                console.error('Error disconnecting WebSocket client:', error);
+            }
         }
         console.log('🔄 Sync Manager disabled');
     }
@@ -55,7 +67,8 @@ class TillUpSyncManager {
     handleIncomingData(data) {
         if (!this.isEnabled) return;
 
-        const { action, data: payload, userId, deviceId } = data;
+        try {
+            const { action, data: payload, userId, deviceId } = data || {};
 
         // Validar que no sea de este mismo dispositivo
         if (deviceId === localStorage.getItem('tillup_device_id')) {
@@ -96,6 +109,9 @@ class TillUpSyncManager {
                 this.updateUIAfterItemSync('debts');
                 this.forceImmediateUIUpdate();
                 break;
+            case 'sync_chicken_prices':
+                this.handleChickenPricesSync(payload);
+                break;
             case 'full_sync_data':
                 this.handleFullSyncData(payload);
                 this.updateUIAfterFullSync();
@@ -110,56 +126,52 @@ class TillUpSyncManager {
             default:
                 console.log('🔄 Acción desconocida:', action, 'data:', data);
         }
+        } catch (error) {
+            console.error('Error handling incoming data:', error);
+        }
     }
 
     handleProductSync(product) {
         console.log('🔄 Syncing product:', product);
         
-        // Manejar eliminación de producto
         if (product.deleted) {
-            let productsData = window.products || [];
-            if (!Array.isArray(productsData)) {
-                productsData = JSON.parse(localStorage.getItem('products') || '[]');
-            }
-            
-            const updatedProducts = productsData.filter(p => p.id !== product.id);
-            
-            // Usar función setter si está disponible
-            if (typeof window.setProducts === 'function') {
-                window.setProducts(updatedProducts);
-            } else if (window.products && Array.isArray(window.products)) {
-                window.products.length = 0;
-                window.products.push(...updatedProducts);
-            }
-            
-            // Guardar en localStorage
-            if (typeof saveToStorage === 'function') {
-                saveToStorage('products', updatedProducts);
-            } else {
-                localStorage.setItem('products', JSON.stringify(updatedProducts));
-            }
-            
-            // Actualizar UI silenciosamente
-            if (typeof renderInventory === 'function') renderInventory();
-            if (typeof renderSalesProducts === 'function') renderSalesProducts();
+            this.deleteProduct(product.id);
             return;
         }
         
-        // Actualizar productos locales
+        this.updateProduct(product);
+        this.showQuickSyncIndicator('product');
+    }
+
+    deleteProduct(productId) {
+        let productsData = window.products || [];
+        if (!Array.isArray(productsData)) {
+            productsData = JSON.parse(localStorage.getItem('products') || '[]');
+        }
+        
+        const updatedProducts = productsData.filter(p => p.id !== productId);
+        this.saveProducts(updatedProducts);
+        this.updateProductUI();
+    }
+
+    updateProduct(product) {
         let productsData = window.products || [];
         if (!Array.isArray(productsData)) {
             productsData = JSON.parse(localStorage.getItem('products') || '[]');
         }
         
         const existingIndex = productsData.findIndex(p => p.id === product.id);
-        
         if (existingIndex >= 0) {
             productsData[existingIndex] = product;
         } else {
             productsData.push(product);
         }
         
-        // Usar función setter si está disponible
+        this.saveProducts(productsData);
+        this.updateProductUI();
+    }
+
+    saveProducts(productsData) {
         if (typeof window.setProducts === 'function') {
             window.setProducts(productsData);
         } else if (window.products && Array.isArray(window.products)) {
@@ -167,19 +179,16 @@ class TillUpSyncManager {
             window.products.push(...productsData);
         }
         
-        // Guardar en localStorage
         if (typeof saveToStorage === 'function') {
             saveToStorage('products', productsData);
         } else {
             localStorage.setItem('products', JSON.stringify(productsData));
         }
-        
-        // Actualizar UI silenciosamente
+    }
+
+    updateProductUI() {
         if (typeof renderInventory === 'function') renderInventory();
         if (typeof renderSalesProducts === 'function') renderSalesProducts();
-        
-        // Mostrar indicador de sincronización
-        this.showQuickSyncIndicator('product');
     }
 
     handleClientSync(client) {
@@ -211,39 +220,37 @@ class TillUpSyncManager {
             return;
         }
         
-        // Actualizar clientes locales
         let clientsData = window.clients || [];
         if (!Array.isArray(clientsData)) {
             clientsData = JSON.parse(localStorage.getItem('clients') || '[]');
         }
         
         const existingIndex = clientsData.findIndex(c => c.id === client.id);
-        
         if (existingIndex >= 0) {
             clientsData[existingIndex] = client;
         } else {
             clientsData.push(client);
         }
         
-        // Guardar en localStorage PRIMERO
+        this.saveClients(clientsData);
+        this.forceUpdateClientUI();
+        
+        this.showQuickSyncIndicator('client');
+    }
+
+    saveClients(clientsData) {
         localStorage.setItem('clients', JSON.stringify(clientsData));
         
-        // Actualizar estado global sin usar setClients para evitar bucles
-        if (window.clients && Array.isArray(window.clients)) {
+        if (typeof window.setClients === 'function') {
+            window.setClients(clientsData);
+        } else if (window.clients && Array.isArray(window.clients)) {
             window.clients.length = 0;
             window.clients.push(...clientsData);
         }
         
-        // Usar saveToStorage si está disponible
         if (typeof saveToStorage === 'function') {
             saveToStorage('clients', clientsData);
         }
-        
-        // Actualizar UI silenciosamente
-        this.forceUpdateClientUI();
-        
-        // Mostrar indicador de sincronización
-        this.showQuickSyncIndicator('client');
     }
 
     handleSaleSync(sale) {
@@ -258,30 +265,32 @@ class TillUpSyncManager {
         const existingIndex = salesData.findIndex(s => s.id === sale.id);
         
         if (existingIndex === -1) {
-            // Agregar nueva venta
             salesData.push(sale);
-            
-            // Usar función setter si está disponible
-            if (typeof window.setSales === 'function') {
-                window.setSales(salesData);
-            } else if (window.sales && Array.isArray(window.sales)) {
-                window.sales.length = 0;
-                window.sales.push(...salesData);
-            }
-            
-            // Guardar en localStorage
-            if (typeof saveToStorage === 'function') {
-                saveToStorage('sales', salesData);
-            } else {
-                localStorage.setItem('sales', JSON.stringify(salesData));
-            }
-            
-            // Actualizar UI silenciosamente
-            if (typeof renderBalanceGrid === 'function') renderBalanceGrid();
-            if (typeof updateBalanceUI === 'function') updateBalanceUI();
+            this.saveSales(salesData);
+            this.updateSalesUI();
         } else {
             console.log('🔄 Venta ya existe, omitiendo:', sale.id);
         }
+    }
+
+    saveSales(salesData) {
+        if (typeof window.setSales === 'function') {
+            window.setSales(salesData);
+        } else if (window.sales && Array.isArray(window.sales)) {
+            window.sales.length = 0;
+            window.sales.push(...salesData);
+        }
+        
+        if (typeof saveToStorage === 'function') {
+            saveToStorage('sales', salesData);
+        } else {
+            localStorage.setItem('sales', JSON.stringify(salesData));
+        }
+    }
+
+    updateSalesUI() {
+        if (typeof renderBalanceGrid === 'function') renderBalanceGrid();
+        if (typeof updateBalanceUI === 'function') updateBalanceUI();
     }
 
     handleChickenSaleSync(sale) {
@@ -373,6 +382,23 @@ class TillUpSyncManager {
         
         // Actualizar UI
         if (typeof renderDebts === 'function') renderDebts();
+    }
+
+    handleChickenPricesSync(pricesData) {
+        console.log('🔄 Syncing chicken prices:', pricesData);
+        
+        if (pricesData && typeof pricesData.pricePerPound === 'number' && typeof pricesData.costPerPound === 'number') {
+            // Actualizar localStorage
+            localStorage.setItem('pricePerPound', pricesData.pricePerPound.toString());
+            localStorage.setItem('costPerPound', pricesData.costPerPound.toString());
+            
+            // Llamar función de recepción si existe
+            if (window.receiveChickenPrices && typeof window.receiveChickenPrices === 'function') {
+                window.receiveChickenPrices(pricesData);
+            }
+            
+            console.log('✅ Precios de pollos actualizados:', pricesData);
+        }
     }
 
     handleFullSyncData(syncData) {
@@ -659,6 +685,11 @@ class TillUpSyncManager {
     syncDebt(debt) {
         if (!this.isEnabled || !this.client) return;
         this.client.syncDebt(debt);
+    }
+
+    syncChickenPrices(pricesData) {
+        if (!this.isEnabled || !this.client) return;
+        this.client.syncChickenPrices(pricesData);
     }
 
     requestFullSync() {

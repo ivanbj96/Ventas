@@ -33,7 +33,10 @@ export async function renderInventory() {
   const container = document.getElementById('inventoryList');
   if (!container) return;
   
-  if (!products || !Array.isArray(products) || products.length === 0) {
+  // Usar datos de localStorage para asegurar sincronización
+  const realProducts = JSON.parse(localStorage.getItem('products') || '[]');
+  
+  if (!realProducts || !Array.isArray(realProducts) || realProducts.length === 0) {
     container.innerHTML = `
       <div class="col-12 text-center py-4">
         <i class="bi bi-box-seam fs-1 text-muted"></i>
@@ -51,7 +54,7 @@ export async function renderInventory() {
   
   if (isGridView) {
     container.className = 'row gy-3';
-    container.innerHTML = products.map(product => `
+    container.innerHTML = realProducts.map(product => `
       <div class="col-6 col-md-4 col-lg-3">
         <div class="product-card-treinta" onclick="showProductDetailModal('${product.id}')">
           <img src="${product.image || 'icons/descarga.png'}" alt="${product.name}" onerror="this.src='icons/descarga.png'">
@@ -69,7 +72,7 @@ export async function renderInventory() {
     `).join('');
   } else {
     container.className = 'list-group';
-    container.innerHTML = products.map(product => `
+    container.innerHTML = realProducts.map(product => `
       <li class="list-group-item d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">
           <img src="${product.image || 'icons/descarga.png'}" alt="${product.name}" 
@@ -99,7 +102,10 @@ export async function renderClients(searchTerm = '') {
   const container = document.getElementById('clientList');
   if (!container) return;
   
-  if (!clients || !Array.isArray(clients)) {
+  // Usar datos de localStorage para asegurar sincronización
+  const realClients = JSON.parse(localStorage.getItem('clients') || '[]');
+  
+  if (!realClients || !Array.isArray(realClients) || realClients.length === 0) {
     container.innerHTML = `
       <div class="col-12 text-center py-4">
         <i class="bi bi-people fs-1 text-muted"></i>
@@ -113,10 +119,10 @@ export async function renderClients(searchTerm = '') {
   }
   
   // Filtrar clientes por término de búsqueda
-  let filteredClients = clients;
+  let filteredClients = realClients;
   if (searchTerm && searchTerm.trim()) {
     const term = searchTerm.toLowerCase().trim();
-    filteredClients = clients.filter(client => 
+    filteredClients = realClients.filter(client => 
       client.name.toLowerCase().includes(term) ||
       (client.phone && client.phone.includes(term)) ||
       (client.address && client.address.toLowerCase().includes(term))
@@ -285,7 +291,10 @@ export function renderSalesProducts() {
   const container = document.getElementById('salesProductsGrid');
   if (!container) return;
   
-  if (!products || !Array.isArray(products) || products.length === 0) {
+  // Usar datos de localStorage para asegurar sincronización
+  const realProducts = JSON.parse(localStorage.getItem('products') || '[]');
+  
+  if (!realProducts || !Array.isArray(realProducts) || realProducts.length === 0) {
     container.innerHTML = `
       <div class="empty-state-temu">
         <div class="empty-icon">
@@ -302,7 +311,7 @@ export function renderSalesProducts() {
   }
   
   const searchTerm = document.getElementById('productSearch')?.value?.toLowerCase() || '';
-  const filteredProducts = products.filter(product => 
+  const filteredProducts = realProducts.filter(product => 
     product.name.toLowerCase().includes(searchTerm)
   );
   
@@ -348,22 +357,44 @@ export function renderSalesProducts() {
 
 // === RENDERIZADO DE BALANCE ===
 export function renderBalanceGrid(opts = {}) {
-  let currentPeriod = document.querySelector('input[name="periodFilter"]:checked')?.value || 'day';
-  let data, movements;
-  if (opts && opts.fecha) {
-    // Si se pasa una fecha, filtrar solo ese día
-    data = calculateBalanceData('custom', opts.fecha);
-    movements = getRecentMovements('custom', opts.fecha);
-  } else {
-    data = calculateBalanceData(currentPeriod);
-    movements = getRecentMovements(currentPeriod);
-  }
+  try {
+    // Actualizar chickenSales antes de calcular
+    updateChickenSalesFromStorage();
+    
+    let currentPeriod = document.querySelector('input[name="periodFilter"]:checked')?.value || 'day';
+    let data, movements;
+    
+    if (opts && opts.fecha) {
+      // Si se pasa una fecha, filtrar solo ese día
+      data = calculateBalanceData('custom', opts.fecha);
+      movements = getRecentMovements('custom', opts.fecha);
+    } else {
+      data = calculateBalanceData(currentPeriod);
+      movements = getRecentMovements(currentPeriod);
+    }
+    
+    // Validar que data tenga valores válidos
+    if (!data || typeof data.income !== 'number' || typeof data.expenses !== 'number' || typeof data.profit !== 'number') {
+      console.warn('Datos de balance inválidos, usando valores por defecto');
+      data = { income: 0, expenses: 0, profit: 0 };
+    }
+    
+    // Validar que movements sea un array
+    if (!Array.isArray(movements)) {
+      console.warn('Movimientos inválidos, usando array vacío');
+      movements = [];
+    }
   
   // Calcular porcentajes seguros (evitar división por cero)
   const total = data.income + data.expenses;
   const incomePercent = total > 0 ? ((data.income / total) * 100).toFixed(1) : '0.0';
   const expensesPercent = total > 0 ? ((data.expenses / total) * 100).toFixed(1) : '0.0';
   const profitMargin = data.income > 0 ? ((data.profit / data.income) * 100).toFixed(1) : '0.0';
+  
+  // Validar que los porcentajes sean números válidos
+  const safeIncomePercent = isNaN(parseFloat(incomePercent)) ? '0.0' : incomePercent;
+  const safeExpensesPercent = isNaN(parseFloat(expensesPercent)) ? '0.0' : expensesPercent;
+  const safeProfitMargin = isNaN(parseFloat(profitMargin)) ? '0.0' : profitMargin;
   
   // Renderizar tarjetas de balance
   const cardsContainer = document.getElementById('balanceCards');
@@ -379,7 +410,7 @@ export function renderBalanceGrid(opts = {}) {
         <div class="balance-card-amount">$${data.income.toFixed(2)}</div>
         <div class="balance-card-change positive">
           <i class="bi bi-arrow-up"></i>
-          <span>+${incomePercent}% del total</span>
+          <span>+${safeIncomePercent}% del total</span>
         </div>
       </div>
       
@@ -393,7 +424,7 @@ export function renderBalanceGrid(opts = {}) {
         <div class="balance-card-amount">$${data.expenses.toFixed(2)}</div>
         <div class="balance-card-change negative">
           <i class="bi bi-arrow-down"></i>
-          <span>-${expensesPercent}% del total</span>
+          <span>-${safeExpensesPercent}% del total</span>
         </div>
       </div>
       
@@ -407,7 +438,7 @@ export function renderBalanceGrid(opts = {}) {
         <div class="balance-card-amount">$${data.profit.toFixed(2)}</div>
         <div class="balance-card-change ${data.profit >= 0 ? 'positive' : 'negative'}">
           <i class="bi bi-${data.profit >= 0 ? 'arrow-up' : 'arrow-down'}"></i>
-          <span>${data.profit >= 0 ? '+' : ''}${profitMargin}% margen</span>
+          <span>${data.profit >= 0 ? '+' : ''}${safeProfitMargin}% margen</span>
         </div>
       </div>
       
@@ -464,6 +495,21 @@ export function renderBalanceGrid(opts = {}) {
   
   // Renderizar estadísticas avanzadas
   renderAdvancedStats(data);
+  
+  } catch (error) {
+    console.error('Error renderizando balance:', error);
+    
+    // Mostrar mensaje de error en el contenedor de balance
+    const cardsContainer = document.getElementById('balanceCards');
+    if (cardsContainer) {
+      cardsContainer.innerHTML = `
+        <div class="alert alert-danger" role="alert">
+          <i class="bi bi-exclamation-triangle"></i>
+          Error cargando datos del balance. Por favor, recarga la página.
+        </div>
+      `;
+    }
+  }
 }
 
 // === RENDERIZAR ESTADÍSTICAS AVANZADAS ===
@@ -499,7 +545,11 @@ function renderAdvancedStats(data) {
 
 // === CALCULAR ESTADÍSTICAS AVANZADAS ===
 function calculateAdvancedStats() {
-  const totalSales = sales ? sales.length : 0;
+  // Contar ventas normales y de pollos
+  const normalSales = sales ? sales.length : 0;
+  const chickenSalesCount = chickenSales ? chickenSales.length : 0;
+  const totalSales = normalSales + chickenSalesCount;
+  
   const totalClients = clients ? clients.length : 0;
   const totalProducts = products ? products.length : 0;
   
@@ -507,7 +557,7 @@ function calculateAdvancedStats() {
   let totalCost = 0;
   let totalDebt = 0;
   
-  // Calcular ingresos y costos
+  // Calcular ingresos y costos de ventas normales
   if (sales && Array.isArray(sales)) {
     sales.forEach(sale => {
       totalRevenue += sale.total || 0;
@@ -515,10 +565,20 @@ function calculateAdvancedStats() {
     });
   }
   
-  // Calcular deudas
-  if (clients && Array.isArray(clients)) {
-    clients.forEach(client => {
-      totalDebt += client.debt || 0;
+  // Calcular ingresos y costos de ventas de pollos
+  if (chickenSales && Array.isArray(chickenSales)) {
+    chickenSales.forEach(sale => {
+      totalRevenue += sale.total || 0;
+      // Calcular costo de pollo basado en peso y costo por libra
+      const chickenCost = (sale.weight || 0) * (sale.costPerPound || 0);
+      totalCost += chickenCost;
+    });
+  }
+  
+  // Calcular deudas desde el array de deudas (más preciso)
+  if (debts && Array.isArray(debts)) {
+    debts.forEach(debt => {
+      totalDebt += debt.amount || 0;
     });
   }
   
@@ -526,8 +586,10 @@ function calculateAdvancedStats() {
   const profitMargin = totalRevenue > 0 ? ((totalRevenue - totalCost) / totalRevenue) * 100 : 0;
   const debtRatio = totalRevenue > 0 ? (totalDebt / totalRevenue) * 100 : 0;
   
-  // Encontrar producto top
+  // Encontrar producto top (incluyendo pollos)
   const productSales = {};
+  
+  // Ventas normales
   if (sales && Array.isArray(sales)) {
     sales.forEach(sale => {
       if (sale.items && Array.isArray(sale.items)) {
@@ -538,15 +600,33 @@ function calculateAdvancedStats() {
     });
   }
   
+  // Ventas de pollos
+  if (chickenSales && Array.isArray(chickenSales)) {
+    chickenSales.forEach(sale => {
+      const chickenName = `Pollos (${sale.weight || 0} lbs)`;
+      productSales[chickenName] = (productSales[chickenName] || 0) + (sale.quantity || 0);
+    });
+  }
+  
   const topProductEntry = Object.entries(productSales).sort((a, b) => b[1] - a[1])[0];
   const topProduct = topProductEntry ? 
     { name: topProductEntry[0], sales: topProductEntry[1] } : 
     { name: 'Sin ventas', sales: 0 };
   
-  // Encontrar cliente top
+  // Encontrar cliente top (incluyendo ventas de pollos)
   const clientSales = {};
+  
+  // Ventas normales
   if (sales && Array.isArray(sales)) {
     sales.forEach(sale => {
+      const clientName = sale.clientName || 'Cliente';
+      clientSales[clientName] = (clientSales[clientName] || 0) + (sale.total || 0);
+    });
+  }
+  
+  // Ventas de pollos
+  if (chickenSales && Array.isArray(chickenSales)) {
+    chickenSales.forEach(sale => {
       const clientName = sale.clientName || 'Cliente';
       clientSales[clientName] = (clientSales[clientName] || 0) + (sale.total || 0);
     });
@@ -601,34 +681,47 @@ function calculateBalanceData(period, customDate) {
   
   let income = 0, expenses = 0, profit = 0;
   
+  // Obtener datos reales desde localStorage
+  const realSales = JSON.parse(localStorage.getItem('sales') || '[]');
+  
   // Verificar que sales sea un array válido
-  if (sales && Array.isArray(sales)) {
-    sales.forEach(s => {
+  if (realSales && Array.isArray(realSales)) {
+    realSales.forEach(s => {
       if (s && s.date && typeof s.total === 'number') {
         const fecha = new Date(s.date);
         if (checkPeriod(fecha)) {
           income += s.total;
-          profit += s.profit || 0;
+          // Calcular gastos basado en el costo real de los productos
+          const saleCost = s.cost || 0;
+          expenses += saleCost;
+          profit += (s.total - saleCost);
         }
       }
     });
   }
   
-  // Usar chickenSales del módulo en lugar de acceder a localStorage repetidamente
-  if (chickenSales && Array.isArray(chickenSales)) {
-    chickenSales.forEach(s => {
+  // Obtener datos reales de chickenSales desde localStorage
+  const realChickenSales = JSON.parse(localStorage.getItem('chickenSales') || '[]');
+  
+  if (realChickenSales && Array.isArray(realChickenSales)) {
+    realChickenSales.forEach(s => {
       if (s && s.date && typeof s.total === 'number') {
         const fecha = new Date(s.date);
         if (checkPeriod(fecha)) {
           income += s.total;
-          profit += s.profit || s.total; // Para pollos, usar profit si existe, sino total
+          // Para pollos, calcular costo basado en peso y costo por libra
+          const chickenCost = (s.weight || 0) * (s.costPerPound || 0);
+          expenses += chickenCost;
+          profit += (s.total - chickenCost);
         }
       }
     });
   }
   
-  // Gastos (costos de ventas)
-  expenses = Math.max(0, income - profit);
+  // Asegurar que los valores no sean negativos
+  income = Math.max(0, income);
+  expenses = Math.max(0, expenses);
+  profit = income - expenses; // Profit real = ingresos - gastos
   
   return { income, expenses, profit };
 }
@@ -658,9 +751,12 @@ function getRecentMovements(period, customDate) {
     }
   }
   
+  // Obtener datos reales desde localStorage
+  const realSales = JSON.parse(localStorage.getItem('sales') || '[]');
+  
   // Verificar que sales sea un array válido y agregar ventas del periodo
-  if (sales && Array.isArray(sales)) {
-    sales.forEach(sale => {
+  if (realSales && Array.isArray(realSales)) {
+    realSales.forEach(sale => {
       if (sale && sale.date && sale.id && sale.clientName && typeof sale.total === 'number') {
         const saleDate = new Date(sale.date);
         if (saleDate >= startDate) {
@@ -679,9 +775,11 @@ function getRecentMovements(period, customDate) {
     });
   }
   
-  // Usar chickenSales del módulo en lugar de acceder a localStorage
-  if (chickenSales && Array.isArray(chickenSales)) {
-    chickenSales.forEach(sale => {
+  // Obtener datos reales de chickenSales desde localStorage
+  const realChickenSales = JSON.parse(localStorage.getItem('chickenSales') || '[]');
+  
+  if (realChickenSales && Array.isArray(realChickenSales)) {
+    realChickenSales.forEach(sale => {
       if (sale && sale.date && sale.id && sale.clientName && typeof sale.total === 'number') {
         const saleDate = new Date(sale.date);
         if (saleDate >= startDate) {
@@ -700,9 +798,12 @@ function getRecentMovements(period, customDate) {
     });
   }
   
+  // Obtener datos reales de debts desde localStorage
+  const realDebts = JSON.parse(localStorage.getItem('debts') || '[]');
+  
   // Verificar que debts sea un array válido y agregar deudas del periodo
-  if (debts && Array.isArray(debts)) {
-    debts.forEach(debt => {
+  if (realDebts && Array.isArray(realDebts)) {
+    realDebts.forEach(debt => {
       if (debt && debt.date && debt.id && debt.clientName && typeof debt.amount === 'number') {
         const debtDate = new Date(debt.date);
         if (debtDate >= startDate) {
@@ -721,7 +822,7 @@ function getRecentMovements(period, customDate) {
     });
     
     // Agregar pagos de deudas del periodo
-    debts.forEach(debt => {
+    realDebts.forEach(debt => {
       if (debt && debt.payments && Array.isArray(debt.payments)) {
         debt.payments.forEach(payment => {
           if (payment && payment.date && typeof payment.amount === 'number') {
@@ -753,17 +854,88 @@ function getRecentMovements(period, customDate) {
 // === ACTUALIZACIÓN DE BALANCE ===
 // Función principal para actualizar el dashboard
 export function updateBalanceUI() {
-  // Actualizar chickenSales desde localStorage antes de renderizar
-  updateChickenSalesFromStorage();
-  
-  // Renderizar el grid de balance
-  renderBalanceGrid();
-  
-  // Actualizar estadísticas avanzadas si estamos en la vista de balance
-  const balanceView = document.getElementById('view-balance');
-  if (balanceView && !balanceView.classList.contains('d-none')) {
-    showAdvancedStats();
+  try {
+    console.log('🔄 Actualizando UI de balance con datos reales...');
+    
+    // Actualizar chickenSales desde localStorage antes de renderizar
+    updateChickenSalesFromStorage();
+    
+    // Recargar datos desde localStorage para asegurar sincronización
+    const latestSales = JSON.parse(localStorage.getItem('sales') || '[]');
+    const latestDebts = JSON.parse(localStorage.getItem('debts') || '[]');
+    const latestChickenSales = JSON.parse(localStorage.getItem('chickenSales') || '[]');
+    
+    console.log('📊 Datos para balance:', {
+      sales: latestSales.length,
+      debts: latestDebts.length,
+      chickenSales: latestChickenSales.length
+    });
+    
+    // Actualizar arrays globales si existen
+    if (window.sales && Array.isArray(window.sales)) {
+      window.sales.length = 0;
+      window.sales.push(...latestSales);
+    }
+    if (window.debts && Array.isArray(window.debts)) {
+      window.debts.length = 0;
+      window.debts.push(...latestDebts);
+    }
+    
+    // Renderizar el grid de balance INMEDIATAMENTE
+    renderBalanceGrid();
+    
+    // Actualizar estadísticas avanzadas INMEDIATAMENTE
+    if (typeof showAdvancedStats === 'function') {
+      showAdvancedStats();
+    }
+    
+    console.log('✅ UI de balance actualizada correctamente');
+  } catch (error) {
+    console.error('❌ Error actualizando UI de balance:', error);
+    
+    // Mostrar mensaje de error al usuario
+    const balanceView = document.getElementById('view-balance');
+    if (balanceView) {
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'alert alert-warning';
+      errorDiv.innerHTML = `
+        <i class="bi bi-exclamation-triangle"></i>
+        Hubo un problema actualizando el balance. 
+        <button class="btn btn-sm btn-outline-primary ms-2" onclick="location.reload()">
+          <i class="bi bi-arrow-clockwise"></i> Recargar
+        </button>
+      `;
+      balanceView.prepend(errorDiv);
+    }
   }
+}
+
+// Listener para actualizar balance cuando se reciban datos sincronizados
+if (typeof window !== 'undefined') {
+  let balanceUpdateTimeout = null;
+  
+  // Escuchar cambios en localStorage con debounce
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'sales' || e.key === 'debts' || e.key === 'chickenSales') {
+      console.log('Datos sincronizados detectados, actualizando balance...');
+      
+      // Cancelar actualización anterior si existe
+      if (balanceUpdateTimeout) {
+        clearTimeout(balanceUpdateTimeout);
+      }
+      
+      // Programar nueva actualización con debounce
+      balanceUpdateTimeout = setTimeout(() => {
+        const balanceView = document.getElementById('view-balance');
+        if (balanceView && !balanceView.classList.contains('d-none')) {
+          updateBalanceUI();
+        }
+        balanceUpdateTimeout = null;
+      }, 300);
+    }
+  });
+  
+
 }
 
 // Función para mostrar estadísticas avanzadas

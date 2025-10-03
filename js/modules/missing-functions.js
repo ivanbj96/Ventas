@@ -483,23 +483,35 @@ export function cleanupMovementsView() {
 }
 
 export function showAdvancedStats() {
-  // Mostrar estadísticas avanzadas en el dashboard
-  const stats = calculateAdvancedStats();
-  
-  // Actualizar elementos del DOM si existen
-  const elements = {
-    totalSalesCount: stats.totalSales,
-    totalClientsCount: stats.totalClients,
-    totalProductsCount: stats.totalProducts,
-    averageSale: `$${stats.averageSale.toFixed(2)}`,
-    profitMargin: `${stats.profitMargin.toFixed(1)}%`,
-    debtRatio: `${stats.debtRatio.toFixed(1)}%`
-  };
-  
-  Object.entries(elements).forEach(([id, value]) => {
-    const element = document.getElementById(id);
-    if (element) element.textContent = value;
-  });
+  try {
+    // Mostrar estadísticas avanzadas en el dashboard
+    const stats = calculateAdvancedStats();
+    
+    // Validar que stats tenga valores válidos
+    if (!stats || typeof stats !== 'object') {
+      console.warn('Estadísticas inválidas');
+      return;
+    }
+    
+    // Actualizar elementos del DOM si existen
+    const elements = {
+      totalSalesCount: stats.totalSales || 0,
+      totalClientsCount: stats.totalClients || 0,
+      totalProductsCount: stats.totalProducts || 0,
+      averageSale: `$${(stats.averageSale || 0).toFixed(2)}`,
+      profitMargin: `${(stats.profitMargin || 0).toFixed(1)}%`,
+      debtRatio: `${(stats.debtRatio || 0).toFixed(1)}%`
+    };
+    
+    Object.entries(elements).forEach(([id, value]) => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = value;
+      }
+    });
+  } catch (error) {
+    console.error('Error mostrando estadísticas avanzadas:', error);
+  }
 }
 
 // ========================================
@@ -580,32 +592,57 @@ export function toggleRevenueVisibility() {
 }
 
 function calculateAdvancedStats() {
-  const totalSales = sales ? sales.length : 0;
-  const totalClients = clients ? clients.length : 0;
-  const totalProducts = products ? products.length : 0;
+  // Obtener TODOS los datos desde localStorage para asegurar sincronización
+  const realSales = JSON.parse(localStorage.getItem('sales') || '[]');
+  const realChickenSales = JSON.parse(localStorage.getItem('chickenSales') || '[]');
+  const realDebts = JSON.parse(localStorage.getItem('debts') || '[]');
+  const realClients = JSON.parse(localStorage.getItem('clients') || '[]');
+  const realProducts = JSON.parse(localStorage.getItem('products') || '[]');
+  
+  console.log('📊 Calculando estadísticas con datos reales:', {
+    sales: realSales.length,
+    chickenSales: realChickenSales.length,
+    debts: realDebts.length,
+    clients: realClients.length,
+    products: realProducts.length
+  });
+  
+  // Contar ventas normales y de pollos
+  const normalSales = realSales.length;
+  const chickenSalesCount = realChickenSales.length;
+  const totalSales = normalSales + chickenSalesCount;
+  
+  const totalClients = realClients.length;
+  const totalProducts = realProducts.length;
   
   let totalRevenue = 0;
   let totalCost = 0;
   let totalDebt = 0;
   
-  if (sales && Array.isArray(sales)) {
-    sales.forEach(sale => {
-      totalRevenue += sale.total || 0;
-      totalCost += sale.cost || 0;
-    });
-  }
+  // Calcular ingresos y costos de ventas normales
+  realSales.forEach(sale => {
+    totalRevenue += sale.total || 0;
+    totalCost += sale.cost || 0;
+  });
   
-  if (clients && Array.isArray(clients)) {
-    clients.forEach(client => {
-      totalDebt += client.debt || 0;
-    });
-  }
+  // Calcular ingresos y costos de ventas de pollos
+  realChickenSales.forEach(sale => {
+    totalRevenue += sale.total || 0;
+    // Calcular costo de pollo basado en peso y costo por libra
+    const chickenCost = (sale.weight || 0) * (sale.costPerPound || 0);
+    totalCost += chickenCost;
+  });
+  
+  // Calcular deudas desde localStorage
+  realDebts.forEach(debt => {
+    totalDebt += debt.amount || 0;
+  });
   
   const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0;
   const profitMargin = totalRevenue > 0 ? ((totalRevenue - totalCost) / totalRevenue) * 100 : 0;
   const debtRatio = totalRevenue > 0 ? (totalDebt / totalRevenue) * 100 : 0;
   
-  return {
+  const stats = {
     totalSales,
     totalClients,
     totalProducts,
@@ -613,6 +650,9 @@ function calculateAdvancedStats() {
     profitMargin,
     debtRatio
   };
+  
+  console.log('✅ Estadísticas calculadas:', stats);
+  return stats;
 }
 
 // ========================================

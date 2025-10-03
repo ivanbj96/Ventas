@@ -188,7 +188,9 @@ export function renderCart() {
 
 // === FINALIZAR VENTA ===
 export async function finalizeSale() {
-  if (cart.length === 0) {
+  const currentCart = cart || [];
+  
+  if (currentCart.length === 0) {
     Swal.fire({
       icon: 'warning',
       title: 'Carrito vacío',
@@ -198,26 +200,46 @@ export async function finalizeSale() {
     return;
   }
 
-  // Si no hay cliente seleccionado, verificar el drawer
-  if (!currentClientId) {
-    const clientSelect = document.getElementById('saleClientDrawer');
-    if (clientSelect && clientSelect.value) {
-      setCurrentClientId(clientSelect.value);
-    } else {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Cliente requerido',
-        text: 'Por favor selecciona un cliente antes de finalizar la venta.',
-        confirmButtonText: 'Aceptar'
-      });
-      return;
-    }
+  // Verificar cliente seleccionado
+  let selectedClientId = currentClientId;
+  const clientSelect = document.getElementById('saleClientDrawer');
+  
+  if (!selectedClientId && clientSelect && clientSelect.value) {
+    selectedClientId = clientSelect.value;
+    setCurrentClientId(selectedClientId);
+  }
+  
+  if (!selectedClientId) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Cliente requerido',
+      text: 'Por favor selecciona un cliente antes de finalizar la venta.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
   }
 
-  const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-  const cost = cart.reduce((sum, item) => sum + (item.cost * item.qty), 0);
+  const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const cost = currentCart.reduce((sum, item) => sum + (item.cost * item.qty), 0);
   const profit = total - cost;
-  const client = clients.find(c => c.id === currentClientId);
+  
+  // Buscar cliente desde localStorage si no se encuentra en memoria
+  let client = clients.find(c => c.id === selectedClientId);
+  if (!client) {
+    const allClients = JSON.parse(localStorage.getItem('clients') || '[]');
+    client = allClients.find(c => c.id === selectedClientId);
+  }
+  
+  if (!client) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Cliente no encontrado',
+      text: 'No se pudo encontrar el cliente seleccionado.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+  
   const fecha = new Date().toLocaleString();
 
   // Mostrar opciones de pago
@@ -231,7 +253,7 @@ export async function finalizeSale() {
         </div>
         <div class="sale-total-info">
           <div class="sale-items-count">
-            <i class="bi bi-box-seam"></i> ${cart.length} productos
+            <i class="bi bi-box-seam"></i> ${currentCart.length} productos
           </div>
           <div class="sale-total-amount">
             <strong>Total: $${total.toFixed(2)}</strong>
@@ -296,7 +318,6 @@ export async function finalizeSale() {
       const finalTotal = total - discount;
       
       // Actualizar stock
-      const currentCart = [...cart];
       currentCart.forEach(item => {
         const product = products.find(p => p.id === item.id);
         if (product) {
@@ -316,7 +337,7 @@ export async function finalizeSale() {
         id: generateId('sale'),
         clientId: client.id,
         clientName: client.name,
-        items: [...cart],
+        items: [...currentCart],
         total: finalTotal,
         originalTotal: total,
         discount: discount,
@@ -351,10 +372,37 @@ export async function finalizeSale() {
         await saveToStorage('products', products);
         await saveToStorage('movements', currentMovements);
         
-        // Sincronizar venta con WebSocket
+        // Actualizar arrays globales inmediatamente
+        if (window.sales && Array.isArray(window.sales)) {
+          window.sales.push(sale);
+        }
+        if (window.movements && Array.isArray(window.movements)) {
+          window.movements.push(movement);
+        }
+        
+        // Forzar actualización inmediata del balance SIN TIMEOUT
+        if (typeof window.updateBalanceUI === 'function') {
+          window.updateBalanceUI();
+        }
+        if (typeof window.renderBalanceGrid === 'function') {
+          window.renderBalanceGrid();
+        }
+        if (typeof window.showAdvancedStats === 'function') {
+          window.showAdvancedStats();
+        }
+        
+        console.log('✅ Balance actualizado inmediatamente después de venta normal');
+        
+        // Sincronizar venta con WebSocket y forzar sync completo
         if (window.syncManager && window.syncManager.isEnabled) {
           window.syncManager.syncSale(sale);
           console.log('🔄 Venta sincronizada:', sale.id);
+        }
+        
+        // Forzar sincronización completa para actualizar otros dispositivos INMEDIATAMENTE
+        if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+          window.tillupWebSocketClient.sendAllLocalData();
+          console.log('🔄 Sincronización completa forzada después de venta');
         }
       } catch (error) {
         console.error('Error guardando venta:', error);
@@ -367,8 +415,13 @@ export async function finalizeSale() {
         return;
       }
       
-      // Limpiar carrito
+      // Limpiar carrito y cliente
       clearCart();
+      setCurrentClientId(null);
+      
+      // Limpiar selector de cliente
+      const clientSelect = document.getElementById('saleClientDrawer');
+      if (clientSelect) clientSelect.value = '';
       
       // Cerrar drawer si está abierto
       const drawer = document.getElementById('cartDrawer');
@@ -423,71 +476,103 @@ export function removeSelectedClient() {
 // === FUNCIONES AUXILIARES PARA VENTAS ===
 function showReceipt(sale) {
   const receiptHtml = `
-    <div class="receipt-treinta">
-      <div class="receipt-header">
-        <div class="receipt-logo">
+    <div style="max-width: 400px; margin: auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+      <div style="text-align: center; border-bottom: 2px solid #1F2D3D; padding-bottom: 15px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px;">
           <img src="TillUp.png" alt="TillUp" style="width: 40px; height: 40px; border-radius: 8px;">
-          <h3>TillUp POS</h3>
+          <h3 style="margin: 0; color: #1F2D3D; font-size: 1.5rem;">TillUp POS</h3>
         </div>
-        <div class="receipt-info">
-          <div class="receipt-title">COMPROBANTE DE VENTA</div>
-          <div class="receipt-number">Venta #${sale.id}</div>
-          <div class="receipt-date">${new Date(sale.date).toLocaleDateString()} ${sale.time}</div>
-        </div>
+        <div style="font-weight: bold; font-size: 1.1rem; color: #1F2D3D; margin-bottom: 5px;">COMPROBANTE DE VENTA</div>
+        <div style="font-size: 0.9rem; color: #666; margin-bottom: 3px;">Venta #${sale.id}</div>
+        <div style="font-size: 0.9rem; color: #666;">${new Date(sale.date).toLocaleDateString()} ${sale.time}</div>
       </div>
       
-      <div class="receipt-client">
-        <i class="bi bi-person"></i>
+      <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-size: 0.95rem;">
+        <i class="bi bi-person" style="margin-right: 5px; color: #1F2D3D;"></i>
         <strong>Cliente:</strong> ${sale.clientName}
       </div>
       
-      <div class="receipt-items">
-        <div class="receipt-items-header">
-          <div class="item-name">Producto</div>
-          <div class="item-qty">Cant.</div>
-          <div class="item-price">Precio</div>
-          <div class="item-subtotal">Subtotal</div>
+      <div style="margin-bottom: 20px;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; padding: 10px 0; border-bottom: 1px solid #ddd; font-weight: bold; font-size: 0.9rem; color: #1F2D3D;">
+          <div>Producto</div>
+          <div>Cant.</div>
+          <div>Precio</div>
+          <div>Subtotal</div>
         </div>
         
         ${sale.items.map(item => `
-          <div class="receipt-item">
-            <div class="item-name">${item.name}</div>
-            <div class="item-qty">${item.qty}</div>
-            <div class="item-price">$${item.price.toFixed(2)}</div>
-            <div class="item-subtotal">$${(item.price * item.qty).toFixed(2)}</div>
+          <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 0.9rem;">
+            <div>${item.name}</div>
+            <div>${item.qty}</div>
+            <div>$${item.price.toFixed(2)}</div>
+            <div>$${(item.price * item.qty).toFixed(2)}</div>
           </div>
         `).join('')}
       </div>
       
-      <div class="receipt-total">
-        ${sale.discount > 0 ? `
-          <div class="total-line">
+      ${sale.discount > 0 ? `
+        <div style="margin-bottom: 15px; font-size: 0.9rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
             <span>Subtotal:</span>
             <span>$${sale.originalTotal.toFixed(2)}</span>
           </div>
-          <div class="total-line">
+          <div style="display: flex; justify-content: space-between; color: #dc3545;">
             <span>Descuento:</span>
             <span>-$${sale.discount.toFixed(2)}</span>
           </div>
-        ` : ''}
-        <div class="total-line final">
-          <span>TOTAL:</span>
-          <span class="total-amount">$${sale.total.toFixed(2)}</span>
         </div>
+      ` : ''}
+      
+      <div style="border-top: 2px solid #1F2D3D; padding-top: 15px; margin-bottom: 20px;">
+        ${sale.paymentType === 'credit' && sale.creditInfo ? `
+          <div style="display: flex; justify-content: space-between; font-size: 1rem; color: #1F2D3D; margin-bottom: 8px;">
+            <span>Total de la venta:</span>
+            <span>$${sale.creditInfo.totalOriginal.toFixed(2)}</span>
+          </div>
+          ${sale.creditInfo.abono > 0 ? `
+            <div style="display: flex; justify-content: space-between; font-size: 1rem; color: #28a745; margin-bottom: 8px;">
+              <span>Abono recibido:</span>
+              <span>$${sale.creditInfo.abono.toFixed(2)}</span>
+            </div>
+          ` : ''}
+          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2rem; color: #dc3545;">
+            <span>SALDO PENDIENTE:</span>
+            <span>$${sale.creditInfo.remainingDebt.toFixed(2)}</span>
+          </div>
+        ` : `
+          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2rem; color: #1F2D3D;">
+            <span>TOTAL:</span>
+            <span>$${sale.total.toFixed(2)}</span>
+          </div>
+        `}
       </div>
       
-      <div class="payment-type">
-        <i class="bi bi-${getPaymentIcon(sale.paymentType)}"></i>
+      <div style="background: #e9ecef; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem;">
+        <i class="bi bi-${getPaymentIcon(sale.paymentType)}" style="margin-right: 5px; color: #1F2D3D;"></i>
         <strong>Método de pago:</strong> ${getPaymentText(sale.paymentType)}
+        ${sale.paymentType === 'credit' && sale.creditInfo ? `
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ccc;">
+            ${sale.creditInfo.abono > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                <span>Abono inicial:</span>
+                <span style="color: #28a745; font-weight: bold;">$${sale.creditInfo.abono.toFixed(2)}</span>
+              </div>
+            ` : ''}
+            <div style="display: flex; justify-content: space-between;">
+              <span>Saldo pendiente:</span>
+              <span style="color: #dc3545; font-weight: bold;">$${sale.creditInfo.remainingDebt.toFixed(2)}</span>
+            </div>
+          </div>
+        ` : ''}
       </div>
       
-      <div class="receipt-footer">
-        <div class="footer-message">
-          <i class="bi bi-heart"></i>
+      <div style="text-align: center; border-top: 1px solid #ddd; padding-top: 15px;">
+        <div style="font-weight: bold; color: #1F2D3D; margin-bottom: 5px;">
+          <i class="bi bi-heart" style="color: #dc3545; margin-right: 5px;"></i>
           ¡Gracias por su compra!
         </div>
-        <div class="footer-brand">
-          <small>TillUp POS - Gestión de Ventas</small>
+        <div style="color: #666; font-size: 0.8rem;">
+          TillUp POS - Gestión de Ventas
         </div>
       </div>
     </div>
@@ -496,30 +581,25 @@ function showReceipt(sale) {
   Swal.fire({
     title: 'Venta Completada',
     html: receiptHtml,
-    showCancelButton: true,
-    confirmButtonText: 'Imprimir',
-    cancelButtonText: 'Cerrar',
-    showDenyButton: true,
-    denyButtonText: 'Descargar PDF',
+    confirmButtonText: 'Cerrar',
     width: 500,
     customClass: {
-      popup: 'swal2-receipt-treinta',
-      confirmButton: 'btn btn-primary',
-      cancelButton: 'btn btn-secondary',
-      denyButton: 'btn btn-outline-primary'
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      // Imprimir comprobante
-      printReceipt(sale);
-    } else if (result.isDenied) {
-      // Descargar PDF
-      downloadReceiptPDF(sale);
+      popup: 'swal2-receipt-treinta'
     }
   });
 }
 
 function showCreditSaleModal(total, cost, client) {
+  if (!client || !client.name) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Cliente no válido para venta a crédito.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+  
   Swal.fire({
     title: 'Venta a Crédito',
     html: `
@@ -555,32 +635,95 @@ function showCreditSaleModal(total, cost, client) {
       const { abono, reason } = result.value;
       const remainingDebt = total - abono;
       
-      // Crear deuda
-      const debt = {
-        id: generateId('debt'),
+      // Crear venta a crédito
+      const currentCart = cart || [];
+      const dateTime = getLocalDateTime();
+      const saleDate = `${dateTime.date}T${dateTime.time}`;
+      
+      const sale = {
+        id: generateId('sale'),
         clientId: client.id,
         clientName: client.name,
-        total: total,
-        amount: remainingDebt,
-        abono: abono,
-        reason: reason,
-        date: getLocalDateTime().timestamp,
-        items: [...cart]
+        items: [...currentCart],
+        total: abono > 0 ? abono : total,
+        originalTotal: total,
+        discount: 0,
+        cost: cost,
+        profit: (abono > 0 ? abono : total) - cost,
+        paymentType: 'credit',
+        date: saleDate,
+        time: dateTime.time,
+        creditInfo: {
+          abono: abono,
+          remainingDebt: remainingDebt,
+          reason: reason,
+          totalOriginal: total
+        }
       };
       
+      // Crear deuda si hay saldo pendiente
+      let debt = null;
+      if (remainingDebt > 0) {
+        debt = {
+          id: generateId('debt'),
+          clientId: client.id,
+          clientName: client.name,
+          total: total,
+          amount: remainingDebt,
+          abono: abono,
+          reason: reason,
+          date: saleDate,
+          items: [...currentCart],
+          saleId: sale.id
+        };
+      }
+      
       try {
-        const currentDebts = JSON.parse(localStorage.getItem('debts') || '[]');
-        currentDebts.push(debt);
-        await saveToStorage('debts', currentDebts);
+        // Guardar venta
+        const currentSales = JSON.parse(localStorage.getItem('sales') || '[]');
+        currentSales.push(sale);
         
-        // Sincronizar deuda con WebSocket
+        await saveToStorage('sales', currentSales);
+        
+        // Actualizar arrays globales inmediatamente
+        if (window.sales && Array.isArray(window.sales)) {
+          window.sales.push(sale);
+        }
+        
+        // Forzar actualización inmediata del balance SIN TIMEOUT
+        if (typeof window.updateBalanceUI === 'function') {
+          window.updateBalanceUI();
+        }
+        if (typeof window.renderBalanceGrid === 'function') {
+          window.renderBalanceGrid();
+        }
+        if (typeof window.showAdvancedStats === 'function') {
+          window.showAdvancedStats();
+        }
+        
+        console.log('✅ Balance actualizado inmediatamente después de venta a crédito');
+        
+        // Guardar deuda si existe
+        if (debt) {
+          const currentDebts = JSON.parse(localStorage.getItem('debts') || '[]');
+          currentDebts.push(debt);
+          await saveToStorage('debts', currentDebts);
+        }
+        
+        // Sincronizar con WebSocket
         if (window.syncManager && window.syncManager.isEnabled) {
-          window.syncManager.syncDebt(debt);
-          console.log('🔄 Deuda sincronizada:', debt.id);
+          window.syncManager.syncSale(sale);
+          if (debt) window.syncManager.syncDebt(debt);
+          console.log('🔄 Venta a crédito sincronizada:', sale.id);
+        }
+        
+        // Forzar sincronización completa para actualizar otros dispositivos INMEDIATAMENTE
+        if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+          window.tillupWebSocketClient.sendAllLocalData();
+          console.log('🔄 Sincronización completa forzada después de venta a crédito');
         }
         
         // Actualizar stock
-        const currentCart = [...cart];
         currentCart.forEach(item => {
           const product = products.find(p => p.id === item.id);
           if (product) {
@@ -591,13 +734,14 @@ function showCreditSaleModal(total, cost, client) {
         await saveToStorage('products', products);
         
         clearCart();
+        setCurrentClientId(null);
         
-        Swal.fire({
-          icon: 'success',
-          title: 'Crédito registrado',
-          text: `Deuda registrada por $${remainingDebt.toFixed(2)}`,
-          confirmButtonText: 'Aceptar'
-        });
+        // Limpiar selector de cliente
+        const clientSelect = document.getElementById('saleClientDrawer');
+        if (clientSelect) clientSelect.value = '';
+        
+        // Mostrar comprobante de venta a crédito
+        showReceipt(sale);
       } catch (error) {
         console.error('Error guardando crédito:', error);
         Swal.fire({

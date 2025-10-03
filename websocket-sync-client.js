@@ -379,6 +379,11 @@ class TillUpWebSocketClient {
             case 'selective_sync':
                 this.handleSelectiveSync(data.data);
                 break;
+            case 'sync_chicken_prices':
+                if (window.receiveChickenPrices && typeof window.receiveChickenPrices === 'function') {
+                    window.receiveChickenPrices(data.data);
+                }
+                break;
             case 'conflict_detected':
                 this.handleConflict(data.data);
                 break;
@@ -451,6 +456,14 @@ class TillUpWebSocketClient {
         });
     }
 
+    syncChickenPrices(pricesData) {
+        this.send({
+            action: 'sync_chicken_prices',
+            data: pricesData,
+            type: 'chicken_prices'
+        });
+    }
+
     requestFullSync() {
         this.send({
             action: 'request_full_sync'
@@ -497,7 +510,11 @@ class TillUpWebSocketClient {
                 clients: JSON.parse(localStorage.getItem('clients') || '[]'),
                 sales: JSON.parse(localStorage.getItem('sales') || '[]'),
                 debts: JSON.parse(localStorage.getItem('debts') || '[]'),
-                chickenSales: JSON.parse(localStorage.getItem('chickenSales') || '[]')
+                chickenSales: JSON.parse(localStorage.getItem('chickenSales') || '[]'),
+                chickenPrices: {
+                    pricePerPound: parseFloat(localStorage.getItem('pricePerPound') || '2.50'),
+                    costPerPound: parseFloat(localStorage.getItem('costPerPound') || '2.00')
+                }
             };
 
             this.send({
@@ -548,7 +565,8 @@ class TillUpWebSocketClient {
             clients: [],
             sales: [],
             debts: [],
-            chickenSales: []
+            chickenSales: [],
+            chickenPrices: { pricePerPound: 2.50, costPerPound: 2.00 }
         };
 
         // Mapas para evitar duplicados por ID
@@ -565,13 +583,19 @@ class TillUpWebSocketClient {
             if (!deviceData || typeof deviceData !== 'object') return;
 
             Object.keys(unified).forEach(dataType => {
-                const items = deviceData[dataType] || [];
-                items.forEach(item => {
-                    if (item && item.id && !seenIds[dataType].has(item.id)) {
-                        seenIds[dataType].add(item.id);
-                        unified[dataType].push(item);
+                if (dataType === 'chickenPrices') {
+                    if (deviceData[dataType]) {
+                        unified[dataType] = deviceData[dataType];
                     }
-                });
+                } else {
+                    const items = deviceData[dataType] || [];
+                    items.forEach(item => {
+                        if (item && item.id && !seenIds[dataType].has(item.id)) {
+                            seenIds[dataType].add(item.id);
+                            unified[dataType].push(item);
+                        }
+                    });
+                }
             });
         });
 
@@ -590,16 +614,31 @@ class TillUpWebSocketClient {
         let totalChanges = 0;
         
         Object.keys(unifiedData).forEach(dataType => {
-            const currentData = JSON.parse(localStorage.getItem(dataType) || '[]');
-            const newData = unifiedData[dataType];
-            
-            if (currentData.length !== newData.length) {
-                const diff = newData.length - currentData.length;
-                totalChanges += Math.abs(diff);
-                console.log(`🔄 ${dataType}: ${currentData.length} -> ${newData.length} (${diff > 0 ? '+' : ''}${diff})`);
+            if (dataType === 'chickenPrices') {
+                const currentPrice = parseFloat(localStorage.getItem('pricePerPound') || '2.50');
+                const currentCost = parseFloat(localStorage.getItem('costPerPound') || '2.00');
+                const newData = unifiedData[dataType];
+                
+                if (currentPrice !== newData.pricePerPound || currentCost !== newData.costPerPound) {
+                    totalChanges++;
+                    localStorage.setItem('pricePerPound', newData.pricePerPound.toString());
+                    localStorage.setItem('costPerPound', newData.costPerPound.toString());
+                    if (window.receiveChickenPrices) {
+                        window.receiveChickenPrices(newData);
+                    }
+                }
+            } else {
+                const currentData = JSON.parse(localStorage.getItem(dataType) || '[]');
+                const newData = unifiedData[dataType];
+                
+                if (currentData.length !== newData.length) {
+                    const diff = newData.length - currentData.length;
+                    totalChanges += Math.abs(diff);
+                    console.log(`🔄 ${dataType}: ${currentData.length} -> ${newData.length} (${diff > 0 ? '+' : ''}${diff})`);
+                }
+                
+                localStorage.setItem(dataType, JSON.stringify(newData));
             }
-            
-            localStorage.setItem(dataType, JSON.stringify(newData));
         });
         
         if (totalChanges > 0) {
@@ -660,6 +699,8 @@ class TillUpWebSocketClient {
         if (typeof window.updateClientSelector === 'function') window.updateClientSelector();
         if (typeof window.updateBalanceUI === 'function') window.updateBalanceUI();
         if (typeof window.renderSalesProducts === 'function') window.renderSalesProducts();
+        if (typeof window.showAdvancedStats === 'function') window.showAdvancedStats();
+        if (typeof window.updateBalance === 'function') window.updateBalance();
         
         console.log('🔄 UI actualizada instantáneamente');
     }

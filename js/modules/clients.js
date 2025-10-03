@@ -96,6 +96,12 @@ export async function addClient(e) {
         }
       }
       
+      // Forzar sincronización completa inmediatamente
+      if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+        window.tillupWebSocketClient.sendAllLocalData();
+        console.log('🔄 Sincronización completa forzada después de guardar cliente');
+      }
+      
       renderClients();
       updateClientSelector();
       
@@ -153,7 +159,9 @@ export async function addClient(e) {
 
 // === ELIMINAR CLIENTE ===
 export function deleteClient(clientId) {
-  const client = clients.find(c => c.id === clientId);
+  // Buscar en localStorage para datos actualizados
+  const realClients = JSON.parse(localStorage.getItem('clients') || '[]');
+  const client = realClients.find(c => c.id === clientId);
   if (!client) return;
   
   Swal.fire({
@@ -166,8 +174,10 @@ export function deleteClient(clientId) {
     reverseButtons: true
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const updatedClients = clients.filter(c => c.id !== clientId);
-      const updatedDebts = debts.filter(d => d.clientId !== clientId);
+      const realClients = JSON.parse(localStorage.getItem('clients') || '[]');
+      const realDebts = JSON.parse(localStorage.getItem('debts') || '[]');
+      const updatedClients = realClients.filter(c => c.id !== clientId);
+      const updatedDebts = realDebts.filter(d => d.clientId !== clientId);
       
       if (currentClientId === clientId) setCurrentClientId(null);
       
@@ -179,6 +189,12 @@ export function deleteClient(clientId) {
       if (window.syncManager && window.syncManager.isEnabled) {
         window.syncManager.syncClient({ id: clientId, deleted: true });
         console.log('🔄 Cliente eliminado sincronizado:', clientId);
+      }
+      
+      // Forzar sincronización completa inmediatamente
+      if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+        window.tillupWebSocketClient.sendAllLocalData();
+        console.log('🔄 Sincronización completa forzada después de eliminar cliente');
       }
       
       renderClients();
@@ -202,7 +218,9 @@ export function deleteClient(clientId) {
 
 // === EDITAR CLIENTE ===
 export function editClient(clientId) {
-  const client = clients.find(c => c.id === clientId);
+  // Buscar en localStorage para datos actualizados
+  const realClients = JSON.parse(localStorage.getItem('clients') || '[]');
+  const client = realClients.find(c => c.id === clientId);
   if (!client) {
     Swal.fire({
       icon: 'error',
@@ -245,7 +263,9 @@ export function editClient(clientId) {
 
 // === MOSTRAR DETALLES DEL CLIENTE ===
 export function showClientDetails(clientId) {
-  const client = clients.find(c => c.id == clientId);
+  // Buscar en localStorage para datos actualizados
+  const realClients = JSON.parse(localStorage.getItem('clients') || '[]');
+  const client = realClients.find(c => c.id == clientId);
   if (!client) return;
   
   const html = `
@@ -298,8 +318,10 @@ export function showClientDetails(clientId) {
 
 // === MOSTRAR DEUDAS DEL CLIENTE ===
 function showClientDebts(clientId) {
-  const client = clients.find(c => c.id === clientId);
-  const clientDebts = debts.filter(d => d.clientId === clientId);
+  const realClients = JSON.parse(localStorage.getItem('clients') || '[]');
+  const realDebts = JSON.parse(localStorage.getItem('debts') || '[]');
+  const client = realClients.find(c => c.id === clientId);
+  const clientDebts = realDebts.filter(d => d.clientId === clientId);
   
   if (clientDebts.length === 0) {
     Swal.fire({
@@ -457,7 +479,17 @@ export function showDebtDetailModal(debtId) {
       d.abono = (d.abono || 0) + d.amount;
       d.amount = 0;
       await saveToStorage('debts', debts);
+      
+      // Forzar sincronización completa inmediatamente
+      if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+        window.tillupWebSocketClient.sendAllLocalData();
+        console.log('🔄 Sincronización completa forzada después de pagar deuda');
+      }
+      
       if (window.renderDebts) window.renderDebts();
+      if (typeof window.updateBalanceUI === 'function') {
+        window.updateBalanceUI();
+      }
       Swal.fire({ icon: 'success', title: 'Deuda pagada', text: 'La deuda ha sido pagada en su totalidad.' });
     } else if (result.isDenied) {
       // Abonar
@@ -483,7 +515,17 @@ export function showDebtDetailModal(debtId) {
           d.amount -= abono;
           if (d.amount < 0) d.amount = 0;
           await saveToStorage('debts', debts);
+          
+          // Forzar sincronización completa inmediatamente
+          if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+            window.tillupWebSocketClient.sendAllLocalData();
+            console.log('🔄 Sincronización completa forzada después de abonar deuda');
+          }
+          
           if (window.renderDebts) window.renderDebts();
+          if (typeof window.updateBalanceUI === 'function') {
+            window.updateBalanceUI();
+          }
           Swal.fire({ icon: 'success', title: 'Abono registrado', text: `Abono registrado: ${formatCurrency(abono)}` });
         }
       });

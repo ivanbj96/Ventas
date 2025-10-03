@@ -763,7 +763,7 @@
                 <div class="input-group">
                   <span class="input-group-text">$</span>
                   <input type="number" id="pricePerPound" class="form-control form-control-treinta" step="0.01"
-                    placeholder="0.00" value="2.50" />
+                    placeholder="0.00" />
                 </div>
                 <div class="form-text">Precio actual por libra de pollo</div>
               </div>
@@ -774,7 +774,7 @@
                 <div class="input-group">
                   <span class="input-group-text">$</span>
                   <input type="number" id="costPerPound" class="form-control form-control-treinta" step="0.01"
-                    placeholder="0.00" value="2.00" />
+                    placeholder="0.00" />
                 </div>
                 <div class="form-text">Costo actual por libra de pollo</div>
               </div>
@@ -1320,7 +1320,7 @@
   <script src="test-sync-functions.js"></script>
   <!-- Sistema de sincronización instantánea -->
   <script src="instant-sync.js"></script>
-  <!-- Notificaciones de sincronización -->
+  <!-- Notificaciones de sincronización 
   <script src="instant-sync-notifications.js"></script>
   <!-- Gestor de sincronización inicial completa -->
   <script src="initial-sync-manager.js"></script>
@@ -1579,12 +1579,12 @@
           <div style='text-align:center;font-weight:bold;font-size:1.1rem;letter-spacing:1px;'>TillUp POS</div>
           <div style='text-align:center;font-size:0.95rem;color:#888;margin-bottom:0.5rem;'>${debt.date}</div>
           <hr style='margin:0.5rem 0;border-top:1.5px dashed #bbb;' />
-          <div style='font-size:0.98rem;'><strong>Cliente:</strong> ${debt.clientName}</div>
+          <div style='font-size:0.98rem;'><strong>Cliente:</strong> <span id='debtClientName'></span></div>
           <div class='mb-2'><strong>Monto original:</strong> $${(debt.total || debt.amount + (debt.abono || 0)).toFixed(2)}</div>
           ${debt.abono ? `<div class='mb-2'><strong>Abonado:</strong> $${debt.abono.toFixed(2)}</div>` : ''}
           <div class='mb-2'><strong>Saldo:</strong> <span class='text-danger'>$${debt.amount.toFixed(2)}</span></div>
           <hr style='margin:0.5rem 0;border-top:1.5px dashed #bbb;' />
-          <div class='mb-2'><strong>Motivo:</strong> ${debt.reason || 'Venta a crédito'}</div>
+          <div class='mb-2'><strong>Motivo:</strong> <span id='debtReason'></span></div>
         </div>
       `;
       
@@ -1592,7 +1592,11 @@
         title: 'Detalle de Deuda',
         html: html,
         confirmButtonText: 'Cerrar',
-        customClass: { popup: 'swal2-pos-ticket' }
+        customClass: { popup: 'swal2-pos-ticket' },
+        didOpen: () => {
+          document.getElementById('debtClientName').textContent = debt.clientName || '';
+          document.getElementById('debtReason').textContent = debt.reason || 'Venta a crédito';
+        }
       });
     }
     
@@ -1602,9 +1606,9 @@
       const html = `
         <div style='max-width:340px;margin:auto;background:#fff;border-radius:10px;padding:1.2rem 1rem 1rem 1rem;box-shadow:0 2px 12px #0001;font-family:monospace;'>
           <div style='text-align:center;font-weight:bold;font-size:1.1rem;letter-spacing:1px;'>TillUp POS</div>
-          <div style='text-align:center;font-size:0.95rem;color:#888;margin-bottom:0.5rem;'>${payment.date}</div>
+          <div style='text-align:center;font-size:0.95rem;color:#888;margin-bottom:0.5rem;' id='paymentDate'></div>
           <hr style='margin:0.5rem 0;border-top:1.5px dashed #bbb;' />
-          <div style='font-size:0.98rem;'><strong>Cliente:</strong> ${debt.clientName}</div>
+          <div style='font-size:0.98rem;'><strong>Cliente:</strong> <span id='paymentClientName'></span></div>
           <div class='mb-2'><strong>Pago realizado:</strong> <span class='text-success'>$${payment.amount.toFixed(2)}</span></div>
           <div class='mb-2'><strong>Deuda original:</strong> $${debt.id}</div>
           <hr style='margin:0.5rem 0;border-top:1.5px dashed #bbb;' />
@@ -1616,7 +1620,11 @@
         title: 'Comprobante de Pago',
         html: html,
         confirmButtonText: 'Cerrar',
-        customClass: { popup: 'swal2-pos-ticket' }
+        customClass: { popup: 'swal2-pos-ticket' },
+        didOpen: () => {
+          document.getElementById('paymentClientName').textContent = debt.clientName || '';
+          document.getElementById('paymentDate').textContent = payment.date || '';
+        }
       });
     }
     

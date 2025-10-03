@@ -5,6 +5,10 @@
 // Interceptar todas las operaciones de localStorage para sincronizar automáticamente
 const originalSetItem = localStorage.setItem;
 localStorage.setItem = function(key, value) {
+    if (!originalSetItem) {
+        console.error('localStorage.setItem not available');
+        return;
+    }
     try {
         originalSetItem.call(this, key, value);
         

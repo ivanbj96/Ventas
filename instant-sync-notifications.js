@@ -15,13 +15,7 @@ class InstantSyncNotifications {
         if (!document.getElementById('syncNotifications')) {
             const container = document.createElement('div');
             container.id = 'syncNotifications';
-            container.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                z-index: 10000;
-                pointer-events: none;
-            `;
+            container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000; pointer-events: none;';
             document.body.appendChild(container);
         }
     }
@@ -53,20 +47,18 @@ class InstantSyncNotifications {
         };
         
         const messageDiv = document.createElement('div');
-        messageDiv.style.cssText = `
-            background: ${colors[type]};
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 500;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            animation: slideInRight 0.3s ease-out;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        `;
+        messageDiv.style.background = colors[type] || '#6c757d';
+        messageDiv.style.color = 'white';
+        messageDiv.style.padding = '8px 16px';
+        messageDiv.style.borderRadius = '20px';
+        messageDiv.style.fontSize = '14px';
+        messageDiv.style.fontWeight = '500';
+        messageDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        messageDiv.style.animation = 'slideInRight 0.3s ease-out';
+        messageDiv.style.marginBottom = '8px';
+        messageDiv.style.display = 'flex';
+        messageDiv.style.alignItems = 'center';
+        messageDiv.style.gap = '8px';
         
         const messageText = document.createElement('span');
         messageText.textContent = messages[type];
@@ -128,10 +120,10 @@ class InstantSyncNotifications {
         const statusIndicator = document.getElementById('connectionStatus') || this.createConnectionIndicator();
         
         if (connected) {
-            statusIndicator.innerHTML = '🟢 Conectado';
+            statusIndicator.textContent = '🟢 Conectado';
             statusIndicator.style.background = '#28a745';
         } else {
-            statusIndicator.innerHTML = '🔴 Desconectado';
+            statusIndicator.textContent = '🔴 Desconectado';
             statusIndicator.style.background = '#dc3545';
         }
         
@@ -148,91 +140,24 @@ class InstantSyncNotifications {
     createConnectionIndicator() {
         const indicator = document.createElement('div');
         indicator.id = 'connectionStatus';
-        indicator.style.cssText = `
-            position: fixed;
-            top: 70px;
-            right: 20px;
-            z-index: 10000;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: 500;
-            display: none;
-            animation: slideInRight 0.3s ease-out;
-        `;
+        indicator.style.position = 'fixed';
+        indicator.style.top = '70px';
+        indicator.style.right = '20px';
+        indicator.style.zIndex = '10000';
+        indicator.style.color = 'white';
+        indicator.style.padding = '6px 12px';
+        indicator.style.borderRadius = '15px';
+        indicator.style.fontSize = '12px';
+        indicator.style.fontWeight = '500';
+        indicator.style.display = 'none';
+        indicator.style.animation = 'slideInRight 0.3s ease-out';
         document.body.appendChild(indicator);
         return indicator;
     }
 
     showDataStats(data) {
-        const stats = document.createElement('div');
-        stats.style.cssText = `
-            position: fixed;
-            bottom: 80px;
-            right: 20px;
-            z-index: 10000;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-family: monospace;
-            animation: slideInRight 0.3s ease-out;
-        `;
-        
-        const totalItems = (data.products?.length || 0) + 
-                          (data.clients?.length || 0) + 
-                          (data.sales?.length || 0) + 
-                          (data.debts?.length || 0) + 
-                          (data.chickenSales?.length || 0);
-        
-        // Crear elementos de forma segura
-        const title = document.createElement('div');
-        title.style.cssText = 'font-weight: bold; margin-bottom: 4px;';
-        title.textContent = '📊 Datos sincronizados:';
-        
-        const productLine = document.createElement('div');
-        productLine.textContent = `📦 ${data.products?.length || 0} productos`;
-        
-        const clientLine = document.createElement('div');
-        clientLine.textContent = `👥 ${data.clients?.length || 0} clientes`;
-        
-        const salesLine = document.createElement('div');
-        salesLine.textContent = `🛒 ${data.sales?.length || 0} ventas`;
-        
-        const debtsLine = document.createElement('div');
-        debtsLine.textContent = `💰 ${data.debts?.length || 0} deudas`;
-        
-        const chickenLine = document.createElement('div');
-        chickenLine.textContent = `🐔 ${data.chickenSales?.length || 0} pollos`;
-        
-        const totalLine = document.createElement('div');
-        totalLine.style.cssText = 'border-top: 1px solid #666; margin-top: 4px; padding-top: 4px;';
-        const totalStrong = document.createElement('strong');
-        totalStrong.textContent = `Total: ${totalItems} elementos`;
-        totalLine.appendChild(totalStrong);
-        
-        stats.appendChild(title);
-        stats.appendChild(productLine);
-        stats.appendChild(clientLine);
-        stats.appendChild(salesLine);
-        stats.appendChild(debtsLine);
-        stats.appendChild(chickenLine);
-        stats.appendChild(totalLine);
-        
-        document.body.appendChild(stats);
-        
-        setTimeout(() => {
-            if (stats.parentNode) {
-                stats.style.animation = 'slideOutRight 0.3s ease-in';
-                setTimeout(() => {
-                    if (stats.parentNode) {
-                        stats.parentNode.removeChild(stats);
-                    }
-                }, 300);
-            }
-        }, 4000);
+        // DESACTIVADO - No mostrar notificación de datos
+        return;
     }
 }
 
@@ -243,7 +168,7 @@ window.syncNotifications = new InstantSyncNotifications();
 if (window.tillupWebSocketClient) {
     const originalSend = window.tillupWebSocketClient.send;
     window.tillupWebSocketClient.send = function(data) {
-        if (data.action === 'full_sync_data') {
+        if (data && data.action === 'full_sync_data') {
             window.syncNotifications.showSyncNotification('sending');
             window.syncNotifications.showDataStats(data.data);
         }
@@ -252,7 +177,7 @@ if (window.tillupWebSocketClient) {
     
     const originalHandleMessage = window.tillupWebSocketClient.handleMessage;
     window.tillupWebSocketClient.handleMessage = function(data) {
-        if (data.action === 'full_sync_data' || data.action === 'all_user_data_response') {
+        if (data && (data.action === 'full_sync_data' || data.action === 'all_user_data_response')) {
             window.syncNotifications.showSyncNotification('receiving');
         }
         return originalHandleMessage.call(this, data);

@@ -17,8 +17,8 @@ export let clientsViewMode = 'grid';
 
 // === GESTIÓN DE POLLOS ===
 export let chickenSales = [];
-export let pricePerPound = 0;
-export let costPerPound = 0;
+export let pricePerPound = 2.50; // Precio por defecto
+export let costPerPound = 2.00;  // Costo por defecto
 
 // === CONFIGURACIÓN DE VISTAS ===
 export let movementsViewMode = 'list';

@@ -77,10 +77,11 @@ export async function addProduct(e) {
     try {
       if (window.editingProductId) {
         // Editar producto existente
-        const productIndex = products.findIndex(p => p.id === window.editingProductId);
+        const realProducts = JSON.parse(localStorage.getItem('products') || '[]');
+        const productIndex = realProducts.findIndex(p => p.id === window.editingProductId);
         if (productIndex !== -1) {
-          products[productIndex] = {
-            ...products[productIndex],
+          realProducts[productIndex] = {
+            ...realProducts[productIndex],
             name,
             cost,
             price,
@@ -89,7 +90,17 @@ export async function addProduct(e) {
             image: imageData || products[productIndex].image
           };
           
-          await saveToStorage('products', products);
+          await saveToStorage('products', realProducts);
+          
+          // Actualizar array en memoria
+          products.length = 0;
+          products.push(...realProducts);
+          
+          // Sincronizar individual inmediatamente
+          if (window.syncManager && window.syncManager.isEnabled) {
+            window.syncManager.syncProduct(realProducts[productIndex]);
+            console.log('🔄 Producto editado sincronizado individualmente:', realProducts[productIndex].id);
+          }
           
           // DEBUG: Verificar sincronización
           console.log('=== DEBUG SINCRONIZACIÓN EDICIÓN ===');
@@ -106,23 +117,34 @@ export async function addProduct(e) {
           renderInventory();
           renderSalesProducts();
           
+          // Forzar sincronización completa inmediatamente
+          if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+            window.tillupWebSocketClient.sendAllLocalData();
+            console.log('🔄 Sincronización completa forzada después de editar producto');
+          }
+          
           document.getElementById('formProduct').reset();
           document.getElementById('imagePreview').innerHTML = '';
-          const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
-          if (modal) modal.hide();
+          // Cerrar modal y limpiar estado
+          const modalElement = document.getElementById('modalProduct');
+          const modal = bootstrap.Modal.getInstance(modalElement);
+          if (modal) {
+            modal.hide();
+          }
           
           const submitBtn = document.querySelector('#modalProduct .btn-primary');
           if (submitBtn) {
             submitBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar Producto';
           }
           
+          // Limpiar estado de edición
+          window.editingProductId = null;
+          
           Swal.fire({
             icon: 'success',
             title: 'Producto actualizado',
             text: 'Producto actualizado correctamente.',
             confirmButtonText: 'Aceptar'
-          }).then(() => {
-            window.editingProductId = null;
           });
         }
       } else {
@@ -138,8 +160,19 @@ export async function addProduct(e) {
           createdAt: new Date().toISOString()
         };
         
-        products.push(newProduct);
-        await saveToStorage('products', products);
+        const realProducts = JSON.parse(localStorage.getItem('products') || '[]');
+        realProducts.push(newProduct);
+        await saveToStorage('products', realProducts);
+        
+        // Actualizar array en memoria
+        products.length = 0;
+        products.push(...realProducts);
+        
+        // Sincronizar individual inmediatamente
+        if (window.syncManager && window.syncManager.isEnabled) {
+          window.syncManager.syncProduct(newProduct);
+          console.log('🔄 Producto nuevo sincronizado individualmente:', newProduct.id);
+        }
         
         // DEBUG: Verificar sincronización
         console.log('=== DEBUG SINCRONIZACIÓN ===');
@@ -159,10 +192,24 @@ export async function addProduct(e) {
         renderInventory();
         renderSalesProducts();
         
-        document.getElementById('formProduct').reset();
-        document.getElementById('imagePreview').innerHTML = '';
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modalProduct'));
-        if (modal) modal.hide();
+        // Forzar sincronización completa inmediatamente
+        if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+          window.tillupWebSocketClient.sendAllLocalData();
+          console.log('🔄 Sincronización completa forzada después de agregar producto');
+        }
+        
+        // Cerrar modal y limpiar formulario
+        const modalElement = document.getElementById('modalProduct');
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) {
+          modal.hide();
+        }
+        
+        const form = document.getElementById('formProduct');
+        if (form) form.reset();
+        
+        const preview = document.getElementById('imagePreview');
+        if (preview) preview.innerHTML = '';
         
         Swal.fire({
           icon: 'success',
@@ -204,14 +251,23 @@ export function deleteProduct(productId) {
     reverseButtons: true
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const updatedProducts = products.filter(p => p.id !== productId);
-      setProducts(updatedProducts);
+      const realProducts = JSON.parse(localStorage.getItem('products') || '[]');
+      const updatedProducts = realProducts.filter(p => p.id !== productId);
       await saveToStorage('products', updatedProducts);
       
-      // Sincronizar con WebSocket
+      // Actualizar arrays
+      setProducts(updatedProducts);
+      
+      // Sincronizar individual inmediatamente
       if (window.syncManager && window.syncManager.isEnabled) {
         window.syncManager.syncProduct({ id: productId, deleted: true });
-        console.log('🔄 Producto eliminado sincronizado:', productId);
+        console.log('🔄 Producto eliminado sincronizado individualmente:', productId);
+      }
+      
+      // Forzar sincronización completa inmediatamente
+      if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+        window.tillupWebSocketClient.sendAllLocalData();
+        console.log('🔄 Sincronización completa forzada después de eliminar producto');
       }
       
       renderInventory();
@@ -230,8 +286,22 @@ export function deleteProduct(productId) {
 
 // === EDITAR PRODUCTO ===
 export function editProduct(productId) {
-  const product = products.find(p => p.id === productId);
-  if (!product) return;
+  // Buscar en localStorage para datos actualizados
+  const realProducts = JSON.parse(localStorage.getItem('products') || '[]');
+  const product = realProducts.find(p => p.id === productId);
+  if (!product) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Producto no encontrado',
+      text: 'No se pudo encontrar el producto para editar.',
+      confirmButtonText: 'Aceptar'
+    });
+    return;
+  }
+  
+  // Limpiar el formulario primero
+  const form = document.getElementById('formProduct');
+  if (form) form.reset();
   
   const nameInput = document.getElementById('productName');
   const costInput = document.getElementById('productCost');
@@ -261,13 +331,18 @@ export function editProduct(productId) {
     submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Actualizar Producto';
   }
   
-  const modal = new bootstrap.Modal(document.getElementById('modalProduct'));
-  modal.show();
+  const modalElement = document.getElementById('modalProduct');
+  if (modalElement) {
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+  }
 }
 
 // === MOSTRAR DETALLES DEL PRODUCTO ===
 export function showProductDetailModal(productId) {
-  const product = products.find(p => p.id === productId);
+  // Buscar en localStorage para datos actualizados
+  const realProducts = JSON.parse(localStorage.getItem('products') || '[]');
+  const product = realProducts.find(p => p.id === productId);
   if (!product) return;
   
   const html = `
@@ -280,10 +355,10 @@ export function showProductDetailModal(productId) {
     <p><strong>Precio:</strong> $${product.price.toFixed(2)}</p>
     <p><strong>Stock:</strong> ${product.stock}</p>
     <div class="d-flex justify-content-end gap-2 mt-4">
-      <button class="btn btn-outline-danger" onclick="deleteProduct('${product.id}')">
+      <button class="btn btn-outline-danger" id="deleteProductBtn">
         <i class="bi bi-trash"></i> Eliminar
       </button>
-      <button class="btn btn-outline-primary" onclick="editProduct('${product.id}')">
+      <button class="btn btn-outline-primary" id="editProductBtn">
         <i class="bi bi-pencil"></i> Editar
       </button>
     </div>
@@ -294,7 +369,19 @@ export function showProductDetailModal(productId) {
     html,
     showConfirmButton: false,
     showCloseButton: true,
-    width: 400
+    width: 400,
+    didOpen: () => {
+      // Agregar event listeners después de que el modal se abra
+      document.getElementById('deleteProductBtn').addEventListener('click', () => {
+        Swal.close();
+        deleteProduct(productId);
+      });
+      
+      document.getElementById('editProductBtn').addEventListener('click', () => {
+        Swal.close();
+        editProduct(productId);
+      });
+    }
   });
 }
 
@@ -320,8 +407,25 @@ export function setupProductImagePreview() {
   }
 }
 
+// === LIMPIAR FORMULARIO AL CERRAR MODAL ===
+export function resetProductForm() {
+  const form = document.getElementById('formProduct');
+  if (form) form.reset();
+  
+  const preview = document.getElementById('imagePreview');
+  if (preview) preview.innerHTML = '';
+  
+  const submitBtn = document.querySelector('#modalProduct .btn-primary');
+  if (submitBtn) {
+    submitBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar Producto';
+  }
+  
+  window.editingProductId = null;
+}
+
 // Exponer funciones globalmente para compatibilidad con HTML
 window.addProduct = addProduct;
 window.deleteProduct = deleteProduct;
 window.editProduct = editProduct;
 window.showProductDetailModal = showProductDetailModal;
+window.resetProductForm = resetProductForm;

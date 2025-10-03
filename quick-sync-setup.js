@@ -196,9 +196,9 @@ function setupAdvancedSync(config) {
                             title: '🎉 ¡Sistema Configurado!',
                             html: `
                                 <div class="text-start">
-                                    <p><strong>Usuario:</strong> <span id="userIdDisplay">${userId}</span></p>
-                                    <p><strong>Perfil:</strong> <span id="profileDisplay">${getProfileName(profile)}</span></p>
-                                    <p><strong>Estado:</strong> <span class="text-success">✅ Activo</span></p>`
+                                    <p><strong>Usuario:</strong> <span id="userIdDisplay"></span></p>
+                                    <p><strong>Perfil:</strong> <span id="profileDisplay"></span></p>
+                                    <p><strong>Estado:</strong> <span class="text-success">✅ Activo</span></p>
                                     
                                     <div class="alert alert-success mt-3">
                                         <h6>🚀 El sistema está funcionando:</h6>
@@ -219,6 +219,11 @@ function setupAdvancedSync(config) {
                             showCancelButton: dashboard,
                             cancelButtonText: dashboard ? 'Continuar' : undefined
                         }).then((result) => {
+                            // Set text content safely after modal is shown
+                            const userIdEl = document.getElementById('userIdDisplay');
+                            const profileEl = document.getElementById('profileDisplay');
+                            if (userIdEl) userIdEl.textContent = userId;
+                            if (profileEl) profileEl.textContent = getProfileName(profile);
                             
                             if (result.isConfirmed && dashboard) {
                                 setTimeout(() => {
@@ -252,35 +257,48 @@ function getProfileName(profile) {
 }
 
 // Auto-mostrar configuración si no hay usuario configurado
-setTimeout(() => {
+function checkAndShowSetupNotification() {
     const savedUser = localStorage.getItem('tillup_sync_user');
     if (!savedUser) {
-        // Mostrar notificación de configuración disponible
         const notification = document.createElement('div');
-        notification.innerHTML = `
-            <div style="position: fixed; top: 20px; right: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                        color: white; padding: 15px 20px; border-radius: 10px; z-index: 9999; cursor: pointer;
-                        box-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: slideIn 0.5s ease-out;"
-                 onclick="quickSyncSetup(); this.remove();">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="bi bi-rocket-takeoff" style="font-size: 1.5rem;"></i>
-                    <div>
-                        <div style="font-weight: bold;">Sistema Avanzado Disponible</div>
-                        <div style="font-size: 0.9rem; opacity: 0.9;">Haz clic para configurar</div>
-                    </div>
-                </div>
-            </div>
-        `;
+        notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px; border-radius: 10px; z-index: 9999; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2);';
+        
+        const content = document.createElement('div');
+        content.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+        
+        const icon = document.createElement('i');
+        icon.className = 'bi bi-rocket-takeoff';
+        icon.style.fontSize = '1.5rem';
+        
+        const textDiv = document.createElement('div');
+        const title = document.createElement('div');
+        title.style.fontWeight = 'bold';
+        title.textContent = 'Sistema Avanzado Disponible';
+        const subtitle = document.createElement('div');
+        subtitle.style.cssText = 'font-size: 0.9rem; opacity: 0.9;';
+        subtitle.textContent = 'Haz clic para configurar';
+        
+        textDiv.appendChild(title);
+        textDiv.appendChild(subtitle);
+        content.appendChild(icon);
+        content.appendChild(textDiv);
+        notification.appendChild(content);
+        
+        notification.onclick = () => {
+            quickSyncSetup();
+            notification.remove();
+        };
         
         document.body.appendChild(notification);
         
-        // Auto-remover después de 10 segundos
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.remove();
             }
         }, 10000);
     }
-}, 3000);
+}
+
+setTimeout(checkAndShowSetupNotification, 3000);
 
 console.log('⚡ Quick Sync Setup loaded');

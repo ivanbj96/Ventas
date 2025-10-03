@@ -385,6 +385,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     formClient.onsubmit = addClient;
   }
   
+  // Configurar evento para limpiar formulario de productos al cerrar modal
+  const modalProduct = document.getElementById('modalProduct');
+  if (modalProduct) {
+    modalProduct.addEventListener('hidden.bs.modal', function() {
+      if (typeof window.resetProductForm === 'function') {
+        window.resetProductForm();
+      }
+    });
+  }
+  
   // Configurar eventos de filtros de período
   document.querySelectorAll('input[name="periodFilter"]').forEach(radio => {
     radio.addEventListener('change', function() {
@@ -557,6 +567,11 @@ function showView(viewName) {
   const targetView = document.getElementById(`view-${viewName}`);
   if (targetView) {
     targetView.classList.remove('d-none');
+  }
+  
+  // Sincronizar precios al abrir vista de pollos
+  if (viewName === 'chickens' && window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+    window.tillupWebSocketClient.requestDataFromAllDevices();
   }
   
   // Actualizar navegación del sidebar
@@ -1040,7 +1055,12 @@ const originalFinalizeSale = window.finalizeSale;
 if (originalFinalizeSale) {
   window.finalizeSale = async function() {
     const result = await originalFinalizeSale.call(this);
-    setTimeout(() => syncAllDataAfterOperation(), 200);
+    setTimeout(() => {
+      syncAllDataAfterOperation();
+      if (typeof window.forceBalanceUpdate === 'function') {
+        window.forceBalanceUpdate();
+      }
+    }, 200);
     return result;
   };
 }
@@ -1506,6 +1526,51 @@ window.updateClientSelectorModule = updateClientSelectorModule;
 window.updateBalanceUI = updateBalanceUI;
 window.updateChickenSalesFromStorage = updateChickenSalesFromStorage;
 
+// Función para forzar actualización completa del balance
+let balanceUpdatePending = false;
+window.forceBalanceUpdate = function() {
+  if (balanceUpdatePending) return;
+  
+  balanceUpdatePending = true;
+  console.log('🔄 Forzando actualización completa del balance...');
+  
+  // Recargar todos los datos desde localStorage
+  const latestSales = JSON.parse(localStorage.getItem('sales') || '[]');
+  const latestDebts = JSON.parse(localStorage.getItem('debts') || '[]');
+  
+  // Actualizar arrays globales
+  if (window.sales) {
+    window.sales.length = 0;
+    window.sales.push(...latestSales);
+  }
+  if (window.debts) {
+    window.debts.length = 0;
+    window.debts.push(...latestDebts);
+  }
+  
+  // Forzar actualización de UI solo si estamos en la vista de balance
+  setTimeout(() => {
+    const balanceView = document.getElementById('view-balance');
+    if (balanceView && !balanceView.classList.contains('d-none')) {
+      if (typeof window.updateBalanceUI === 'function') {
+        window.updateBalanceUI();
+      }
+    }
+    balanceUpdatePending = false;
+  }, 100);
+  
+  console.log('✅ Actualización completa del balance finalizada');
+};
+
+// Función para actualizar balance después de sincronización
+window.updateBalanceAfterSync = function() {
+  setTimeout(() => {
+    if (typeof window.forceBalanceUpdate === 'function') {
+      window.forceBalanceUpdate();
+    }
+  }, 500);
+};
+
 // Inicializar arrays globales con datos del módulo
 window.products = products;
 window.clients = clients;
@@ -1526,6 +1591,10 @@ setTimeout(() => {
 // Exponer funciones de estado para el sync manager
 window.setProducts = function(newProducts) {
   console.log('🔄 setProducts called with', newProducts.length, 'products');
+  
+  // Guardar en localStorage PRIMERO
+  localStorage.setItem('products', JSON.stringify(newProducts));
+  
   // Actualizar estado global
   if (window.products && Array.isArray(window.products)) {
     window.products.length = 0;
@@ -1534,10 +1603,24 @@ window.setProducts = function(newProducts) {
   // Actualizar estado del módulo
   products.length = 0;
   products.push(...newProducts);
+  
+  // Actualizar UI inmediatamente
+  if (typeof renderInventory === 'function') {
+    renderInventory();
+  }
+  if (typeof renderSalesProducts === 'function') {
+    renderSalesProducts();
+  }
+  
+  console.log('✅ Inventario actualizado y guardado en localStorage');
 };
 
 window.setClients = function(newClients) {
   console.log('🔄 setClients called with', newClients.length, 'clients');
+  
+  // Guardar en localStorage PRIMERO
+  localStorage.setItem('clients', JSON.stringify(newClients));
+  
   // Actualizar estado global
   if (window.clients && Array.isArray(window.clients)) {
     window.clients.length = 0;
@@ -1552,10 +1635,19 @@ window.setClients = function(newClients) {
   if (typeof renderClients === 'function') {
     renderClients();
   }
+  if (typeof renderDebts === 'function') {
+    renderDebts();
+  }
+  
+  console.log('✅ Clientes actualizados y guardados en localStorage');
 };
 
 window.setSales = function(newSales) {
   console.log('🔄 setSales called with', newSales.length, 'sales');
+  
+  // Guardar en localStorage PRIMERO
+  localStorage.setItem('sales', JSON.stringify(newSales));
+  
   // Actualizar estado global
   if (window.sales && Array.isArray(window.sales)) {
     window.sales.length = 0;
@@ -1564,10 +1656,24 @@ window.setSales = function(newSales) {
   // Actualizar estado del módulo
   sales.length = 0;
   sales.push(...newSales);
+  
+  // Forzar actualización del balance INMEDIATAMENTE
+  if (typeof window.updateBalanceUI === 'function') {
+    window.updateBalanceUI();
+  }
+  if (typeof window.renderBalanceGrid === 'function') {
+    window.renderBalanceGrid();
+  }
+  
+  console.log('✅ Ventas actualizadas y guardadas en localStorage');
 };
 
 window.setDebts = function(newDebts) {
   console.log('🔄 setDebts called with', newDebts.length, 'debts');
+  
+  // Guardar en localStorage PRIMERO
+  localStorage.setItem('debts', JSON.stringify(newDebts));
+  
   // Actualizar estado global
   if (window.debts && Array.isArray(window.debts)) {
     window.debts.length = 0;
@@ -1576,6 +1682,19 @@ window.setDebts = function(newDebts) {
   // Actualizar estado del módulo
   debts.length = 0;
   debts.push(...newDebts);
+  
+  // Forzar actualización del balance y deudas INMEDIATAMENTE
+  if (typeof window.updateBalanceUI === 'function') {
+    window.updateBalanceUI();
+  }
+  if (typeof window.renderBalanceGrid === 'function') {
+    window.renderBalanceGrid();
+  }
+  if (typeof renderDebts === 'function') {
+    renderDebts();
+  }
+  
+  console.log('✅ Deudas actualizadas y guardadas en localStorage');
 };
 
 // Exponer función para mostrar detalles de movimientos

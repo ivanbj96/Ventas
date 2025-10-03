@@ -8,7 +8,34 @@ import { getLocalDateString, getLocalDateTime } from './utils.js';
 // import webSocketSync from './websocket.js'; // DESHABILITADO TEMPORALMENTE
 
 // === INICIALIZACIÓN DE POLLOS ===
-export function initializeChickenData() {
+export async function initializeChickenData() {
+  // Solicitar sincronización inmediata al inicializar
+  if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
+    window.tillupWebSocketClient.requestDataFromAllDevices();
+  }
+  
+  // Cargar precios guardados desde localStorage
+  try {
+    const savedPrice = localStorage.getItem('pricePerPound');
+    const savedCost = localStorage.getItem('costPerPound');
+    
+    if (savedPrice) {
+      const price = parseFloat(savedPrice);
+      if (!isNaN(price) && price > 0) {
+        setPricePerPound(price);
+      }
+    }
+    
+    if (savedCost) {
+      const cost = parseFloat(savedCost);
+      if (!isNaN(cost) && cost >= 0) {
+        setCostPerPound(cost);
+      }
+    }
+  } catch (error) {
+    console.warn('Error cargando precios guardados:', error);
+  }
+  
   const priceInput = document.getElementById('pricePerPound');
   const costInput = document.getElementById('costPerPound');
   const saleDateInput = document.getElementById('chickenSaleDate');
@@ -25,18 +52,38 @@ export function initializeChickenData() {
 
 // === CONFIGURAR EVENTOS DEL FORMULARIO DE POLLOS ===
 function setupChickenEventListeners() {
-  // Event listeners para cálculo automático
+  // Event listeners para cálculo automático y guardado
   const priceInput = document.getElementById('pricePerPound');
   const costInput = document.getElementById('costPerPound');
   const weightInput = document.getElementById('chickenWeight');
   const quantityInput = document.getElementById('chickenQuantity');
 
   if (priceInput) {
-    priceInput.addEventListener('input', updateChickenCalculation);
+    priceInput.addEventListener('input', () => {
+      updateChickenCalculation();
+      // Guardar y sincronizar automáticamente el precio
+      const price = parseFloat(priceInput.value);
+      if (!isNaN(price) && price >= 0) {
+        setPricePerPound(price);
+        localStorage.setItem('pricePerPound', price.toString());
+        // Sincronizar precio instantáneamente mientras se escribe
+        syncChickenPricesInstant();
+      }
+    });
   }
 
   if (costInput) {
-    costInput.addEventListener('input', updateChickenCalculation);
+    costInput.addEventListener('input', () => {
+      updateChickenCalculation();
+      // Guardar y sincronizar automáticamente el costo
+      const cost = parseFloat(costInput.value);
+      if (!isNaN(cost) && cost >= 0) {
+        setCostPerPound(cost);
+        localStorage.setItem('costPerPound', cost.toString());
+        // Sincronizar costo instantáneamente mientras se escribe
+        syncChickenPricesInstant();
+      }
+    });
   }
 
   if (weightInput) {
@@ -114,18 +161,21 @@ export async function updatePricePerPound() {
   }
   
   try {
+    // Actualizar estado en memoria
     setPricePerPound(newPrice);
     setCostPerPound(newCost);
     
-    if (typeof localforage !== 'undefined') {
-      await localforage.setItem('pricePerPound', newPrice.toString());
-      await localforage.setItem('costPerPound', newCost.toString());
-    } else {
-      localStorage.setItem('pricePerPound', newPrice.toString());
-      localStorage.setItem('costPerPound', newCost.toString());
-    }
+    // Guardar en localStorage para persistencia
+    localStorage.setItem('pricePerPound', newPrice.toString());
+    localStorage.setItem('costPerPound', newCost.toString());
     
+    // Actualizar cálculo automático
     updateChickenCalculation();
+    
+    // Sincronizar precios instantáneamente
+    syncChickenPricesInstant();
+    
+    console.log('✅ Precios guardados:', { precio: newPrice, costo: newCost });
     
     Swal.fire({
       icon: 'success',
@@ -848,12 +898,20 @@ export function updateCostFromMerma() {
       costInput.value = costoNumerico.toFixed(2);
       setCostPerPound(costoNumerico);
       
+      // Guardar en localStorage para persistencia
+      localStorage.setItem('costPerPound', costoNumerico.toString());
+      
+      // Sincronizar precios instantáneamente
+      syncChickenPricesInstant();
+      
       // Cerrar modal
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalMermaPollo'));
       if (modal) modal.hide();
       
       // Actualizar cálculo
       updateChickenCalculation();
+      
+      console.log('✅ Costo actualizado desde merma:', costoNumerico);
       
       Swal.fire({
         icon: 'success',
@@ -1070,6 +1128,76 @@ function getPaymentText(paymentType) {
     default: return 'Otro método de pago';
   }
 }
+
+// === SINCRONIZACIÓN DE PRECIOS ===
+function syncChickenPrices() {
+  if (window.syncManager && window.syncManager.isEnabled) {
+    const pricesData = {
+      id: 'chicken_prices_config',
+      pricePerPound: pricePerPound,
+      costPerPound: costPerPound,
+      timestamp: Date.now()
+    };
+    
+    window.syncManager.syncChickenPrices(pricesData);
+    console.log('🔄 Precios sincronizados individualmente:', pricesData);
+  }
+}
+
+// === SINCRONIZACIÓN INSTANTÁNEA DE PRECIOS ===
+function syncChickenPricesInstant() {
+  if (window.syncManager && window.syncManager.isEnabled) {
+    const priceInput = document.getElementById('pricePerPound');
+    const costInput = document.getElementById('costPerPound');
+    
+    const currentPrice = priceInput ? parseFloat(priceInput.value) : pricePerPound;
+    const currentCost = costInput ? parseFloat(costInput.value) : costPerPound;
+    
+    const pricesData = {
+      id: 'chicken_prices_config',
+      pricePerPound: !isNaN(currentPrice) ? currentPrice : pricePerPound,
+      costPerPound: !isNaN(currentCost) ? currentCost : costPerPound,
+      timestamp: Date.now()
+    };
+    
+    window.syncManager.syncChickenPrices(pricesData);
+    console.log('⚡ Precios sincronizados instantáneamente:', pricesData);
+  }
+}
+
+// === RECIBIR PRECIOS SINCRONIZADOS ===
+export function receiveChickenPrices(data) {
+  if (data && typeof data.pricePerPound === 'number' && typeof data.costPerPound === 'number') {
+    // Actualizar estado
+    setPricePerPound(data.pricePerPound);
+    setCostPerPound(data.costPerPound);
+    
+    // Guardar en localStorage
+    localStorage.setItem('pricePerPound', data.pricePerPound.toString());
+    localStorage.setItem('costPerPound', data.costPerPound.toString());
+    
+    // Actualizar inputs inmediatamente
+    const priceInput = document.getElementById('pricePerPound');
+    const costInput = document.getElementById('costPerPound');
+    
+    if (priceInput) priceInput.value = data.pricePerPound.toFixed(2);
+    if (costInput) costInput.value = data.costPerPound.toFixed(2);
+    
+    // Actualizar displays de cálculo
+    const displayPrice = document.getElementById('displayPricePerPound');
+    const displayCost = document.getElementById('displayCostPerPound');
+    
+    if (displayPrice) displayPrice.textContent = `$${data.pricePerPound.toFixed(2)}`;
+    if (displayCost) displayCost.textContent = `$${data.costPerPound.toFixed(2)}`;
+    
+    updateChickenCalculation();
+    
+    console.log('✅ Precios sincronizados y renderizados:', data);
+  }
+}
+
+// Exponer funciones globalmente
+window.receiveChickenPrices = receiveChickenPrices;
 
 function showChickenReceipt(sale) {
   const avgWeight = (sale.weight / sale.quantity).toFixed(1);
