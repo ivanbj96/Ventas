@@ -511,10 +511,8 @@ class TillUpWebSocketClient {
                 sales: JSON.parse(localStorage.getItem('sales') || '[]'),
                 debts: JSON.parse(localStorage.getItem('debts') || '[]'),
                 chickenSales: JSON.parse(localStorage.getItem('chickenSales') || '[]'),
-                chickenPrices: {
-                    pricePerPound: parseFloat(localStorage.getItem('pricePerPound') || '2.50'),
-                    costPerPound: parseFloat(localStorage.getItem('costPerPound') || '2.00')
-                }
+                chickenPrices: JSON.parse(localStorage.getItem('pricePerPound') || '[]'),
+                chickenPrices: JSON.parse(localStorage.getItem('costPerPound') || '[]')
             };
 
             this.send({
