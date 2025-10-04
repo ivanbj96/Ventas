@@ -1,0 +1,241 @@
+/* ========================================= */
+/* 📱 ESTILOS PARA BACKUP DE TELEGRAM */
+/* ========================================= */
+
+/* Guía de configuración */
+.telegram-setup-guide {
+  padding: 0;
+}
+
+.step-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #0d6efd;
+}
+
+.step-number {
+  background: #0d6efd;
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.step-content h6 {
+  margin-bottom: 0.5rem;
+  color: #1f2d3d;
+  font-weight: 600;
+}
+
+.step-content p {
+  margin-bottom: 0;
+  color: #6c757d;
+  line-height: 1.5;
+}
+
+.step-content ul {
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+  padding-left: 1.2rem;
+}
+
+.step-content li {
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+}
+
+/* Historial de backups */
+#backupHistory .list-group-item {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+#backupHistory .list-group-item:hover {
+  background-color: #f8f9fa;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+#backupHistory .list-group-item:last-child {
+  margin-bottom: 0;
+}
+
+/* Estados de conexión */
+.alert {
+  border: none;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+
+.alert-info {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  color: #1565c0;
+}
+
+.alert-success {
+  background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+  color: #2e7d32;
+}
+
+.alert-warning {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%);
+  color: #ef6c00;
+}
+
+/* Botones de backup */
+.btn-outline-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+}
+
+.btn-success:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
+}
+
+/* Animaciones para botones */
+.btn {
+  transition: all 0.2s ease;
+}
+
+.btn:active {
+  transform: translateY(0) !important;
+}
+
+/* Indicadores de estado */
+.badge {
+  font-size: 0.75rem;
+  padding: 0.35em 0.65em;
+}
+
+/* Iconos en el historial */
+.bi {
+  font-size: 1.1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .step-item {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .step-number {
+    margin-right: 0;
+    margin-bottom: 0.75rem;
+  }
+  
+  .step-content {
+    text-align: left;
+  }
+  
+  #backupHistory .list-group-item {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+  
+  #backupHistory .text-end {
+    text-align: left !important;
+    margin-top: 0.5rem;
+  }
+}
+
+/* Efectos de carga */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #0d6efd;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Mejoras visuales para formularios */
+.form-control-treinta:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.form-check-input:checked {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+/* Tarjetas personalizadas */
+.card-custom {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+}
+
+.card-custom:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+
+.card-title {
+  color: #1f2d3d;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* Texto de ayuda */
+.form-text {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+}
+
+/* Espaciado mejorado */
+.row.g-3 > * {
+  padding-right: calc(var(--bs-gutter-x) * 0.5);
+  padding-left: calc(var(--bs-gutter-x) * 0.5);
+  margin-top: var(--bs-gutter-y);
+}
+
+/* Estados de botones */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-outline-success:hover:not(:disabled) {
+  background-color: #198754;
+  border-color: #198754;
+  color: white;
+}
+
+.btn-outline-info:hover:not(:disabled) {
+  background-color: #0dcaf0;
+  border-color: #0dcaf0;
+  color: white;
+}

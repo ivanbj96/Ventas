@@ -45,6 +45,8 @@
   <link rel="stylesheet" href="style-modular.css" />
   <!-- Estilos para sincronización silenciosa -->
   <link rel="stylesheet" href="silent-sync.css" />
+  <!-- Estilos para backup de Telegram -->
+  <link rel="stylesheet" href="telegram-backup.css" />
 
   <!-- ========================================= --> 
   <!-- 📊 LIBRERÍAS DE GRÁFICOS Y PDF -->
@@ -227,10 +229,7 @@
             <i class="bi bi-cloud-check"></i>
             <span>Estado Backups</span>
           </button>
-          <button class="sidebar-action-btn" onclick="showView('telegram-config')" id="btn-telegram-config">
-            <i class="bi bi-telegram"></i>
-            <span>Configurar Telegram</span>
-          </button>
+
           <button class="sidebar-action-btn" onclick="configureSyncOptions()" id="btn-sync-options">
             <i class="bi bi-sliders"></i>
             <span>Opciones Sync</span>
@@ -993,25 +992,27 @@
       </div>
     </section>
 
+
+
     <!-- ========================================= -->
-    <!-- 📱 VISTA: CONFIGURACIÓN DE TELEGRAM -->
+    <!-- ☁️ VISTA: BACKUP AUTOMÁTICO TELEGRAM -->
     <!-- ========================================= -->
-    <section id="view-telegram-config" class="app-view d-none">
+    <section id="view-telegram-backup" class="app-view d-none">
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0"><i class="bi bi-telegram"></i> Configuración de Telegram</h2>
+        <h2 class="mb-0"><i class="bi bi-cloud-arrow-up"></i> Backup Automático a Telegram</h2>
         <div class="d-flex gap-2">
-          <button id="testTelegramConnection" class="btn btn-outline-success btn-sm" disabled>
+          <button id="testTelegramConnection" class="btn btn-outline-success btn-sm">
             <i class="bi bi-wifi"></i> Probar Conexión
           </button>
-          <button id="fullBackupBtn" class="btn btn-primary btn-sm" disabled>
-            <i class="bi bi-cloud-upload"></i> Respaldo Completo
+          <button id="manualBackupBtn" class="btn btn-primary btn-sm">
+            <i class="bi bi-cloud-upload"></i> Backup Manual
           </button>
         </div>
       </div>
 
       <!-- Estado de configuración -->
       <div class="alert alert-info mb-4" id="telegramStatus">
-        <i class="bi bi-info-circle"></i> Telegram no configurado. Complete la configuración para habilitar el respaldo automático.
+        <i class="bi bi-info-circle"></i> <span id="statusText">Telegram no configurado. Complete la configuración para habilitar el respaldo automático.</span>
       </div>
 
       <!-- Configuración básica -->
@@ -1037,6 +1038,24 @@
                 <div class="form-text">ID del canal privado donde se guardarán los respaldos</div>
               </div>
             </div>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label for="backupInterval" class="form-label">
+                  <i class="bi bi-clock-history"></i> Intervalo de Backup (minutos)
+                </label>
+                <input type="number" id="backupInterval" class="form-control form-control-treinta" 
+                       min="5" max="1440" value="60">
+                <div class="form-text">Mínimo: 5 min, Máximo: 1440 min (24h)</div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-check mt-4">
+                  <input class="form-check-input" type="checkbox" id="autoBackupEnabled">
+                  <label class="form-check-label" for="autoBackupEnabled">
+                    <i class="bi bi-arrow-repeat"></i> Habilitar backup automático
+                  </label>
+                </div>
+              </div>
+            </div>
             <div class="d-grid gap-2">
               <button type="submit" class="btn btn-primary btn-treinta">
                 <i class="bi bi-save"></i> Guardar Configuración
@@ -1047,23 +1066,33 @@
       </div>
 
       <!-- Opciones de respaldo -->
-      <div class="card card-custom mb-4" id="backupOptions" style="display: none;">
+      <div class="card card-custom mb-4" id="backupOptions">
         <div class="card-body">
           <h5 class="card-title"><i class="bi bi-cloud-arrow-up"></i> Opciones de Respaldo</h5>
           <div class="row g-3">
             <div class="col-md-6">
-              <button class="btn btn-outline-primary w-100" onclick="telegramSync.backupSales(JSON.parse(localStorage.getItem('ventas') || '[]'))">
+              <button class="btn btn-outline-primary w-100" onclick="backupToTelegram('sales')">
                 <i class="bi bi-cart-check"></i> Respaldar Ventas
               </button>
             </div>
             <div class="col-md-6">
-              <button class="btn btn-outline-primary w-100" onclick="telegramSync.backupInventory(JSON.parse(localStorage.getItem('productos') || '[]'))">
+              <button class="btn btn-outline-primary w-100" onclick="backupToTelegram('products')">
                 <i class="bi bi-box-seam"></i> Respaldar Inventario
               </button>
             </div>
             <div class="col-md-6">
-              <button class="btn btn-outline-primary w-100" onclick="telegramSync.backupClients(JSON.parse(localStorage.getItem('clientes') || '[]'))">
+              <button class="btn btn-outline-primary w-100" onclick="backupToTelegram('clients')">
                 <i class="bi bi-people"></i> Respaldar Clientes
+              </button>
+            </div>
+            <div class="col-md-6">
+              <button class="btn btn-outline-primary w-100" onclick="backupToTelegram('debts')">
+                <i class="bi bi-cash-stack"></i> Respaldar Deudas
+              </button>
+            </div>
+            <div class="col-md-6">
+              <button class="btn btn-outline-primary w-100" onclick="backupToTelegram('chickens')">
+                <i class="bi bi-egg-fried"></i> Respaldar Pollos
               </button>
             </div>
             <div class="col-md-6">
@@ -1075,18 +1104,32 @@
         </div>
       </div>
 
+      <!-- Historial de backups -->
+      <div class="card card-custom mb-4">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-clock-history"></i> Historial de Backups</h5>
+          <div id="backupHistory" class="list-group">
+            <div class="list-group-item text-muted text-center">
+              <i class="bi bi-inbox"></i> No hay backups registrados
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Restaurar respaldos -->
-      <div class="card card-custom mb-4" id="restoreOptions" style="display: none;">
+      <div class="card card-custom mb-4">
         <div class="card-body">
           <h5 class="card-title"><i class="bi bi-cloud-download"></i> Restaurar Datos</h5>
           <div class="d-flex gap-2 mb-3">
-            <button class="btn btn-outline-info" onclick="loadAvailableBackups()">
-              <i class="bi bi-arrow-clockwise"></i> Buscar Respaldos
+            <input type="file" id="restoreFileInput" accept="application/json" class="form-control" style="display: none;">
+            <button class="btn btn-outline-info" onclick="document.getElementById('restoreFileInput').click()">
+              <i class="bi bi-upload"></i> Seleccionar Archivo de Backup
+            </button>
+            <button class="btn btn-outline-success" onclick="restoreFromFile()" id="restoreBtn" disabled>
+              <i class="bi bi-arrow-clockwise"></i> Restaurar Datos
             </button>
           </div>
-          <div id="availableBackups" class="list-group">
-            <!-- Lista de respaldos disponibles -->
-          </div>
+          <div class="form-text">Selecciona un archivo JSON de backup para restaurar tus datos</div>
         </div>
       </div>
 
@@ -1123,84 +1166,6 @@
                 <p>Ingresa el token del bot y el ID del canal en el formulario de arriba.</p>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========================================= -->
-    <!-- ☁️ VISTA: BACKUP AUTOMÁTICO TELEGRAM -->
-    <!-- ========================================= -->
-    <section id="view-telegram-backup" class="app-view d-none">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0"><i class="bi bi-cloud-arrow-up"></i> Backup Automático a Telegram</h2>
-      </div>
-      <div class="card card-custom mb-4">
-        <div class="card-body">
-          <h5 class="card-title"><i class="bi bi-gear"></i> Configuración de Telegram</h5>
-          <form id="telegramBackupForm" class="form-treinta">
-            <div class="row g-3 mb-3">
-              <div class="col-md-4">
-                <label for="telegramBotToken" class="form-label"><i class="bi bi-key"></i> Bot Token</label>
-                <input type="text" id="telegramBotToken" class="form-control form-control-treinta"
-                  placeholder="123456789:ABC..." required />
-              </div>
-              <div class="col-md-4">
-                <label for="telegramChatId" class="form-label"><i class="bi bi-person-badge"></i> Chat ID</label>
-                <input type="text" id="telegramChatId" class="form-control form-control-treinta"
-                  placeholder="Ej: 123456789" required />
-              </div>
-              <div class="col-md-4">
-                <label for="telegramBackupInterval" class="form-label"><i class="bi bi-clock-history"></i> Intervalo
-                  (minutos)</label>
-                <input type="number" id="telegramBackupInterval" class="form-control form-control-treinta" min="5"
-                  max="1440" value="60" required />
-                <div class="form-text">Mínimo: 5 min, Máximo: 1440 min (24h)</div>
-              </div>
-              <div class="col-md-4">
-                <label for="googleDriveBackupInterval" class="form-label"><i class="bi bi-cloud-arrow-up"></i> Intervalo
-                  Google Drive (minutos)</label>
-                <input type="number" id="googleDriveBackupInterval" class="form-control form-control-treinta" min="5"
-                  max="1440" value="60" required />
-                <div class="form-text">Mínimo: 5 min, Máximo: 1440 min (24h)</div>
-              </div>
-            </div>
-            <div class="d-grid gap-2 mb-3">
-              <button type="submit" class="btn btn-primary btn-treinta">
-                <i class="bi bi-save"></i> Guardar Configuración
-              </button>
-              <button type="button" class="btn btn-outline-success btn-treinta" id="testTelegramBackup">
-                <i class="bi bi-send"></i> Probar Envío Manual
-              </button>
-              <button type="button" class="btn btn-outline-secondary btn-treinta" id="importTelegramBackupBtn">
-                <i class="bi bi-upload"></i> Importar Backup
-              </button>
-              <input type="file" id="importTelegramBackupInput" accept="application/json" style="display:none" />
-            </div>
-          </form>
-        </div>
-      </div>
-      <div class="card card-custom">
-        <div class="card-body">
-          <h5 class="card-title"><i class="bi bi-question-circle"></i> Guía paso a paso</h5>
-          <ol class="telegram-guide-list">
-            <li>Abre <b>Telegram</b> y busca <b>@BotFather</b>.</li>
-            <li>Envía <code>/newbot</code> y sigue las instrucciones para crear un nuevo bot.<br>Guarda el <b>Token</b>
-              que te entrega BotFather.</li>
-            <li>Agrega tu bot al chat o grupo donde quieras recibir los backups.<br>Si es grupo, hazlo administrador.
-            </li>
-            <li>Para obtener el <b>Chat ID</b>:
-              <ul>
-                <li>Busca el bot <b>@userinfobot</b> en Telegram y escríbele o agrégalo al grupo.</li>
-                <li>Te mostrará tu <b>Chat ID</b> o el del grupo.</li>
-              </ul>
-            </li>
-            <li>Ingresa el <b>Token</b> y <b>Chat ID</b> en el formulario de arriba y guarda.</li>
-            <li>Configura el intervalo de respaldo automático (en minutos).</li>
-            <li>Pulsa <b>Probar Envío Manual</b> para verificar que todo funciona.</li>
-          </ol>
-          <div class="alert alert-info mt-3">
-            <b>Nota:</b> El backup enviará un archivo con todos tus datos de la app en formato JSON.
           </div>
         </div>
       </div>
@@ -1331,6 +1296,8 @@
   <!-- Detener loop inmediatamente -->
   <script src="stop-loop.js"></script>
 
+  <!-- Sistema de backup a Telegram -->
+  <script src="telegram-backup.js"></script>
   <!-- Lógica principal de la aplicación -->
   <script type="module" src="js/app.js"></script>
   
