@@ -573,6 +573,12 @@ function showView(viewName) {
   if (viewName === 'chickens' && window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
     window.tillupWebSocketClient.requestDataFromAllDevices();
   }
+
+  // Asegurar que los selectores de cliente/producto se actualicen al entrar a la vista
+  if (viewName === 'chickens') {
+    try { if (typeof window.updateClientSelector === 'function') window.updateClientSelector(); } catch (e) { console.error(e); }
+    try { if (typeof window.updateProductSelector === 'function') window.updateProductSelector(); } catch (e) { console.error(e); }
+  }
   
   // Actualizar navegación del sidebar
   document.querySelectorAll('.sidebar-nav-item').forEach(btn => btn.classList.remove('active'));
