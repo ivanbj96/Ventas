@@ -159,18 +159,18 @@ export function renderCart() {
     <div class="cart-item mb-2 p-2 border rounded">
       <div class="d-flex justify-content-between align-items-center">
         <div class="flex-grow-1">
-          <strong>${item.name}</strong>
+            <strong>${sanitizeHTML(item.name)}</strong>
           <div class="text-muted small">$${item.price.toFixed(2)} c/u</div>
         </div>
         <div class="d-flex align-items-center gap-2">
           <div class="d-flex align-items-center gap-1">
-            <button class="btn btn-sm btn-outline-secondary" onclick="changeCartQty('${item.id}', -1)">-</button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="changeCartQty('${sanitizeHTML(item.id)}', -1)">-</button>
             <span class="px-2">${item.qty}</span>
-            <button class="btn btn-sm btn-outline-secondary" onclick="changeCartQty('${item.id}', 1)">+</button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="changeCartQty('${sanitizeHTML(item.id)}', 1)">+</button>
           </div>
           <div class="text-end">
             <div class="fw-bold">$${(item.price * item.qty).toFixed(2)}</div>
-            <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('${item.id}')">
+              <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('${sanitizeHTML(item.id)}')">
               <i class="bi bi-trash"></i>
             </button>
           </div>

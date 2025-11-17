@@ -479,7 +479,7 @@ class WebSocketSync {
     notification.innerHTML = `
       <div class="d-flex align-items-center">
         <i class="bi bi-arrow-repeat me-2"></i>
-        <span>${message}</span>
+        <span>${sanitizeHTML(String(message || ''))}</span>
         <button type="button" class="btn-close ms-auto" onclick="this.parentElement.parentElement.remove()"></button>
       </div>
     `;
