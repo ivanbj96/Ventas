@@ -20,11 +20,11 @@ class SilentUpdater {
         
         // Actualizar contenido después de un frame
         requestAnimationFrame(() => {
-            if (typeof newContent === 'string') {
-                element.innerHTML = newContent;
-            } else if (typeof callback === 'function') {
-                callback(element);
-            }
+              if (typeof newContent === 'string') {
+                  safeSetHTML(element, newContent);
+              } else if (typeof callback === 'function') {
+                  callback(element);
+              }
             
             // Remover clase y aplicar clase de actualizado
             element.classList.remove('content-updating');

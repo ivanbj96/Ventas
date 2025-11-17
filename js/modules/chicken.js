@@ -523,12 +523,12 @@ export function updateChickenSalesList(opts = {}) {
     if (countElement) {
       countElement.textContent = '0 ventas';
     }
-    container.innerHTML = `
-      <div class="text-center py-4">
-        <i class="bi bi-egg-fried" style="font-size: 3rem; color: #ccc;"></i>
-        <p class="text-muted mt-2">No hay ventas de pollos registradas</p>
-      </div>
-    `;
+      container.innerHTML = `            
+        <div class="text-center py-4">   
+          <i class="bi bi-egg-fried" style="font-size: 3rem; color: #ccc;"></i>      
+          <p class="text-muted mt-2">${sanitizeHTML('No hay ventas de pollos registradas')}</p>         
+        </div>
+      `;
     return;
   }
   
@@ -560,65 +560,65 @@ export function updateChickenSalesList(opts = {}) {
     const periodText = opts && opts.fecha ? 
       `del ${new Date(opts.fecha).toLocaleDateString()}` : 
       'registradas';
-    container.innerHTML = `
-      <div class="text-center py-4">
-        <i class="bi bi-egg-fried" style="font-size: 3rem; color: #ccc;"></i>
-        <p class="text-muted mt-2">No hay ventas de pollos ${periodText}</p>
-      </div>
-    `;
+      container.innerHTML = `            
+        <div class="text-center py-4">   
+          <i class="bi bi-egg-fried" style="font-size: 3rem; color: #ccc;"></i>      
+          <p class="text-muted mt-2">${sanitizeHTML('No hay ventas de pollos ' + String(periodText))}</p>       
+        </div>
+      `;
     return;
   }
   
-  container.innerHTML = filteredSales.map((sale, idx) => `
-    <div class="chicken-sale-item-treinta">
-      <div class="chicken-sale-header-treinta">
-        <div class="chicken-sale-client-treinta">
-          <i class="bi bi-person"></i>
-          ${sale.clientName}
+    container.innerHTML = filteredSales.map((sale, idx) => `   
+      <div class="chicken-sale-item-treinta">                  
+        <div class="chicken-sale-header-treinta">              
+          <div class="chicken-sale-client-treinta">            
+            <i class="bi bi-person"></i>                       
+            ${sanitizeHTML(String(sale.clientName || ''))}           
+          </div>
+          <div class="chicken-sale-date-treinta">              
+            ${sanitizeHTML(new Date(sale.date).toLocaleDateString() + ' ' + String(sale.time || ''))}                 
+          </div>
+          <div class="chicken-sale-actions">                   
+            <button class="btn btn-sm btn-outline-primary" title="Editar" onclick="editChickenSale(${sanitizeHTML(String(chickenSales.indexOf(sale)))})">                    
+              <i class="bi bi-pencil"></i>                     
+            </button>                    
+            <button class="btn btn-sm btn-outline-danger" title="Eliminar" onclick="deleteChickenSale(${sanitizeHTML(String(chickenSales.indexOf(sale)))})">                 
+              <i class="bi bi-trash"></i>                      
+            </button>                    
+          </div>
         </div>
-        <div class="chicken-sale-date-treinta">
-          ${new Date(sale.date).toLocaleDateString()} ${sale.time}
+        
+        <div class="chicken-sale-details-treinta">             
+          <div class="chicken-sale-detail-treinta">            
+            <div class="chicken-sale-detail-label-treinta">Cantidad</div>            
+            <div class="chicken-sale-detail-value-treinta">${sanitizeHTML(String(sale.quantity || 0))} pollo(s)</div>            
+          </div>
+          <div class="chicken-sale-detail-treinta">            
+            <div class="chicken-sale-detail-label-treinta">Peso Total</div>          
+            <div class="chicken-sale-detail-value-treinta">${sanitizeHTML(String((sale.weight || 0)))} lbs</div>                 
+          </div>
+          <div class="chicken-sale-detail-treinta">            
+            <div class="chicken-sale-detail-label-treinta">Precio/Lb</div>           
+            <div class="chicken-sale-detail-value-treinta">$${(sale.pricePerPound || 0).toFixed(2)}</div>                        
+          </div>
+          <div class="chicken-sale-detail-treinta">            
+            <div class="chicken-sale-detail-label-treinta">Peso Promedio</div>       
+            <div class="chicken-sale-detail-value-treinta">${sanitizeHTML(String(((sale.weight || 0) / (sale.quantity || 1)).toFixed(1)))} lbs</div>   
+          </div>
         </div>
-        <div class="chicken-sale-actions">
-          <button class="btn btn-sm btn-outline-primary" title="Editar" onclick="editChickenSale(${chickenSales.indexOf(sale)})">
-            <i class="bi bi-pencil"></i>
-          </button>
-          <button class="btn btn-sm btn-outline-danger" title="Eliminar" onclick="deleteChickenSale(${chickenSales.indexOf(sale)})">
-            <i class="bi bi-trash"></i>
-          </button>
+        
+        <div class="chicken-sale-total-treinta">               
+          <div class="chicken-sale-total-label-treinta">Total</div>                  
+          <div class="chicken-sale-total-amount-treinta">$${(sale.total || 0).toFixed(2)}</div>            
+        </div>
+        
+        <div class="chicken-sale-payment-treinta ${sanitizeHTML(String(sale.paymentType || ''))}">               
+          <i class="bi bi-${sanitizeHTML(String(getPaymentIcon(sale.paymentType)))}"></i>                  
+          ${sanitizeHTML(String(getPaymentText(sale.paymentType) || ''))}                  
+          ${sale.paymentType === 'credit' && (sale.abono || 0) > 0 ? ` (Abono: $${(sale.abono || 0).toFixed(2)})` : ''}          
         </div>
       </div>
-      
-      <div class="chicken-sale-details-treinta">
-        <div class="chicken-sale-detail-treinta">
-          <div class="chicken-sale-detail-label-treinta">Cantidad</div>
-          <div class="chicken-sale-detail-value-treinta">${sale.quantity || 0} pollo(s)</div>
-        </div>
-        <div class="chicken-sale-detail-treinta">
-          <div class="chicken-sale-detail-label-treinta">Peso Total</div>
-          <div class="chicken-sale-detail-value-treinta">${(sale.weight || 0)} lbs</div>
-        </div>
-        <div class="chicken-sale-detail-treinta">
-          <div class="chicken-sale-detail-label-treinta">Precio/Lb</div>
-          <div class="chicken-sale-detail-value-treinta">$${(sale.pricePerPound || 0).toFixed(2)}</div>
-        </div>
-        <div class="chicken-sale-detail-treinta">
-          <div class="chicken-sale-detail-label-treinta">Peso Promedio</div>
-          <div class="chicken-sale-detail-value-treinta">${((sale.weight || 0) / (sale.quantity || 1)).toFixed(1)} lbs</div>
-        </div>
-      </div>
-      
-      <div class="chicken-sale-total-treinta">
-        <div class="chicken-sale-total-label-treinta">Total</div>
-        <div class="chicken-sale-total-amount-treinta">$${(sale.total || 0).toFixed(2)}</div>
-      </div>
-      
-      <div class="chicken-sale-payment-treinta ${sale.paymentType}">
-        <i class="bi bi-${getPaymentIcon(sale.paymentType)}"></i>
-        ${getPaymentText(sale.paymentType)}
-        ${sale.paymentType === 'credit' && (sale.abono || 0) > 0 ? ` (Abono: $${(sale.abono || 0).toFixed(2)})` : ''}
-      </div>
-    </div>
   `).join('');
 }
 

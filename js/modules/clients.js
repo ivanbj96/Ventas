@@ -385,9 +385,9 @@ export function setupClientImagePreview() {
       const file = e.target.files[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = function(e) {
-          preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa" style="max-width: 100%; height: auto; border-radius: 8px;">`;
-        };
+          reader.onload = function(e) {
+            preview.innerHTML = `<img src="${sanitizeUrl(e.target.result)}" alt="${sanitizeHTML('Vista previa')}" style="max-width: 100%; height: auto; border-radius: 8px;">`;
+          };
         reader.readAsDataURL(file);
       } else {
         preview.innerHTML = '';
