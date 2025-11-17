@@ -1456,15 +1456,18 @@ window.setupChickenMermaCalculation = function() {
 
 // Funciones para el selector de clientes
 window.updateClientSelector = function() {
-  // Obtener clientes desde múltiples fuentes
-  let clientsData = window.clients || clients;
-  if (!clientsData || !Array.isArray(clientsData) || clientsData.length === 0) {
-    try {
-      clientsData = JSON.parse(localStorage.getItem('clients') || '[]');
-    } catch (e) {
-      clientsData = [];
-    }
+  // Obtener clientes desde localStorage como fuente de verdad
+  let clientsData = [];
+  try {
+    clientsData = JSON.parse(localStorage.getItem('clients') || '[]');
+  } catch (e) {
+    clientsData = window.clients || clients || [];
   }
+  // Fallback: si sigue vacío, intentar usar bindings en memoria
+  if (!Array.isArray(clientsData) || clientsData.length === 0) {
+    clientsData = window.clients || clients || [];
+  }
+  console.debug('updateClientSelector -> clientsData length:', (clientsData && clientsData.length) || 0);
   
   console.log('🔄 Actualizando selectores con', clientsData.length, 'clientes');
   
