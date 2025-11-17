@@ -3,7 +3,7 @@
 // ========================================
 
 import { products, clients, sales, debts, cart, currentClientId } from './state.js';
-import { formatCurrency, generateId } from './utils.js';
+import { formatCurrency, generateId, sanitizeHTML, sanitizeUrl } from './utils.js';
 import { saveToStorage } from './persistence.js';
 
 // Importar chickenSales desde localStorage y mantenerlo sincronizado
@@ -57,9 +57,9 @@ export async function renderInventory() {
     container.innerHTML = realProducts.map(product => `
       <div class="col-6 col-md-4 col-lg-3">
         <div class="product-card-treinta" onclick="showProductDetailModal('${product.id}')">
-          <img src="${product.image || 'icons/descarga.png'}" alt="${product.name}" onerror="this.src='icons/descarga.png'">
-          <h5>${product.name}</h5>
-          <div class="product-category">${product.category || '-'}</div>
+          <img src="${sanitizeUrl(product.image)}" alt="${sanitizeHTML(product.name)}" onerror="this.src='icons/descarga.png'">
+          <h5>${sanitizeHTML(product.name)}</h5>
+          <div class="product-category">${sanitizeHTML(product.category || '-')}</div>
           <div class="product-price">$${product.price.toFixed(2)}</div>
           <div class="product-cost">Costo: $${product.cost.toFixed(2)}</div>
           <div class="mt-2">
@@ -75,12 +75,12 @@ export async function renderInventory() {
     container.innerHTML = realProducts.map(product => `
       <li class="list-group-item d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">
-          <img src="${product.image || 'icons/descarga.png'}" alt="${product.name}" 
+          <img src="${sanitizeUrl(product.image)}" alt="${sanitizeHTML(product.name)}" 
                style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; margin-right: 1rem;" 
                onerror="this.src='icons/descarga.png'">
           <div>
-            <h6 class="mb-0">${product.name}</h6>
-            <small class="text-muted">${product.category || '-'}</small>
+            <h6 class="mb-0">${sanitizeHTML(product.name)}</h6>
+            <small class="text-muted">${sanitizeHTML(product.category || '-')}</small>
           </div>
         </div>
         <div class="text-end">
@@ -149,12 +149,12 @@ export async function renderClients(searchTerm = '') {
       <div class="col-6 col-md-4 col-lg-3">
         <div class="client-card-treinta" onclick="showClientDetails('${client.id}')">
           ${client.photo ? 
-            `<img src="${client.photo}" alt="${client.name}" class="client-photo" onerror="this.parentElement.querySelector('.client-avatar').style.display='flex'; this.style.display='none';">` :
-            `<div class="client-avatar">${client.name.charAt(0).toUpperCase()}</div>`
+            `<img src="${sanitizeUrl(client.photo)}" alt="${sanitizeHTML(client.name)}" class="client-photo" onerror="this.parentElement.querySelector('.client-avatar').style.display='flex'; this.style.display='none';">` :
+            `<div class="client-avatar">${sanitizeHTML((client.name || ' ')[0]).toUpperCase()}</div>`
           }
-          <div class="client-name">${client.name}</div>
-          <div class="client-info">${client.phone || 'Sin teléfono'}</div>
-          <div class="client-info">${client.address || 'Sin dirección'}</div>
+          <div class="client-name">${sanitizeHTML(client.name || '')}</div>
+          <div class="client-info">${sanitizeHTML(client.phone || 'Sin teléfono')}</div>
+          <div class="client-info">${sanitizeHTML(client.address || 'Sin dirección')}</div>
           <div class="mt-2">
             <span class="badge ${client.debt > 0 ? 'bg-warning' : 'bg-success'}">
               ${client.debt > 0 ? `Deuda: $${client.debt.toFixed(2)}` : 'Sin deuda'}
@@ -169,17 +169,17 @@ export async function renderClients(searchTerm = '') {
       <li class="list-group-item d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">
           ${client.photo ? 
-            `<img src="${client.photo}" alt="${client.name}" class="client-photo" style="margin: 0 1rem 0 0;">` :
-            `<div class="client-avatar" style="margin: 0 1rem 0 0;">${client.name.charAt(0).toUpperCase()}</div>`
+            `<img src="${sanitizeUrl(client.photo)}" alt="${sanitizeHTML(client.name)}" class="client-photo" style="margin: 0 1rem 0 0;">` :
+            `<div class="client-avatar" style="margin: 0 1rem 0 0;">${sanitizeHTML((client.name || ' ')[0]).toUpperCase()}</div>`
           }
           <div>
-            <h6 class="mb-0">${client.name}</h6>
-            <small class="text-muted">${client.phone || 'Sin teléfono'}</small>
+            <h6 class="mb-0">${sanitizeHTML(client.name || '')}</h6>
+            <small class="text-muted">${sanitizeHTML(client.phone || 'Sin teléfono')}</small>
           </div>
         </div>
         <div class="text-end">
           <div class="fw-bold">${client.debt > 0 ? `$${client.debt.toFixed(2)}` : 'Sin deuda'}</div>
-          <small class="text-muted">${client.address || 'Sin dirección'}</small>
+          <small class="text-muted">${sanitizeHTML(client.address || 'Sin dirección')}</small>
         </div>
         <div class="ms-3">
           <button class="btn btn-sm btn-outline-primary" onclick="showClientDetails('${client.id}')">
@@ -237,7 +237,7 @@ export function renderDebts(searchTerm = '', statusFilter = 'pending') {
     const message = searchTerm ? 
       'No se encontraron deudas con ese término de búsqueda' : 
       (statusFilter === 'paid' ? 'No hay deudas pagadas' : 'No hay deudas pendientes');
-    list.innerHTML = `<div class='alert alert-info text-center'>${message}</div>`;
+    list.innerHTML = `<div class='alert alert-info text-center'>${sanitizeHTML(message)}</div>`;
     return;
   }
 
@@ -257,7 +257,7 @@ export function renderDebts(searchTerm = '', statusFilter = 'pending') {
       <div class="col-12 col-md-6 col-lg-4">
         <div class="card h-100 shadow-sm">
           <div class="card-header bg-primary text-white">
-            <span><i class="bi bi-person"></i> ${clientName}</span>
+            <span><i class="bi bi-person"></i> ${sanitizeHTML(clientName)}</span>
             <span class="badge bg-light text-primary">${clientDebts.length} deuda${clientDebts.length > 1 ? 's' : ''}</span>
           </div>
           <div class="card-body p-2">
@@ -265,8 +265,8 @@ export function renderDebts(searchTerm = '', statusFilter = 'pending') {
               <div class="debt-item border rounded p-2 mb-1" onclick="showDebtDetailModal('${debt.id}')">
                 <div class="d-flex justify-content-between">
                   <div>
-                    <div class="fw-bold">${debt.reason || debt.description || 'Sin descripción'}</div>
-                    <div class="text-muted small">${debt.date ? new Date(debt.date).toLocaleDateString() : ''}</div>
+                    <div class="fw-bold">${sanitizeHTML(debt.reason || debt.description || 'Sin descripción')}</div>
+                    <div class="text-muted small">${sanitizeHTML(debt.date ? new Date(debt.date).toLocaleDateString() : '')}</div>
                     ${debt.originalAmount && debt.originalAmount !== debt.amount ? 
                       `<div class="text-info small">Original: $${debt.originalAmount.toFixed(2)}</div>` : ''}
                   </div>
@@ -331,18 +331,18 @@ export function renderSalesProducts() {
   container.innerHTML = filteredProducts.map(product => `
     <div class="product-card-temu ${product.stock <= 0 ? 'out-of-stock' : ''}" onclick="addToCart('${product.id}')">
       <div class="product-image-container">
-        <img src="${product.image || 'icons/descarga.png'}" 
-             class="product-image" alt="${product.name}" 
+        <img src="${sanitizeUrl(product.image)}" 
+             class="product-image" alt="${sanitizeHTML(product.name)}" 
              onerror="this.src='icons/descarga.png'">
         ${product.stock <= 0 ? '<div class="stock-overlay">Sin Stock</div>' : ''}
       </div>
       <div class="product-info">
-        <h6 class="product-name">${product.name}</h6>
+        <h6 class="product-name">${sanitizeHTML(product.name)}</h6>
         <div class="product-price">$${product.price.toFixed(2)}</div>
         <div class="product-stock">
           <i class="bi bi-box-seam"></i> ${product.stock} disponibles
         </div>
-        ${product.category ? `<div class="product-category">${product.category}</div>` : ''}
+        ${product.category ? `<div class="product-category">${sanitizeHTML(product.category)}</div>` : ''}
       </div>
       <div class="product-actions">
         <button class="btn-add-cart ${product.stock <= 0 ? 'disabled' : ''}" 
@@ -483,8 +483,8 @@ export function renderBalanceGrid(opts = {}) {
           <i class="bi ${movement.icon}"></i>
         </div>
         <div class="movement-content">
-          <div class="movement-title">${movement.title || 'Movimiento'}</div>
-          <div class="movement-subtitle">${movement.subtitle || ''}</div>
+          <div class="movement-title">${sanitizeHTML(movement.title || 'Movimiento')}</div>
+          <div class="movement-subtitle">${sanitizeHTML(movement.subtitle || '')}</div>
         </div>
         <div class="movement-amount ${movement.amountClass}">
           ${movement.amountClass === 'positive' ? '+' : ''}$${(movement.amount || 0).toFixed(2)}
@@ -990,7 +990,7 @@ function showChickenReceiptFromMovement(sale) {
       
       <div class="receipt-client">
         <i class="bi bi-person"></i>
-        <strong>Cliente:</strong> ${sale.clientName}
+        <strong>Cliente:</strong> ${sanitizeHTML(sale.clientName)}
       </div>
       
       <div class="receipt-items">
@@ -1002,8 +1002,8 @@ function showChickenReceiptFromMovement(sale) {
         </div>
         
         <div class="receipt-item">
-          <div class="item-name">Pollo(s) - ${sale.weight} lbs</div>
-          <div class="item-qty">${sale.quantity}</div>
+          <div class="item-name">Pollo(s) - ${sanitizeHTML(sale.weight)} lbs</div>
+          <div class="item-qty">${sanitizeHTML(sale.quantity)}</div>
           <div class="item-price">$${sale.pricePerPound.toFixed(2)}</div>
           <div class="item-subtotal">$${sale.total.toFixed(2)}</div>
         </div>

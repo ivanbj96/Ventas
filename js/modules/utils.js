@@ -71,3 +71,74 @@ export function isMobileDevice() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
          (window.innerWidth <= 768);
 }
+
+// === SANITIZACIÓN Y SEGURIDAD (Prevención XSS) ===
+/**
+ * Escapa cualquier string para evitar inyección de HTML (XSS).
+ * Convierte el texto en contenido textNode y devuelve su innerHTML escapado.
+ * @param {any} str
+ * @returns {string}
+ */
+export function sanitizeHTML(str) {
+  if (str === null || str === undefined) return '';
+  try {
+    const s = String(str);
+    const temp = document.createElement('div');
+    temp.textContent = s;
+    return temp.innerHTML;
+  } catch (e) {
+    return '';
+  }
+}
+
+/**
+ * Establece contenido HTML seguro en un elemento usando sanitización.
+ * Útil cuando se necesita usar innerHTML pero queremos escapar el contenido dinámico.
+ * @param {Element} element
+ * @param {any} content
+ */
+export function safeSetHTML(element, content) {
+  if (!element) return;
+  element.innerHTML = sanitizeHTML(content);
+}
+
+// === UTILIDADES DE RENDIMIENTO ===
+/**
+ * Debounce simple
+ * @param {Function} fn
+ * @param {number} wait
+ */
+export function debounce(fn, wait = 250) {
+  let timer = null;
+  return function (...args) {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      fn.apply(this, args);
+      timer = null;
+    }, wait);
+  };
+}
+
+/**
+ * Sanitiza una URL de recurso para evitar esquemas peligrosos (ej. javascript:)
+ * Si la URL no es segura, retorna una ruta por defecto.
+ * @param {string} url
+ * @param {string} fallback
+ */
+export function sanitizeUrl(url, fallback = 'icons/descarga.png') {
+  try {
+    if (!url) return fallback;
+    const s = String(url).trim();
+    // Rechazar esquemas peligrosos
+    const lower = s.toLowerCase();
+    if (lower.startsWith('javascript:') || lower.startsWith('data:text/html')) return fallback;
+    // Permitir rutas relativas e http/https/data:image
+    if (lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('/') || lower.startsWith('data:image')) {
+      return s;
+    }
+    // Cualquier otro caso usar fallback
+    return fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
