@@ -856,8 +856,8 @@ class TillUpSyncManager {
             chicken_sale: '🐔'
         };
         
-        const indicator = document.createElement('div');
-        indicator.innerHTML = icons[dataType] || '🔄';
+          const indicator = document.createElement('div');
+          indicator.innerHTML = sanitizeHTML(String(icons[dataType] || '🔄'));
         indicator.style.cssText = `
             position: fixed;
             top: 50%;

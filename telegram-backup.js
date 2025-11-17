@@ -212,25 +212,25 @@ class TelegramBackup {
       return;
     }
 
-    historyContainer.innerHTML = this.backupHistory.slice(0, 10).map(entry => `
-      <div class="list-group-item d-flex justify-content-between align-items-center">
-        <div>
-          <div class="d-flex align-items-center">
-            <i class="bi bi-${this.getBackupIcon(entry.type)} me-2"></i>
-            <strong>${this.getBackupTypeText(entry.type)}</strong>
-            <span class="badge bg-${entry.status === 'success' ? 'success' : 'danger'} ms-2">
-              ${entry.status === 'success' ? 'Exitoso' : 'Error'}
-            </span>
+      historyContainer.innerHTML = this.backupHistory.slice(0, 10).map(entry => `
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div class="d-flex align-items-center">
+              <i class="bi bi-${sanitizeHTML(this.getBackupIcon(entry.type))} me-2"></i>
+              <strong>${sanitizeHTML(this.getBackupTypeText(entry.type))}</strong>
+              <span class="badge bg-${entry.status === 'success' ? 'success' : 'danger'} ms-2">
+                ${entry.status === 'success' ? 'Exitoso' : 'Error'}
+              </span>
+            </div>
+            <small class="text-muted">${sanitizeHTML(entry.message || '')}</small>
           </div>
-          <small class="text-muted">${entry.message}</small>
+          <div class="text-end">
+            <small class="text-muted d-block">${sanitizeHTML(entry.date || '')}</small>
+            <small class="text-muted">${sanitizeHTML(entry.time || '')}</small>
+            ${entry.size > 0 ? `<small class="text-muted d-block">${sanitizeHTML(this.formatFileSize(entry.size))}</small>` : ''}
+          </div>
         </div>
-        <div class="text-end">
-          <small class="text-muted d-block">${entry.date}</small>
-          <small class="text-muted">${entry.time}</small>
-          ${entry.size > 0 ? `<small class="text-muted d-block">${this.formatFileSize(entry.size)}</small>` : ''}
-        </div>
-      </div>
-    `).join('');
+      `).join('');
   }
 
   // === BACKUP AUTOMÁTICO ===

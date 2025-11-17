@@ -243,11 +243,11 @@ export function editClient(clientId) {
   if (locationInput) locationInput.value = client.location || '';
   
   if (preview) {
-    if (client.photo) {
-      preview.innerHTML = `<img src="${client.photo}" alt="Foto actual" style="max-width: 100%; height: auto; border-radius: 8px;">`;
-    } else {
-      preview.innerHTML = '';
-    }
+      if (client.photo) {
+        preview.innerHTML = `<img src="${sanitizeUrl(client.photo)}" alt="${sanitizeHTML(client.name || 'Foto actual')}" style="max-width: 100%; height: auto; border-radius: 8px;">`;
+      } else {
+        preview.innerHTML = '';
+      }
   }
   
   window.editingClientId = clientId;
@@ -385,9 +385,9 @@ export function setupClientImagePreview() {
       const file = e.target.files[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = function(e) {
-          preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa" style="max-width: 100%; height: auto; border-radius: 8px;">`;
-        };
+          reader.onload = function(e) {
+            preview.innerHTML = `<img src="${sanitizeUrl(e.target.result)}" alt="${sanitizeHTML('Vista previa')}" style="max-width: 100%; height: auto; border-radius: 8px;">`;
+          };
         reader.readAsDataURL(file);
       } else {
         preview.innerHTML = '';

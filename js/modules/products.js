@@ -317,8 +317,9 @@ export function editProduct(productId) {
   if (stockInput) stockInput.value = product.stock || 0;
   
   if (preview) {
-    if (product.image) {
-      preview.innerHTML = `<img src="${product.image}" alt="Imagen actual" style="max-width: 100%; height: auto; border-radius: 8px;">`;
+      if (preview) {
+        if (product.image) {
+          preview.innerHTML = `<img src="${sanitizeUrl(product.image)}" alt="${sanitizeHTML(product.name || 'Imagen actual')}" style="max-width: 100%; height: auto; border-radius: 8px;">`;
     } else {
       preview.innerHTML = '';
     }
@@ -347,13 +348,13 @@ export function showProductDetailModal(productId) {
   
   const html = `
     <div class="text-center mb-3">
-      ${product.image ? `<img src="${product.image}" alt="${product.name}" style="width:120px;height:120px;object-fit:cover;border-radius:8px;" />` : ''}
+      ${product.image ? `<img src="${sanitizeUrl(product.image)}" alt="${sanitizeHTML(product.name || '')}" style="width:120px;height:120px;object-fit:cover;border-radius:8px;" />` : ''}
     </div>
-    <h4 class="mb-2">${product.name}</h4>
-    <p><strong>Categoría:</strong> ${product.category || '-'}</p>
+    <h4 class="mb-2">${sanitizeHTML(product.name)}</h4>
+    <p><strong>Categoría:</strong> ${sanitizeHTML(product.category || '-')}</p>
     <p><strong>Costo:</strong> $${product.cost.toFixed(2)}</p>
     <p><strong>Precio:</strong> $${product.price.toFixed(2)}</p>
-    <p><strong>Stock:</strong> ${product.stock}</p>
+    <p><strong>Stock:</strong> ${sanitizeHTML(String(product.stock))}</p>
     <div class="d-flex justify-content-end gap-2 mt-4">
       <button class="btn btn-outline-danger" id="deleteProductBtn">
         <i class="bi bi-trash"></i> Eliminar
@@ -397,7 +398,7 @@ export function setupProductImagePreview() {
       if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
-          preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa" style="max-width: 100%; height: auto; border-radius: 8px;">`;
+          preview.innerHTML = `<img src="${sanitizeUrl(e.target.result)}" alt="${sanitizeHTML('Vista previa')}" style="max-width: 100%; height: auto; border-radius: 8px;">`;
         };
         reader.readAsDataURL(file);
       } else {
