@@ -116,6 +116,7 @@ export async function addProduct(e) {
           
           renderInventory();
           renderSalesProducts();
+          if (window.updateProductSelector) window.updateProductSelector();
           
           // Forzar sincronización completa inmediatamente
           if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
@@ -191,6 +192,7 @@ export async function addProduct(e) {
         
         renderInventory();
         renderSalesProducts();
+        if (window.updateProductSelector) window.updateProductSelector();
         
         // Forzar sincronización completa inmediatamente
         if (window.tillupWebSocketClient && window.tillupWebSocketClient.isConnected) {
@@ -272,6 +274,7 @@ export function deleteProduct(productId) {
       
       renderInventory();
       renderSalesProducts();
+      if (window.updateProductSelector) window.updateProductSelector();
       
       Swal.fire({ 
         icon: 'success', 

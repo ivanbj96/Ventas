@@ -1499,6 +1499,89 @@ window.updateClientSelector = function() {
   }
 };
 
+// --- Helpers to make selects searchable when they have many options ---
+function makeSelectSearchable(select) {
+  if (!select) return;
+  const container = select.parentElement;
+  if (!container) return;
+  // Avoid duplicating the search input
+  if (container.querySelector('.select-search-input')) return;
+
+  const input = document.createElement('input');
+  input.type = 'search';
+  input.placeholder = 'Buscar...';
+  input.className = 'form-control form-control-sm mb-1 select-search-input';
+
+  // Filter function
+  input.addEventListener('input', () => {
+    const term = (input.value || '').toLowerCase().trim();
+    Array.from(select.options).forEach(opt => {
+      const txt = (opt.textContent || '').toLowerCase();
+      opt.hidden = term && !txt.includes(term);
+    });
+  });
+
+  // Insert input before select
+  container.insertBefore(input, select);
+}
+
+function applySearchIfNeeded(select) {
+  if (!select) return;
+  const optionCount = select.options ? select.options.length : 0;
+  if (optionCount > 10) {
+    makeSelectSearchable(select);
+  } else {
+    // Remove search input if present and not needed
+    const container = select.parentElement;
+    if (container) {
+      const existing = container.querySelector('.select-search-input');
+      if (existing) existing.remove();
+      // Ensure all options visible
+      Array.from(select.options).forEach(o => o.hidden = false);
+    }
+  }
+}
+
+// Update all product-related selects (if any) and apply search enhancement
+window.updateProductSelector = function() {
+  // Find selects that likely list products by data attribute or id
+  const selectors = Array.from(document.querySelectorAll('select'))
+    .filter(s => (s.id && /product/i.test(s.id)) || (s.dataset && s.dataset.productSelector === 'true'));
+
+  // If none found, try common containers (sales products grid doesn't use select)
+  selectors.forEach(sel => {
+    const current = sel.value;
+    // Try to populate from localStorage products
+    try {
+      const productsData = JSON.parse(localStorage.getItem('products') || '[]');
+      sel.innerHTML = '<option value="">Seleccionar producto...</option>';
+      productsData.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        sel.appendChild(opt);
+      });
+      sel.value = current;
+    } catch (e) {
+      // ignore
+    }
+    applySearchIfNeeded(sel);
+  });
+};
+
+// Apply search enhancement to client selectors after update
+const originalWindowUpdateClientSelector = window.updateClientSelector;
+window.updateClientSelector = function() {
+  try { originalWindowUpdateClientSelector(); } catch (e) { console.error(e); }
+  const clientSelectors = [
+    document.getElementById('saleClientDrawer'),
+    document.getElementById('chickenClient'),
+    document.getElementById('cartClientSelector'),
+    document.getElementById('editClientId')
+  ];
+  clientSelectors.forEach(s => applySearchIfNeeded(s));
+};
+
 // Función para inicializar fechas
 window.initializeDates = function() {
   const today = getLocalDateString();
