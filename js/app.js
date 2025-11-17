@@ -1591,6 +1591,29 @@ window.updateClientSelector = function() {
   clientSelectors.forEach(s => applySearchIfNeeded(s));
 };
 
+// Minimal, focused helper: refresh only the chicken client select from localStorage
+window.refreshChickenClientSelect = function() {
+  try {
+    const clientsData = JSON.parse(localStorage.getItem('clients') || '[]');
+    const sel = document.getElementById('chickenClient');
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">Seleccionar cliente...</option>';
+    if (Array.isArray(clientsData)) {
+      clientsData.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.name || c.id;
+        sel.appendChild(opt);
+      });
+    }
+    // restore current selection if still present
+    try { sel.value = current; } catch (e) { /* ignore */ }
+  } catch (err) {
+    console.error('refreshChickenClientSelect error', err);
+  }
+};
+
 // Función para inicializar fechas
 window.initializeDates = function() {
   const today = getLocalDateString();

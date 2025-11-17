@@ -103,11 +103,16 @@ export async function addClient(e) {
       }
       
       renderClients();
+      renderClients();
       updateClientSelector();
       
       // Actualizar selector global también
       if (window.updateClientSelector) {
         window.updateClientSelector();
+      }
+      // Force-refresh minimal selector for chicken sales to avoid requiring reload
+      if (window.refreshChickenClientSelect) {
+        try { window.refreshChickenClientSelect(); } catch (e) { console.error(e); }
       }
 
       // Limpiar formulario
