@@ -3,41 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TillUp - Sin Conexión</title>
+    <title>Activar Modo Desarrollador - ZTE A54</title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            text-align: center; 
-            padding: 50px; 
-            background: #f8f9fa; 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .offline-container {
-            max-width: 400px;
-            margin: 0 auto;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        .container {
             background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
         }
-        .offline-icon { font-size: 4rem; margin-bottom: 20px; }
-        .retry-btn {
-            background: #007bff;
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .step {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: #667eea;
             color: white;
+            border-radius: 50%;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .step-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 18px 30px;
+            margin: 15px 0;
+            font-size: 16px;
+            font-weight: bold;
+            text-decoration: none;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
             border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
             cursor: pointer;
-            margin-top: 20px;
+        }
+        .btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+        }
+        .info {
+            margin-top: 25px;
+            padding: 20px;
+            background: #e7f3ff;
+            border-radius: 12px;
+            font-size: 14px;
+            color: #004085;
+            border: 2px solid #b8daff;
+        }
+        .warning {
+            margin-top: 15px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 10px;
+            font-size: 13px;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+        .success {
+            margin-top: 15px;
+            padding: 15px;
+            background: #d4edda;
+            border-radius: 10px;
+            font-size: 13px;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        .icon {
+            font-size: 48px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="offline-container">
-        <div class="offline-icon">📱</div>
-        <h2>TillUp POS</h2>
-        <p>Sin conexión a internet</p>
-        <p>Verifica tu conexión e intenta nuevamente</p>
-        <button class="retry-btn" onclick="window.location.reload()">Reintentar</button>
+    <div class="container">
+        <div class="icon">🔧</div>
+        <h1>Activar Modo Desarrollador</h1>
+        <p class="subtitle">ZTE A54 - Configuración Automática</p>
+        
+        <div class="step">
+            <div class="step-title">
+                <span class="step-number">1</span>
+                Activar Opciones de Desarrollador
+            </div>
+            <p style="color: #666; font-size: 14px; margin-top: 10px;">
+                Primero debes habilitar el modo desarrollador
+            </p>
+        </div>
+        
+        <a href="intent:#Intent;action=android.settings.DEVICE_INFO_SETTINGS;end" class="btn">
+            📱 Ir a "Acerca del teléfono"
+        </a>
+        
+        <div class="warning">
+            <strong>⚠️ Importante:</strong><br>
+            Una vez en "Acerca del teléfono", busca "Número de compilación" y tócalo 7 veces seguidas
+        </div>
+        
+        <div class="step" style="margin-top: 30px;">
+            <div class="step-title">
+                <span class="step-number">2</span>
+                Abrir Opciones de Desarrollador
+            </div>
+            <p style="color: #666; font-size: 14px; margin-top: 10px;">
+                Después de activar, abre las opciones
+            </p>
+        </div>
+        
+        <a href="intent:#Intent;action=android.settings.APPLICATION_DEVELOPMENT_SETTINGS;end" class="btn btn-secondary">
+            ⚙️ Abrir Opciones de Desarrollador
+        </a>
+        
+        <a href="intent://settings/com.android.settings/.Settings$DevelopmentSettingsDashboardActivity#Intent;scheme=android-app;end" class="btn btn-secondary">
+            🔧 Método Alternativo
+        </a>
+        
+        <div class="step" style="margin-top: 30px;">
+            <div class="step-title">
+                <span class="step-number">3</span>
+                Activar Depuración USB
+            </div>
+            <p style="color: #666; font-size: 14px; margin-top: 10px;">
+                Busca y activa "Depuración USB"
+            </p>
+        </div>
+        
+        <div class="success">
+            <strong>✅ Listo!</strong><br>
+            Ahora puedes conectar tu dispositivo a la PC y usar ADB
+        </div>
+        
+        <div class="info">
+            <strong>📋 Resumen de pasos:</strong><br>
+            1. Toca "Ir a Acerca del teléfono"<br>
+            2. Busca "Número de compilación"<br>
+            3. Tócalo 7 veces<br>
+            4. Vuelve aquí y toca "Abrir Opciones de Desarrollador"<br>
+            5. Activa "Depuración USB"
+        </div>
     </div>
 </body>
 </html>
