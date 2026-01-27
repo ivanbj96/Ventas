@@ -45,6 +45,11 @@
             border-radius: 15px;
             margin-bottom: 20px;
             border-left: 5px solid #667eea;
+            transition: all 0.3s;
+        }
+        .step.completed {
+            border-left-color: #28a745;
+            background: #d4edda;
         }
         .step-number {
             display: inline-block;
@@ -56,6 +61,10 @@
             line-height: 30px;
             font-weight: bold;
             margin-right: 10px;
+            transition: all 0.3s;
+        }
+        .step.completed .step-number {
+            background: #28a745;
         }
         .step-title {
             font-weight: bold;
@@ -91,6 +100,10 @@
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
         }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         .info {
             margin-top: 25px;
             padding: 20px;
@@ -109,6 +122,42 @@
             color: #856404;
             border: 2px solid #ffeaa7;
         }
+        .tap-counter {
+            margin-top: 15px;
+            padding: 20px;
+            background: #fff3cd;
+            border-radius: 12px;
+            border: 3px solid #ffc107;
+        }
+        .tap-counter h3 {
+            color: #856404;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .tap-button {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            border-radius: 50%;
+            border: none;
+            color: white;
+            font-size: 48px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(255, 193, 7, 0.5);
+            transition: all 0.2s;
+            margin: 10px auto;
+            display: block;
+        }
+        .tap-button:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.5);
+        }
+        .tap-count {
+            font-size: 32px;
+            font-weight: bold;
+            color: #856404;
+            margin: 15px 0;
+        }
         .success {
             margin-top: 15px;
             padding: 15px;
@@ -122,74 +171,186 @@
             font-size: 48px;
             margin-bottom: 20px;
         }
+        .hidden {
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="icon">🔧</div>
         <h1>Activar Modo Desarrollador</h1>
-        <p class="subtitle">ZTE A54 - Configuración Automática</p>
+        <p class="subtitle">ZTE A54 - Configuración Interactiva</p>
         
-        <div class="step">
+        <div class="step" id="step1">
             <div class="step-title">
                 <span class="step-number">1</span>
-                Activar Opciones de Desarrollador
+                Ir a Información del Dispositivo
             </div>
             <p style="color: #666; font-size: 14px; margin-top: 10px;">
-                Primero debes habilitar el modo desarrollador
+                Abre la configuración de tu dispositivo
             </p>
         </div>
         
-        <a href="intent:#Intent;action=android.settings.DEVICE_INFO_SETTINGS;end" class="btn">
-            📱 Ir a "Acerca del teléfono"
+        <a href="intent:#Intent;action=android.settings.DEVICE_INFO_SETTINGS;end" class="btn" id="btn1" onclick="markStep1()">
+            📱 Método 1: Información del dispositivo
         </a>
         
-        <div class="warning">
-            <strong>⚠️ Importante:</strong><br>
-            Una vez en "Acerca del teléfono", busca "Número de compilación" y tócalo 7 veces seguidas
+        <a href="intent://settings/com.android.settings/.Settings$MyDeviceInfoActivity#Intent;scheme=android-app;end" class="btn" onclick="markStep1()">
+            📱 Método 2: Mi dispositivo (ZTE)
+        </a>
+        
+        <a href="intent://settings/com.android.settings/.DeviceInfoSettings#Intent;scheme=android-app;end" class="btn" onclick="markStep1()">
+            📱 Método 3: Device Info
+        </a>
+        
+        <a href="intent:#Intent;component=com.android.settings/.Settings$DeviceInfoSettingsActivity;end" class="btn" onclick="markStep1()">
+            📱 Método 4: Settings Activity
+        </a>
+        
+        <details style="margin: 20px 0; text-align: left;">
+            <summary style="cursor: pointer; padding: 10px; background: #f0f0f0; border-radius: 8px; font-weight: bold;">
+                🔍 Ver ruta manual completa
+            </summary>
+            <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; margin-top: 10px; font-size: 13px;">
+                <strong>Ruta en ZTE A54:</strong><br><br>
+                Ajustes → Sistema → Acerca del teléfono → Número de compilación<br><br>
+                <strong>O también puede estar en:</strong><br>
+                • Ajustes → Acerca del teléfono → Información del software → Número de compilación<br>
+                • Ajustes → Mi dispositivo → Toda la información → Número de compilación<br>
+                • Ajustes → Sistema → Información del teléfono → Versión de compilación
+            </div>
+        </details>
+        
+        <div class="tap-counter" id="tapCounter">
+            <h3>👆 Simulador de Toques</h3>
+            <p style="color: #856404; margin-bottom: 15px;">
+                Practica aquí antes de hacerlo en tu dispositivo
+            </p>
+            <button class="tap-button" id="tapButton" onclick="handleTap()">👆</button>
+            <div class="tap-count" id="tapCount">0 / 7</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p style="color: #856404; font-size: 12px; margin-top: 10px;">
+                Toca el botón 7 veces rápidamente
+            </p>
         </div>
         
-        <div class="step" style="margin-top: 30px;">
+        <div class="warning">
+            <strong>⚠️ Ahora en tu dispositivo:</strong><br>
+            Busca "Número de compilación" y tócalo 7 veces seguidas (como practicaste arriba)
+        </div>
+        
+        <button class="btn btn-success" onclick="markStep2()" style="margin-top: 20px;">
+            ✅ Ya toqué 7 veces el Número de compilación
+        </button>
+        
+        <div class="step hidden" id="step2">
             <div class="step-title">
                 <span class="step-number">2</span>
                 Abrir Opciones de Desarrollador
             </div>
             <p style="color: #666; font-size: 14px; margin-top: 10px;">
-                Después de activar, abre las opciones
+                Ahora puedes acceder a las opciones de desarrollador
             </p>
         </div>
         
-        <a href="intent:#Intent;action=android.settings.APPLICATION_DEVELOPMENT_SETTINGS;end" class="btn btn-secondary">
+        <a href="intent:#Intent;action=android.settings.APPLICATION_DEVELOPMENT_SETTINGS;end" class="btn btn-secondary hidden" id="btn2" onclick="markStep3()">
             ⚙️ Abrir Opciones de Desarrollador
         </a>
         
-        <a href="intent://settings/com.android.settings/.Settings$DevelopmentSettingsDashboardActivity#Intent;scheme=android-app;end" class="btn btn-secondary">
+        <a href="intent://settings/com.android.settings/.Settings$DevelopmentSettingsDashboardActivity#Intent;scheme=android-app;end" class="btn btn-secondary hidden" id="btn2alt">
             🔧 Método Alternativo
         </a>
         
-        <div class="step" style="margin-top: 30px;">
+        <div class="step hidden" id="step3">
             <div class="step-title">
                 <span class="step-number">3</span>
                 Activar Depuración USB
             </div>
             <p style="color: #666; font-size: 14px; margin-top: 10px;">
-                Busca y activa "Depuración USB"
+                Busca y activa "Depuración USB" en las opciones
             </p>
         </div>
         
-        <div class="success">
-            <strong>✅ Listo!</strong><br>
-            Ahora puedes conectar tu dispositivo a la PC y usar ADB
+        <div class="success hidden" id="finalSuccess">
+            <strong>🎉 ¡Felicidades!</strong><br>
+            Has activado el modo desarrollador correctamente.<br>
+            Ahora puedes conectar tu dispositivo a la PC y usar ADB.
         </div>
         
         <div class="info">
-            <strong>📋 Resumen de pasos:</strong><br>
-            1. Toca "Ir a Acerca del teléfono"<br>
-            2. Busca "Número de compilación"<br>
-            3. Tócalo 7 veces<br>
-            4. Vuelve aquí y toca "Abrir Opciones de Desarrollador"<br>
-            5. Activa "Depuración USB"
+            <strong>💡 Consejo:</strong><br>
+            Sigue los pasos en orden y marca cada uno cuando lo completes.
         </div>
     </div>
+
+    <script>
+        let tapCount = 0;
+        
+        function handleTap() {
+            tapCount++;
+            document.getElementById('tapCount').textContent = tapCount + ' / 7';
+            document.getElementById('progressFill').style.width = (tapCount / 7 * 100) + '%';
+            
+            if (tapCount >= 7) {
+                document.getElementById('tapButton').textContent = '✅';
+                document.getElementById('tapButton').style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+                document.getElementById('tapCount').textContent = '¡Completado! 🎉';
+                document.getElementById('tapCount').style.color = '#28a745';
+                
+                setTimeout(() => {
+                    alert('¡Excelente! Ahora hazlo en tu dispositivo real:\n\n1. Busca "Número de compilación"\n2. Tócalo 7 veces seguidas\n3. Verás un mensaje de confirmación');
+                }, 300);
+            }
+        }
+        
+        function markStep1() {
+            setTimeout(() => {
+                document.getElementById('step1').classList.add('completed');
+            }, 500);
+        }
+        
+        function markStep2() {
+            document.getElementById('step1').classList.add('completed');
+            document.getElementById('step2').classList.remove('hidden');
+            document.getElementById('btn2').classList.remove('hidden');
+            document.getElementById('btn2alt').classList.remove('hidden');
+            document.getElementById('tapCounter').style.display = 'none';
+            
+            // Scroll suave al siguiente paso
+            setTimeout(() => {
+                document.getElementById('step2').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+        
+        function markStep3() {
+            setTimeout(() => {
+                document.getElementById('step2').classList.add('completed');
+                document.getElementById('step3').classList.remove('hidden');
+                document.getElementById('finalSuccess').classList.remove('hidden');
+                
+                // Scroll al final
+                setTimeout(() => {
+                    document.getElementById('finalSuccess').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }, 500);
+        }
+    </script>
 </body>
 </html>
